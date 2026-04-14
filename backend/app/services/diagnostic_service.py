@@ -284,6 +284,7 @@ class DiagnosticService:
             # Required non-optional fields
             completed_items=[],
             footer_text=f"Vendoroo Operations Analysis \u2022 {client_info.company_name} \u2022 {report_date}",
+            wo_metrics=wo_metrics,
         )
 
         # generate_pdf is sync; run in executor to avoid blocking the event loop
