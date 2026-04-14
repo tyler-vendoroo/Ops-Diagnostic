@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import type { LeadCapture } from "@/lib/types";
+import { createLead } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Label } from "@/components/ui/label";
 
 const STORAGE_KEY = "vendoroo_ops_diagnostic_lead";
 
-function saveLeadToStorage(lead: LeadCapture) {
+function saveLeadToStorage(lead: LeadCapture & { lead_id?: string }) {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(lead));
 }
@@ -29,8 +30,9 @@ export function LeadCaptureForm({
   const [phone, setPhone] = React.useState("");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!name.trim() || !email.trim() || !company.trim()) {
@@ -48,8 +50,19 @@ export function LeadCaptureForm({
       phone: phone.trim() || undefined,
       terms_accepted: true,
     };
-    saveLeadToStorage(lead);
-    onSubmitted(lead);
+    setLoading(true);
+    try {
+      const { lead_id } = await createLead(lead);
+      saveLeadToStorage({ ...lead, lead_id });
+      onSubmitted(lead);
+    } catch (err) {
+      console.error("Lead capture failed:", err);
+      // Still proceed — don't block the user if API is down
+      saveLeadToStorage(lead);
+      onSubmitted(lead);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -137,9 +150,10 @@ export function LeadCaptureForm({
       ) : null}
       <Button
         type="submit"
+        disabled={loading}
         className="h-12 w-full rounded-full text-sm font-medium uppercase tracking-[-0.02em] sm:w-auto sm:self-start sm:px-10"
       >
-        Continue
+        {loading ? "Saving…" : "Continue"}
       </Button>
     </form>
   );
