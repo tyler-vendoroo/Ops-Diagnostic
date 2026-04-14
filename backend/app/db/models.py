@@ -28,6 +28,8 @@ class Diagnostic(Base):
     diagnostic_type: Mapped[str] = mapped_column(String)  # "quick" or "full"
     status: Mapped[str] = mapped_column(String, default="pending")
     scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    key_findings: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    gaps: Mapped[list | None] = mapped_column(JSON, nullable=True)
     tier: Mapped[str | None] = mapped_column(String, nullable=True)
     pdf_path: Mapped[str | None] = mapped_column(String, nullable=True)
     pdf_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)

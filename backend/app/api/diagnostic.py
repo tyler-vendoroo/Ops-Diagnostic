@@ -180,6 +180,8 @@ async def get_diagnostic(id: str):
         "overall_score": overall_score,
         "scores": scores,
         "tier": record.tier,
+        "key_findings": record.key_findings or [],
+        "gaps": record.gaps or [],
         "pdf_url": (
             f"/api/v1/diagnostic/{record.id}/pdf"
             if record.pdf_data else None

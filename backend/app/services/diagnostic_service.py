@@ -144,6 +144,8 @@ class DiagnosticService:
                 overall_score=overall_score,
                 tier=tier,
                 pdf_bytes=pdf_bytes,
+                key_findings=key_findings_serialized,
+                gaps=gaps_serialized,
             )
         except Exception as exc:
             logger.error(
@@ -299,6 +301,8 @@ class DiagnosticService:
         overall_score: int,
         tier: str,
         pdf_bytes: bytes | None,
+        key_findings: list | None = None,
+        gaps: list | None = None,
         lead_id: str | None = None,
     ) -> None:
         """Persist the diagnostic result to the database."""
@@ -312,8 +316,10 @@ class DiagnosticService:
                 diagnostic_type="quick",
                 status="complete",
                 scores=scores_payload,
+                key_findings=key_findings or [],
+                gaps=gaps or [],
                 tier=tier,
-                pdf_data=pdf_bytes,  # raw bytes; None if generation failed
+                pdf_data=pdf_bytes,
                 pdf_path=None,
                 error=None,
             )
