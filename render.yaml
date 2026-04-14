@@ -3,7 +3,7 @@ services:
     name: ops-diagnostic-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerContext: ./
     plan: free
     envVars:
       - key: ANTHROPIC_API_KEY
