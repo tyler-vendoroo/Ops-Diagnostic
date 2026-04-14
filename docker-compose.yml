@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: vendoroo_diagnostics
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

@@ -1,0 +1,8 @@
+from fastapi import APIRouter
+from app.api import diagnostic, leads, reports, webhooks
+
+router = APIRouter()
+router.include_router(diagnostic.router, prefix="/diagnostic", tags=["diagnostic"])
+router.include_router(leads.router, prefix="/leads", tags=["leads"])
+router.include_router(reports.router, prefix="/reports", tags=["reports"])
+router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])

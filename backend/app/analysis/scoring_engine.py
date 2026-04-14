@@ -1,0 +1,1051 @@
+"""Scoring engine: computes 8 category scores and overall readiness score."""
+from app.models.analysis import (
+    CategoryScore,
+    DocumentAnalysis,
+    GapFinding,
+    KeyFinding,
+    ImpactProjection,
+    StaffingProjection,
+    VendorMetrics,
+    WorkOrderMetrics,
+    PortfolioMetrics,
+)
+from app.models.input_data import ClientInfo
+from app.config import DEFAULT_CATEGORY_WEIGHTS, REQUIRED_TRADES
+from app.config.benchmarks import VENDOROO_AVG, TOP_PERFORMERS, STAFFING_BENCHMARKS
+
+
+def _clamp(value: float, low: float = 0, high: float = 100) -> int:
+    """Clamp a value to an integer in [low, high]."""
+    return int(max(low, min(high, round(value))))
+
+
+def _tier(score: int) -> str:
+    """Return tier label for a score."""
+    if score >= 70:
+        return "Ready"
+    if score >= 50:
+        return "Needs Work"
+    return "Not Ready"
+
+
+def _tier_css(tier: str) -> str:
+    """Return CSS class for a tier."""
+    return {"Ready": "ready", "Needs Work": "needs-work", "Not Ready": "not-ready"}[tier]
+
+
+def _tier_color(tier: str) -> str:
+    """Return CSS color variable for a tier."""
+    return {"Ready": "var(--green)", "Needs Work": "var(--amber)", "Not Ready": "var(--red)"}[tier]
+
+
+# ── Individual Category Scorers ──────────────────────────
+
+def score_policy_completeness(doc: DocumentAnalysis) -> int:
+    """Score based on documentation of policies, approval rules, and SOPs.
+
+    Base of 25 even without docs (prospect has some policies, just not shared).
+    Documents add up to 75 more points.
+    """
+    score = 25  # Base: every PM company has some policies
+    # PMA present and quality
+    if doc.pma and doc.pma.status != "Not Provided":
+        score += 15  # Base for providing PMA
+        score += min(12, doc.pma_quality_score * 1.2)  # Quality bonus
+    # Lease present and quality
+    if doc.lease and doc.lease.status != "Not Provided":
+        score += 12
+        score += min(10, doc.lease_quality_score * 1.0)
+    # NTE defined
+    if doc.nte_threshold:
+        score += 10
+    if doc.nte_is_tiered:
+        score += 8
+    # Emergency authorization
+    if doc.has_emergency_protocols:
+        score += 8
+    return _clamp(score)
+
+
+def score_vendor_coverage(vendor_metrics: VendorMetrics, wo_metrics: WorkOrderMetrics = None) -> int:
+    """Score based on vendor network coverage and redundancy.
+
+    Uses wo_metrics as the single source of truth when available (new pipeline).
+    Falls back to vendor_metrics for legacy path.
+    """
+    score = 0
+
+    # Use WO processor output as source of truth when available
+    if wo_metrics and wo_metrics.trades_covered_count is not None:
+        # Trade coverage from WO processor (0-35 pts)
+        required = wo_metrics.trades_required_count or len(REQUIRED_TRADES)
+        covered = wo_metrics.trades_covered_count
+        coverage_pct = covered / max(1, required)
+        score += _clamp(coverage_pct * 35, 0, 35)
+
+        # Vendor count adequacy (0-40 pts) — more vendors = better coverage
+        vendor_count = wo_metrics.unique_vendors or 0
+        vendor_score = min(40, vendor_count * 1.0)
+        score += vendor_score
+
+        # Give points for having reasonable trade diversity (0-25 pts)
+        if covered >= 10:
+            score += 25
+        elif covered >= 8:
+            score += 20
+        elif covered >= 6:
+            score += 15
+        elif covered >= 4:
+            score += 10
+        else:
+            score += 5
+
+        return _clamp(score)
+
+    # Legacy path: use vendor_metrics
+    if REQUIRED_TRADES:
+        coverage_pct = (len(REQUIRED_TRADES) - len(vendor_metrics.trades_missing)) / len(REQUIRED_TRADES)
+        score += _clamp(coverage_pct * 35, 0, 35)
+
+    if vendor_metrics.unique_trades > 0:
+        backup_ratio = vendor_metrics.trades_with_backup / vendor_metrics.unique_trades
+        score += _clamp(backup_ratio * 25, 0, 25)
+
+    vendor_score = min(20, vendor_metrics.total_vendors * 1.0)
+    score += vendor_score
+
+    score += _clamp(vendor_metrics.contact_completeness_pct * 0.2, 0, 20)
+
+    return _clamp(score)
+
+
+def score_response_efficiency(wo_metrics: WorkOrderMetrics, model: str) -> int:
+    """Score based on response and completion times vs benchmarks.
+
+    Most PM companies without AI have long response times.
+    Score is generous for completion (most companies do close WOs) but
+    penalizes slow first response heavily (that's the key AI value prop).
+    """
+    benchmarks = VENDOROO_AVG.get(model, VENDOROO_AVG["va"])
+    score = 20  # Base: they are completing work orders
+
+    # Avg response time (0-30 pts) — graduated scale
+    if wo_metrics.avg_first_response_hours is not None:
+        hrs = wo_metrics.avg_first_response_hours
+        if hrs <= 1:
+            score += 30
+        elif hrs <= 4:
+            score += 25
+        elif hrs <= 12:
+            score += 18
+        elif hrs <= 24:
+            score += 12
+        elif hrs <= 48:
+            score += 5
+        # > 48 hrs = 0 additional
+
+    # Avg completion time (0-25 pts) — graduated scale
+    if wo_metrics.median_completion_days is not None:
+        days = wo_metrics.median_completion_days
+        if days <= 2:
+            score += 25
+        elif days <= 4:
+            score += 20
+        elif days <= 7:
+            score += 15
+        elif days <= 14:
+            score += 8
+        # > 14 days = 0 additional
+
+    # Open WO rate (0-25 pts) — lower is better
+    # Formula: open WOs / door count × 100 (portfolio health metric)
+    # Vendoroo avg: 9.8%, Top performers: <5%
+    if wo_metrics.open_wo_rate_pct <= 5:
+        score += 25  # Excellent
+    elif wo_metrics.open_wo_rate_pct <= 10:
+        score += 20  # Good (near Vendoroo avg)
+    elif wo_metrics.open_wo_rate_pct <= 15:
+        score += 15  # Acceptable
+    elif wo_metrics.open_wo_rate_pct <= 25:
+        score += 8   # Concerning
+    # >25% = 0 additional points (poor)
+
+    return _clamp(score)
+
+
+def score_documentation_quality(doc: DocumentAnalysis) -> int:
+    """Score based on document clarity and completeness.
+
+    Base of 30 even without docs (every PM company has some documentation).
+    Providing docs for review adds significant points.
+    """
+    score = 30  # Base: they have docs, just maybe not shared yet
+    # PMA quality (0-25)
+    if doc.pma and doc.pma.status != "Not Provided":
+        score += 10  # Provided it
+        score += _clamp(doc.pma_quality_score * 1.5, 0, 15)  # Quality
+    # Lease quality (0-20)
+    if doc.lease and doc.lease.status != "Not Provided":
+        score += 8
+        score += _clamp(doc.lease_quality_score * 1.2, 0, 12)
+    # Emergency docs (0-15)
+    score += _clamp(doc.emergency_readiness_score * 3, 0, 15)
+    return _clamp(score)
+
+
+def score_operational_consistency(wo_metrics: WorkOrderMetrics) -> int:
+    """Score based on workflow repeatability and consistency."""
+    score = 50  # Base score
+
+    # Completion time consistency — use open WO rate as proxy
+    # (low open rate + reasonable completion time = consistent ops)
+    if wo_metrics.median_completion_days is not None:
+        if wo_metrics.median_completion_days < 3:
+            score += 25
+        elif wo_metrics.median_completion_days < 7:
+            score += 15
+        elif wo_metrics.median_completion_days < 14:
+            score += 5
+
+    # Sufficient data volume suggests consistent processes
+    if wo_metrics.months_spanned >= 12:
+        score += 10
+    elif wo_metrics.months_spanned >= 6:
+        score += 5
+
+    # Reasonable open WO rate suggests good follow-through
+    if wo_metrics.open_wo_rate_pct < 10:
+        score += 15
+    elif wo_metrics.open_wo_rate_pct < 20:
+        score += 5
+
+    return _clamp(score)
+
+
+def score_after_hours_readiness(wo_metrics: WorkOrderMetrics, doc: DocumentAnalysis) -> int:
+    """Score based on after-hours coverage capability.
+
+    Most PM companies have an answering service or some coverage.
+    Base of 20 reflects that reality.
+    """
+    score = 20  # Base: most have an answering service at minimum
+
+    # After-hours WO handling (suggests some coverage exists)
+    if wo_metrics.after_hours_pct > 15:
+        score += 15  # Strong after-hours activity
+    elif wo_metrics.after_hours_pct > 5:
+        score += 10
+    elif wo_metrics.after_hours_pct > 0:
+        score += 5
+
+    # Emergency protocols documented
+    if doc.has_emergency_protocols:
+        score += 20
+    if doc.has_defined_slas:
+        score += 15
+    if doc.has_escalation_procedures:
+        score += 15
+
+    # Documentation exists
+    if doc.emergency_protocols.status != "Not Documented":
+        score += 10
+
+    return _clamp(score)
+
+
+def score_emergency_protocols(doc: DocumentAnalysis) -> int:
+    """Score based on emergency classification, triage, and escalation.
+
+    Base of 15 — most companies handle emergencies somehow, just not formally.
+    """
+    score = 15  # Base: they handle emergencies, just informally
+
+    if doc.has_emergency_protocols:
+        score += 25
+    if doc.has_defined_slas:
+        score += 20
+    if doc.has_escalation_procedures:
+        score += 20
+
+    # Quality of emergency documentation
+    score += _clamp(doc.emergency_readiness_score * 2, 0, 20)
+
+    return _clamp(score)
+
+
+def score_scalability_potential(
+    portfolio: PortfolioMetrics,
+    wo_metrics: WorkOrderMetrics,
+    vendor_metrics: VendorMetrics,
+    model: str,
+) -> int:
+    """Score based on growth potential and AI leverage opportunity."""
+    benchmarks = STAFFING_BENCHMARKS.get(model, STAFFING_BENCHMARKS["va"])
+    score = 0
+
+    # Doors-per-staff ratio vs benchmark (lower = more room to scale)
+    if portfolio.doors_per_staff > 0:
+        headroom = benchmarks["vendoroo_benchmark"] / portfolio.doors_per_staff
+        if headroom > 2:
+            score += 30  # Lots of scale potential
+        elif headroom > 1.5:
+            score += 25
+        elif headroom > 1:
+            score += 15
+        else:
+            score += 5
+
+    # WO volume manageable
+    wo_per_door_annual = wo_metrics.wo_per_door_annual
+    if wo_per_door_annual is None:
+        wo_per_door_annual = (wo_metrics.monthly_avg_work_orders / max(1, portfolio.total_doors)) * 12
+    if wo_per_door_annual < 9.6:
+        score += 25
+    elif wo_per_door_annual < 14.4:
+        score += 15
+    else:
+        score += 5
+
+    # Vendor network can support growth — prefer wo_metrics as source of truth
+    vendor_count = wo_metrics.unique_vendors if wo_metrics.unique_vendors else vendor_metrics.total_vendors
+    if vendor_count >= 15:
+        score += 25
+    elif vendor_count >= 10:
+        score += 15
+    elif vendor_count >= 5:
+        score += 10
+
+    # Process standardization indicator — use median completion as proxy
+    if wo_metrics.median_completion_days is not None and wo_metrics.median_completion_days < 7:
+        score += 20
+    else:
+        score += 10
+
+    return _clamp(score)
+
+
+# ── Main Scoring Function ────────────────────────────────
+
+def calculate_all_scores(
+    wo_metrics: WorkOrderMetrics,
+    vendor_metrics: VendorMetrics,
+    portfolio: PortfolioMetrics,
+    doc_analysis: DocumentAnalysis,
+    client_info: ClientInfo,
+) -> list[CategoryScore]:
+    """Calculate all 8 category scores."""
+    model = client_info.operational_model
+
+    scores_raw = {
+        "policy_completeness": ("Policy Completeness", score_policy_completeness(doc_analysis)),
+        "vendor_coverage": ("Vendor Coverage", score_vendor_coverage(vendor_metrics, wo_metrics)),
+        "response_efficiency": ("Response Efficiency", score_response_efficiency(wo_metrics, model)),
+        "documentation_quality": ("Documentation Quality", score_documentation_quality(doc_analysis)),
+        "operational_consistency": ("Operational Consistency", score_operational_consistency(wo_metrics)),
+        "after_hours_readiness": ("After Hours Readiness", score_after_hours_readiness(wo_metrics, doc_analysis)),
+        "emergency_protocols": ("Emergency Protocols", score_emergency_protocols(doc_analysis)),
+        "scalability_potential": ("Scalability Potential", score_scalability_potential(portfolio, wo_metrics, vendor_metrics, model)),
+    }
+
+    categories = []
+    for key, (name, score) in scores_raw.items():
+        tier = _tier(score)
+        categories.append(CategoryScore(
+            name=name,
+            key=key,
+            score=score,
+            tier=tier,
+            tier_css=_tier_css(tier),
+            color=_tier_color(tier),
+        ))
+
+    return categories
+
+
+def calculate_overall_score(
+    categories: list[CategoryScore],
+    weights: dict[str, float] = None,
+) -> int:
+    """Calculate weighted overall readiness score."""
+    if weights is None:
+        weights = DEFAULT_CATEGORY_WEIGHTS
+    total = sum(cat.score * weights.get(cat.key, 0.125) for cat in categories)
+    return _clamp(total)
+
+
+# ── Key Findings Generator ───────────────────────────────
+
+def generate_key_findings(
+    wo_metrics: WorkOrderMetrics,
+    vendor_metrics: VendorMetrics,
+    portfolio: PortfolioMetrics,
+    doc_analysis: DocumentAnalysis,
+    client_info: ClientInfo,
+) -> list[KeyFinding]:
+    """Generate 4 key findings for the operations analysis page."""
+    findings = []
+    model = client_info.operational_model
+    benchmarks = VENDOROO_AVG.get(model, VENDOROO_AVG["va"])
+
+    # Response Time Gap (usually red)
+    if wo_metrics.avg_first_response_hours and wo_metrics.avg_first_response_hours > 1:
+        findings.append(KeyFinding(
+            title="Response Time Gap",
+            description=(
+                f"Your average first response of {wo_metrics.avg_first_response_hours} hours "
+                f"compared to Vendoroo's average of under 10 minutes. After hours issues "
+                f"are queuing until the next business day, adding 8 to 12 hours to every evening request."
+            ),
+            color="var(--red)",
+        ))
+
+    # Vendor Network (amber or red) — use wo_metrics as single source of truth
+    if wo_metrics.missing_trades:
+        missing_str = ", ".join(wo_metrics.missing_trades[:3])
+        findings.append(KeyFinding(
+            title="Vendor Network Gaps",
+            description=(
+                f"You have {wo_metrics.unique_vendors} vendors covering "
+                f"{wo_metrics.trades_covered_count} of {wo_metrics.trades_required_count} required trades. "
+                f"Missing backup vendors in {missing_str} creates single points of failure "
+                f"during peak demand or vendor unavailability."
+            ),
+            color="var(--amber)",
+        ))
+
+    # Documentation (usually green if docs provided)
+    has_both_docs = (
+        doc_analysis.pma and doc_analysis.pma.status != "Not Provided"
+        and doc_analysis.lease and doc_analysis.lease.status != "Not Provided"
+    )
+    if has_both_docs:
+        findings.append(KeyFinding(
+            title="Strong Documentation Base",
+            description=(
+                f"Your PMA and lease templates are well-structured with clear maintenance "
+                f"responsibility language. This gives Vendoroo a strong starting point for "
+                f"Maintenance Book configuration with minimal policy clarification needed."
+            ),
+            color="var(--green)",
+        ))
+    else:
+        findings.append(KeyFinding(
+            title="Documentation Gaps",
+            description=(
+                "Key policy documents are missing or incomplete. Without a comprehensive PMA "
+                "and lease template, AI configuration requires additional discovery and policy "
+                "decisions during onboarding."
+            ),
+            color="var(--red)",
+        ))
+
+    # Scalability (blue)
+    staff_benchmark = STAFFING_BENCHMARKS.get(model, STAFFING_BENCHMARKS["va"])
+    doors_per = portfolio.doors_per_staff
+    benchmark_per = staff_benchmark["current_benchmark"]
+    vendoroo_per = staff_benchmark["vendoroo_benchmark"]
+    scale_doors = client_info.staff_count * vendoroo_per
+
+    if model == "pod":
+        staff_label = "pods"
+        staff_label_singular = "pod"
+    elif model == "tech":
+        staff_label = "technicians"
+        staff_label_singular = "technician"
+    else:
+        staff_label = "coordinators"
+        staff_label_singular = "coordinator"
+
+    if model == "pod":
+        findings.append(KeyFinding(
+            title="Scalability Opportunity",
+            description=(
+                f"With {client_info.staff_count} {staff_label} managing {client_info.door_count} doors "
+                f"({int(doors_per)} doors/{staff_label_singular}), you are "
+                f"{'below' if doors_per < benchmark_per else 'at'} the "
+                f"pod-model benchmark of {benchmark_per} doors/{staff_label_singular}. "
+                f"AI coordination lets your pods take on more doors without adding a pod member, "
+                f"scaling to {scale_doors}+ doors with the same team structure."
+            ),
+            color="var(--blue)",
+        ))
+    else:
+        findings.append(KeyFinding(
+            title="Scalability Opportunity",
+            description=(
+                f"With {client_info.staff_count} {staff_label} managing {client_info.door_count} doors "
+                f"({int(doors_per)} doors/{staff_label_singular}), you are "
+                f"{'below' if doors_per < benchmark_per else 'at'} the "
+                f"{model.upper()}-model benchmark of {benchmark_per} doors/{staff_label_singular}. "
+                f"AI coordination could support your current portfolio with "
+                f"{max(1, round(client_info.door_count / vendoroo_per))} {staff_label_singular}, "
+                f"or scale to {scale_doors}+ doors with your current team."
+            ),
+            color="var(--blue)",
+        ))
+
+    return findings[:4]
+
+
+# ── Gap Analysis Generator ───────────────────────────────
+
+def generate_gaps(
+    categories: list[CategoryScore],
+    wo_metrics: WorkOrderMetrics,
+    vendor_metrics: VendorMetrics,
+    doc_analysis: DocumentAnalysis,
+    client_info: ClientInfo,
+) -> list[GapFinding]:
+    """Generate gap findings with severity and recommendations."""
+    gaps = []
+
+    # Map scores to find weak areas
+    score_map = {cat.key: cat.score for cat in categories}
+
+    # Emergency Protocol gap
+    if score_map.get("emergency_protocols", 0) < 70:
+        severity = "High Priority" if score_map["emergency_protocols"] < 50 else "Medium Priority"
+        is_high = severity == "High Priority"
+        gaps.append(GapFinding(
+            title="Emergency Protocol",
+            severity=severity,
+            severity_color="var(--red)" if is_high else "var(--amber)",
+            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
+            severity_border="var(--red)" if is_high else "var(--amber)",
+            detail="No formal written emergency criteria. After hours triage relies on answering service judgment with no documented escalation rules.",
+            recommendation="Your Advisor works with you to define emergency categories, response SLAs, and escalation paths during onboarding. These are encoded directly into your Maintenance Book so your AI teammate knows exactly how to handle emergencies from Day 1.",
+        ))
+
+    # Vendor Coverage gap — use wo_metrics as single source of truth
+    if score_map.get("vendor_coverage", 0) < 70:
+        missing = ", ".join(wo_metrics.missing_trades[:3]) if wo_metrics.missing_trades else "critical trades"
+        severity = "High Priority" if score_map["vendor_coverage"] < 50 else "Medium Priority"
+        is_high = severity == "High Priority"
+        gaps.append(GapFinding(
+            title="Vendor Coverage",
+            severity=severity,
+            severity_color="var(--red)" if is_high else "var(--amber)",
+            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
+            severity_border="var(--red)" if is_high else "var(--amber)",
+            detail=f"{wo_metrics.unique_vendors} vendors covering {wo_metrics.trades_covered_count} of {wo_metrics.trades_required_count} required trades. No backup vendors for {missing}.",
+            recommendation="Your Advisor maps your existing vendor network against required trades and identifies the specific gaps. From there, you can fill those gaps during onboarding, or Vendoroo can assist through our vendor recruitment product. Either way, you go live knowing exactly where your coverage stands.",
+        ))
+
+    # Response Time SLA gap
+    if score_map.get("response_efficiency", 0) < 70:
+        response_str = f"{wo_metrics.avg_first_response_hours} hours" if wo_metrics.avg_first_response_hours else "unknown"
+        severity = "High Priority" if score_map["response_efficiency"] < 50 else "Medium Priority"
+        is_high = severity == "High Priority"
+        gaps.append(GapFinding(
+            title="Response Time SLAs",
+            severity=severity,
+            severity_color="var(--red)" if is_high else "var(--amber)",
+            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
+            severity_border="var(--red)" if is_high else "var(--amber)",
+            detail=f"No defined response time targets. Average first response of {response_str} compared to Vendoroo's average of under 10 minutes.",
+            recommendation="Your Advisor helps you align on what good SLAs look like for your portfolio and trains your AI teammate to meet them. This includes setting response targets by urgency level and configuring vendor-specific expectations so the right vendor is responding within the right timeframe.",
+        ))
+
+    # NTE Governance gap
+    if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
+        gaps.append(GapFinding(
+            title="NTE Governance",
+            severity="Medium Priority",
+            severity_color="var(--amber)",
+            severity_bg="var(--amber-light)",
+            severity_border="var(--amber)",
+            detail=f"Single {doc_analysis.nte_threshold} NTE threshold across all work types. No differentiation by trade, property, or urgency.",
+            recommendation="Your Advisor educates and guides you on how to structure tiered NTEs, including per-property configurations if desired. Your AI teammate then enforces these rules automatically on every work order, so spending stays within the limits you set.",
+        ))
+
+    # After Hours gap
+    if score_map.get("after_hours_readiness", 0) < 70:
+        severity = "High Priority" if score_map["after_hours_readiness"] < 50 else "Medium Priority"
+        is_high = severity == "High Priority"
+        gaps.append(GapFinding(
+            title="After Hours Operations",
+            severity=severity,
+            severity_color="var(--red)" if is_high else "var(--amber)",
+            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
+            severity_border="var(--red)" if is_high else "var(--amber)",
+            detail=f"{wo_metrics.after_hours_pct}% of maintenance requests are after hours. Answering service handles calls but cannot triage or dispatch, so urgent issues queue until next business day.",
+            recommendation="Your Advisor configures Rooceptionist for 24/7 intelligent call handling with AI triage and troubleshooting. For full emergency dispatch coverage around the clock, RescueRoo extends your team's capabilities to true 24/7.",
+        ))
+
+    # Policy Documentation gap (usually low priority if docs are provided)
+    if score_map.get("policy_completeness", 0) < 70:
+        is_minor = score_map["policy_completeness"] >= 50
+        gaps.append(GapFinding(
+            title="Policy Documentation",
+            severity="Low Priority" if is_minor else "Medium Priority",
+            severity_color="var(--green)" if is_minor else "var(--amber)",
+            severity_bg="var(--green-light)" if is_minor else "var(--amber-light)",
+            severity_border="var(--green)" if is_minor else "var(--amber)",
+            detail="PMA and lease templates are solid. Minor gaps in maintenance responsibility language for appliance coverage and HVAC filter replacement.",
+            recommendation="Any unclear or missing policies are clarified with you during onboarding. Your Advisor ensures every policy decision is documented in your Maintenance Book before go-live.",
+        ))
+
+    return gaps[:6]  # Limit to 6 for page space
+
+
+# ── Impact Projections ───────────────────────────────────
+
+def generate_impact_projections(
+    wo_metrics: WorkOrderMetrics,
+    client_info: ClientInfo,
+    recommended_tier: str = "direct",
+) -> list[ImpactProjection]:
+    """Generate the projected impact table rows."""
+    model = client_info.operational_model
+    benchmarks = VENDOROO_AVG.get(model, VENDOROO_AVG["va"])
+    top = TOP_PERFORMERS.get(model, TOP_PERFORMERS["va"])
+
+    projections = []
+
+    def _format_improvement(current, projected):
+        if current is None or projected is None:
+            return None
+        if projected >= current:
+            return "Already meeting benchmark"
+        pct = round((1 - projected / current) * 100)
+        return f"{pct}%"
+
+    def _project_completion_time(current_days):
+        if current_days is None:
+            return None, None
+        reduced = current_days * 0.625
+        floored = max(7.0, reduced)
+        projected = min(current_days, floored)
+        return round(projected, 1), _format_improvement(current_days, projected)
+
+    def _project_open_wo_rate(current_pct):
+        if current_pct is None:
+            return None, None
+        projected = min(current_pct, max(5.0, current_pct * 0.6))
+        return round(projected, 1), _format_improvement(current_pct, projected)
+
+    def _project_after_hours():
+        projected = "24/7 AI Triage*"
+        if recommended_tier == "command":
+            note = "Daytime emergency handling included: add RescueRoo for full 24/7 emergency dispatch."
+        else:
+            note = "Full emergency coverage available with RescueRoo add-on ($1.50/door/mo)."
+        return projected, note, "100%"
+
+    # First Response Time
+    current_resp = f"{wo_metrics.avg_first_response_hours} hrs" if wo_metrics.avg_first_response_hours else "N/A"
+    if wo_metrics.avg_first_response_hours:
+        improvement_pct = round((1 - (benchmarks["avg_first_response_minutes"] / 60) / wo_metrics.avg_first_response_hours) * 100)
+        improvement_pct = max(0, improvement_pct)
+    else:
+        improvement_pct = None
+    projections.append(ImpactProjection(
+        metric="First Response Time",
+        current_value=current_resp,
+        projected_value="< 10 min",
+        benchmark_range="< 10 min avg.",
+        improvement=f"{improvement_pct}%" if improvement_pct else None,
+    ))
+
+    # Work Order Completion (bounded projection)
+    current_comp = f"{wo_metrics.median_completion_days} days" if wo_metrics.median_completion_days else "N/A"
+    projected_days, comp_improvement = _project_completion_time(wo_metrics.median_completion_days)
+    proj_comp = f"{projected_days} days" if projected_days is not None else "N/A"
+    projections.append(ImpactProjection(
+        metric="Work Order Completion",
+        current_value=current_comp,
+        projected_value=proj_comp,
+        benchmark_range=f"{benchmarks['completion_decrease_pct']} - {top['completion_decrease_pct']}% decrease",
+        improvement=comp_improvement,
+    ))
+
+    # Open WO Rate (bounded projection)
+    projected_open, open_improvement = _project_open_wo_rate(wo_metrics.open_wo_rate_pct)
+    projections.append(ImpactProjection(
+        metric="Open WO Rate",
+        current_value=f"{wo_metrics.open_wo_rate_pct}%",
+        projected_value=f"{projected_open}%" if projected_open is not None else "N/A",
+        benchmark_range=f"{top['open_wo_rate_pct']} - {benchmarks['open_wo_rate_pct']}%",
+        improvement=open_improvement,
+    ))
+
+    # After Hours Coverage (RescueRoo nuance)
+    after_projected, after_note, after_improvement = _project_after_hours()
+    projections.append(ImpactProjection(
+        metric="After Hours Coverage",
+        current_value="Partial",
+        projected_value=after_projected,
+        benchmark_range="AI triage benchmark",
+        improvement=after_improvement,
+        note=after_note,
+    ))
+
+    # Vendor Coverage
+    current_trades = wo_metrics.trades_covered_count
+    required_trades = wo_metrics.trades_required_count or 12
+    current_coverage_pct = round(current_trades / required_trades * 100) if required_trades else 0
+    projections.append(ImpactProjection(
+        metric="Vendor Coverage",
+        current_value=f"{current_trades}/{required_trades} trades",
+        current_is_bad=current_coverage_pct < 80,
+        projected_value=f"{required_trades}/{required_trades} trades" if current_trades < required_trades else f"{current_trades}/{required_trades} trades",
+        benchmark_range="100% of required trades",
+        improvement=f"{100 - current_coverage_pct}%" if current_coverage_pct < 100 else "Already meeting benchmark",
+    ))
+
+    # Resident Satisfaction
+    projections.append(ImpactProjection(
+        metric="Resident Satisfaction",
+        current_value="N/A",
+        current_is_bad=True,
+        projected_value=f"{benchmarks['resident_satisfaction_pct']}%",
+        benchmark_range=f"{benchmarks['resident_satisfaction_pct']} - {top['resident_satisfaction_pct']}%+",
+        improvement="N/A",
+    ))
+
+    return projections
+
+
+def generate_staffing_projection(
+    client_info: ClientInfo,
+    portfolio: PortfolioMetrics,
+) -> StaffingProjection:
+    """Generate staffing and scale projection."""
+    model = client_info.operational_model
+    benchmarks = STAFFING_BENCHMARKS.get(model, STAFFING_BENCHMARKS["va"])
+
+    scale_doors = client_info.staff_count * benchmarks["vendoroo_benchmark"]
+    optimize_staff = max(1, round(client_info.door_count / benchmarks["vendoroo_benchmark"]))
+    fte_savings = max(0, client_info.staff_count - optimize_staff)
+
+    # Generate model-specific narratives for Scale / Optimize / Elevate paths
+    if model == "pod":
+        scale_narrative = (
+            f"Your pods can take on more doors without adding a pod member. "
+            f"Scale from {client_info.staff_count} pods to managing {scale_doors} doors "
+            f"with the same team structure."
+        )
+        optimize_narrative = (
+            f"Consolidate from {client_info.staff_count} pods to {optimize_staff} at current "
+            f"door count, remove the coordinator role from each pod and let AI handle "
+            f"coordination, or flatten your org entirely by transitioning from pods to "
+            f"individual PMs each managing more doors with AI handling all coordination."
+        )
+        elevate_narrative = (
+            "Your pod structure already delivers better quality than solo coordinators; "
+            "AI makes that quality consistent 24/7 and frees pod members to focus on "
+            "owner relationships."
+        )
+    elif model == "tech":
+        scale_narrative = (
+            f"Your {client_info.staff_count} technicians can support {scale_doors}+ doors "
+            f"with AI handling triage, scheduling, and coordination."
+        )
+        optimize_narrative = (
+            f"Manage your current {client_info.door_count} doors with "
+            f"{optimize_staff} technician{'s' if optimize_staff != 1 else ''}, "
+            f"saving {fte_savings} FTE{'s' if fte_savings != 1 else ''} in coordination overhead."
+        )
+        elevate_narrative = (
+            "Elevate technician expertise by removing administrative burden. "
+            "AI handles all scheduling, tenant communication, and follow-up so techs "
+            "focus on repairs and owner relationships."
+        )
+    else:  # va (default)
+        scale_narrative = (
+            f"Your {client_info.staff_count} coordinators can support {scale_doors}+ doors "
+            f"with AI handling triage, communication, and vendor dispatch."
+        )
+        optimize_narrative = (
+            f"Manage your current {client_info.door_count} doors with "
+            f"{optimize_staff} coordinator{'s' if optimize_staff != 1 else ''}, "
+            f"saving {fte_savings} FTE{'s' if fte_savings != 1 else ''} in coordination overhead."
+        )
+        elevate_narrative = (
+            "Elevate service quality with instant response times, 24/7 coverage, "
+            "and consistent processes across your entire portfolio."
+        )
+
+    return StaffingProjection(
+        current_staff=client_info.staff_count,
+        current_doors=client_info.door_count,
+        doors_per_staff=int(portfolio.doors_per_staff),
+        staff_benchmark=benchmarks["current_benchmark"],
+        scale_doors=scale_doors,
+        optimize_staff=optimize_staff,
+        fte_savings=fte_savings,
+        scale_narrative=scale_narrative,
+        optimize_narrative=optimize_narrative,
+        elevate_narrative=elevate_narrative,
+    )
+
+
+# ── Tier Recommendation ─────────────────────────────────
+
+def recommend_tier(goal, category_scores, gaps, client_info=None):
+    """Recommend a Vendoroo service tier based on goal, scores, and gaps.
+
+    goal: "scale" | "optimize" | "elevate"
+    category_scores: dict of category key -> score (0-100)
+    gaps: list of gap name strings
+    client_info: dict with door_count, property_count, operational_model
+    Returns: "engage" | "direct" | "command"
+    """
+    if client_info is None:
+        client_info = {}
+
+    below_50_count = sum(1 for s in category_scores.values() if s < 50)
+    normalized_gaps = {str(g).strip().lower().replace(" ", "_") for g in gaps}
+
+    # Override 1: Everything is bad (5+ of 8 below 50)
+    if below_50_count >= 5:
+        return "command"
+
+    # Override 2: 50/50 split (exactly half below 50)
+    if below_50_count == 4:
+        return "direct"
+
+    # Override 3: Only response time + satisfaction gaps
+    response_only_gaps = {
+        "response_time",
+        "response_time_slas",
+        "resident_satisfaction",
+        "resident_satisfaction_gap",
+    }
+    if normalized_gaps and normalized_gaps.issubset(response_only_gaps):
+        return "engage"
+
+    # Property concentration: high ratio signals multifamily
+    doors_per_property = client_info.get("door_count", 0) / max(client_info.get("property_count", 1), 1)
+    high_concentration = doors_per_property > 25
+    is_tech_model = client_info.get("operational_model", "") == "tech"
+
+    # Override 6: High property concentration + Tech model → Engage
+    # Multifamily with onsite techs primarily needs the comms desk, not vendor dispatch
+    if high_concentration and is_tech_model and below_50_count <= 2:
+        return "engage"
+
+    # Goal-based defaults with conditional bumps
+    if goal == "elevate":
+        if category_scores.get("vendor_coverage", 100) < 70 or (
+            {"vendor_coverage", "open_wo_rate", "response_time_slas"} & normalized_gaps
+        ):
+            return "direct"
+        return "engage"
+    elif goal == "scale":
+        if {"owner_communication", "edge_cases", "owner_communication_and_approval_workflows"} & normalized_gaps:
+            return "command"
+        return "direct"
+    elif goal == "optimize":
+        return "command"
+
+    return "direct"  # fallback
+
+
+# ── Projected Score Calculator ───────────────────────────
+
+_GAP_POINT_MAP = {
+    "response_time": 10,
+    "Response Time SLAs": 10,
+    "vendor_coverage": 7,
+    "Vendor Coverage": 7,
+    "emergency_protocol": 9,
+    "Emergency Protocol": 9,
+    "nte_governance": 5,
+    "NTE Governance": 5,
+    "after_hours": 9,
+    "After Hours Operations": 9,
+    "policy_documentation": 3,
+    "Policy Documentation": 3,
+}
+
+
+def calculate_projected_score(current_score, gaps):
+    """Calculate projected readiness score after addressing gaps.
+
+    current_score: int, the current overall readiness score
+    gaps: list of gap name strings that will be addressed
+    Returns: int, projected score capped at 95 and never less than current_score
+    """
+    projected = current_score
+    for gap in gaps:
+        projected += _GAP_POINT_MAP.get(gap, 0)
+    projected = min(95, projected)
+    return max(current_score, projected)
+
+
+# ── Cost Estimates ───────────────────────────────────────
+
+_TIER_PRICES = {
+    "engage": 3.00,
+    "direct": 6.00,
+    "command": 8.50,
+}
+
+_NEXT_TIER = {
+    "engage": "direct",
+    "direct": "command",
+    "command": "command",
+}
+
+_RESCUEROO_PRICE = 1.50
+_MONTHLY_MINIMUM = 400
+
+
+def calculate_cost_estimates(door_count, recommended_tier):
+    """Calculate monthly cost estimates for recommended and next tier.
+
+    door_count: int, number of doors in the portfolio
+    recommended_tier: "engage" | "direct" | "command"
+    Returns: dict with recommended_cost, recommended_tier_name, next_tier_cost,
+             next_tier_name, rescueroo_cost
+    """
+    rec_price = _TIER_PRICES.get(recommended_tier, _TIER_PRICES["direct"])
+    next_tier = _NEXT_TIER.get(recommended_tier, "command")
+    next_price = _TIER_PRICES[next_tier]
+
+    recommended_cost = max(_MONTHLY_MINIMUM, door_count * rec_price)
+    next_tier_cost = max(_MONTHLY_MINIMUM, door_count * next_price)
+    rescueroo_cost = max(_MONTHLY_MINIMUM, door_count * _RESCUEROO_PRICE)
+
+    return {
+        "recommended_cost": recommended_cost,
+        "recommended_tier_name": recommended_tier,
+        "next_tier_cost": next_tier_cost,
+        "next_tier_name": next_tier,
+        "rescueroo_cost": rescueroo_cost,
+    }
+
+
+# ── Goal Card Data ───────────────────────────────────────
+
+from math import ceil
+
+
+def get_goal_card_data(operational_model, staff_count, door_count, goal):
+    """Generate goal card display data for scale, optimize, and elevate paths.
+
+    operational_model: "va" | "tech" | "pod"
+    staff_count: int, current maintenance staff count
+    door_count: int, total doors managed
+    goal: "scale" | "optimize" | "elevate" (the user's selected goal)
+    Returns: dict with scale_data, optimize_data, elevate_data, each containing
+             stat_value, stat_label, description, best_tier
+    """
+    benchmarks = STAFFING_BENCHMARKS.get(operational_model, STAFFING_BENCHMARKS["va"])
+
+    if operational_model == "va":
+        va_benchmark = benchmarks.get("vendoroo_benchmark", 350)
+        scale_doors = staff_count * va_benchmark
+        optimize_reduction = staff_count - ceil(door_count / va_benchmark)
+
+        scale_data = {
+            "stat_value": f"{scale_doors}+",
+            "stat_label": "doors with current staff",
+            "description": (
+                f"Your {staff_count} coordinators can support {scale_doors}+ doors "
+                f"with AI handling triage, communication, and vendor dispatch."
+            ),
+            "best_tier": "direct",
+        }
+        optimize_data = {
+            "stat_value": f"{max(0, optimize_reduction)}",
+            "stat_label": "fewer FTEs needed",
+            "description": (
+                f"Manage your current {door_count} doors with "
+                f"{max(1, ceil(door_count / va_benchmark))} coordinators, "
+                f"saving {max(0, optimize_reduction)} FTEs in coordination overhead."
+            ),
+            "best_tier": "command",
+        }
+        elevate_data = {
+            "stat_value": "24/7",
+            "stat_label": "coverage with instant response",
+            "description": (
+                "Elevate service quality with instant response times, 24/7 coverage, "
+                "and consistent processes across your entire portfolio."
+            ),
+            "best_tier": "engage",
+        }
+
+    elif operational_model == "tech":
+        tech_benchmark = benchmarks.get("vendoroo_benchmark", 300)
+        scale_doors = staff_count * tech_benchmark
+        optimize_reduction = staff_count - ceil(door_count / tech_benchmark)
+
+        scale_data = {
+            "stat_value": f"{scale_doors}+",
+            "stat_label": "doors with current technicians",
+            "description": (
+                f"Your {staff_count} technicians can support {scale_doors}+ doors "
+                f"with AI handling triage, scheduling, and coordination."
+            ),
+            "best_tier": "direct",
+        }
+        optimize_data = {
+            "stat_value": f"{max(0, optimize_reduction)}",
+            "stat_label": "fewer FTEs needed",
+            "description": (
+                f"Manage your current {door_count} doors with "
+                f"{max(1, ceil(door_count / tech_benchmark))} technicians, "
+                f"saving {max(0, optimize_reduction)} FTEs in coordination overhead."
+            ),
+            "best_tier": "command",
+        }
+        elevate_data = {
+            "stat_value": "24/7",
+            "stat_label": "coverage with instant response",
+            "description": (
+                "Elevate technician expertise by removing administrative burden. "
+                "AI handles all scheduling, tenant communication, and follow-up."
+            ),
+            "best_tier": "engage",
+        }
+
+    elif operational_model == "pod":
+        pod_benchmark = benchmarks.get("vendoroo_benchmark", 550)
+        scale_doors = staff_count * pod_benchmark
+        optimize_pods = ceil(door_count / pod_benchmark)
+        pods_saved = max(0, staff_count - optimize_pods)
+
+        scale_data = {
+            "stat_value": f"{scale_doors}+",
+            "stat_label": "doors with current pods",
+            "description": (
+                f"Your {staff_count} pods can take on more doors without adding "
+                f"a pod member, scaling to {scale_doors}+ doors with the same "
+                f"team structure."
+            ),
+            "best_tier": "direct",
+        }
+        optimize_data = {
+            "stat_value": f"{pods_saved}",
+            "stat_label": "fewer pods needed",
+            "description": (
+                f"Consolidate from {staff_count} pods to {optimize_pods}, "
+                f"flatten pods by removing the coordinator role and letting AI "
+                f"handle coordination, or transition to individual PMs each "
+                f"managing more doors."
+            ),
+            "best_tier": "command",
+        }
+        elevate_data = {
+            "stat_value": "24/7",
+            "stat_label": "consistent quality coverage",
+            "description": (
+                "Your pod structure already delivers better quality than solo "
+                "coordinators; AI makes that quality consistent 24/7 and frees "
+                "pod members to focus on owner relationships."
+            ),
+            "best_tier": "engage",
+        }
+
+    else:
+        # Fallback to VA model
+        return get_goal_card_data("va", staff_count, door_count, goal)
+
+    return {
+        "scale_data": scale_data,
+        "optimize_data": optimize_data,
+        "elevate_data": elevate_data,
+    }
