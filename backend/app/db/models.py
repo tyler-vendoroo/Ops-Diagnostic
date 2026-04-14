@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, JSON, Text, ForeignKey
+from sqlalchemy import String, DateTime, JSON, Text, LargeBinary, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
@@ -30,6 +30,7 @@ class Diagnostic(Base):
     scores: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     tier: Mapped[str | None] = mapped_column(String, nullable=True)
     pdf_path: Mapped[str | None] = mapped_column(String, nullable=True)
+    pdf_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
