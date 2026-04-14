@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: ops-diagnostic-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-20250514
+      - key: DATABASE_URL
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: DIAGNOSTIC_FROM_EMAIL
+        value: diagnostics@vendoroo.com
+      - key: SALES_NOTIFICATION_EMAIL
+        value: sales@vendoroo.com
+      - key: REVENUE_HERO_API_KEY
+        sync: false
+      - key: REVENUE_HERO_WEBHOOK_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: EVENT_SOURCE
+        value: web
