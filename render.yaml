@@ -2,7 +2,7 @@ services:
   - type: web
     name: ops-diagnostic-api
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: ./
     plan: free
     envVars:
