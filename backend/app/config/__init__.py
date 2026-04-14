@@ -13,7 +13,11 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
     event_source: str = "web"
-    allowed_origins: List[str] = ["http://localhost:3000"]
+    allowed_origins: List[str] = [
+        "http://localhost:3000",
+        "https://ops-diagnostic.vercel.app",
+        "https://vendoroo.ai",
+    ]
 
     class Config:
         env_file = ".env"
