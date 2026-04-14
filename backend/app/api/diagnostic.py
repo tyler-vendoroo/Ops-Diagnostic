@@ -29,7 +29,7 @@ async def quick_diagnostic(request: QuickDiagnosticRequest):
     survey → metrics → scores → findings/gaps → tier → PDF (optional) → DB.
     """
     service = DiagnosticService()
-    result = await service.run_quick_diagnostic(request.survey, request.client_info)
+    result = await service.run_quick_diagnostic(request.survey, request.client_info, request.lead)
 
     return {
         "diagnostic_id": result.diagnostic_id,

@@ -7,7 +7,10 @@ from dataclasses import dataclass, field
 from app.models.survey import SurveyResponse
 from app.models.input_data import ClientInfo
 from app.models.analysis import CategoryScore
+from app.models.lead import LeadCapture
 from app.services.survey_adapter import SurveyAdapter
+from app.services.lead_service import LeadService
+from app.services.email_service import EmailService
 from app.analysis.scoring_engine import (
     calculate_all_scores,
     calculate_overall_score,
@@ -39,30 +42,43 @@ class DiagnosticService:
 
     def __init__(self):
         self._adapter = SurveyAdapter()
+        self._lead_service = LeadService()
+        self._email_service = EmailService()
 
     async def run_quick_diagnostic(
         self,
         survey: SurveyResponse,
         client_info: ClientInfo,
+        lead: LeadCapture | None = None,
     ) -> DiagnosticResult:
         """Run the full quick diagnostic pipeline.
 
         Steps:
-        1. Convert survey answers → analysis metrics
-        2. Score all 8 categories
-        3. Generate findings, gaps, tier
-        4. Build ReportData + attempt PDF generation
-        5. Persist result in DB
-        6. Return DiagnosticResult
+        1. Capture lead in DB (if provided)
+        2. Convert survey answers → analysis metrics
+        3. Score all 8 categories
+        4. Generate findings, gaps, tier
+        5. Build ReportData + attempt PDF generation
+        6. Persist result in DB
+        7. Send result and sales notification emails
+        8. Return DiagnosticResult
         """
         diagnostic_id = str(uuid.uuid4())
 
-        # ── Step 1: Survey → Metrics ─────────────────────────────────────────
+        # ── Step 1: Lead capture ─────────────────────────────────────────────
+        lead_id: str | None = None
+        if lead is not None:
+            try:
+                lead_id = await self._lead_service.create_lead(lead)
+            except Exception as exc:
+                logger.error("Lead capture failed for diagnostic %s: %s", diagnostic_id, exc)
+
+        # ── Step 2: Survey → Metrics ─────────────────────────────────────────
         wo_metrics, vendor_metrics, portfolio_metrics, doc_analysis = (
             self._adapter.adapt(survey, client_info)
         )
 
-        # ── Step 2: Score ────────────────────────────────────────────────────
+        # ── Step 3: Score ────────────────────────────────────────────────────
         category_scores: list[CategoryScore] = calculate_all_scores(
             wo_metrics,
             vendor_metrics,
@@ -73,7 +89,7 @@ class DiagnosticService:
         overall_score: int = calculate_overall_score(category_scores)
         scores_dict = {cat.key: cat.score for cat in category_scores}
 
-        # ── Step 3: Findings, Gaps, Tier ─────────────────────────────────────
+        # ── Step 4: Findings, Gaps, Tier ─────────────────────────────────────
         key_findings = generate_key_findings(
             wo_metrics,
             vendor_metrics,
@@ -102,7 +118,7 @@ class DiagnosticService:
             },
         )
 
-        # ── Step 4: PDF Generation ───────────────────────────────────────────
+        # ── Step 5: PDF Generation ───────────────────────────────────────────
         pdf_bytes: bytes | None = None
         try:
             pdf_bytes = await self._generate_pdf(
@@ -116,10 +132,14 @@ class DiagnosticService:
                 exc,
             )
 
-        # ── Step 5: Persist to DB ────────────────────────────────────────────
+        # ── Step 6: Persist to DB ────────────────────────────────────────────
+        key_findings_serialized = [f.model_dump() for f in key_findings]
+        gaps_serialized = [g.model_dump() for g in gaps]
+
         try:
             await self._store_result(
                 diagnostic_id=diagnostic_id,
+                lead_id=lead_id,
                 scores=scores_dict,
                 overall_score=overall_score,
                 tier=tier,
@@ -133,13 +153,32 @@ class DiagnosticService:
             )
             # Non-fatal — still return the result
 
+        # ── Step 7: Send emails ──────────────────────────────────────────────
+        if lead is not None:
+            await self._email_service.send_diagnostic_results(
+                lead_email=lead.email,
+                lead_name=lead.name,
+                diagnostic_id=diagnostic_id,
+                overall_score=float(overall_score),
+                tier=tier,
+                key_findings=key_findings_serialized,
+                pdf_bytes=pdf_bytes,
+            )
+            await self._email_service.send_sales_notification(
+                lead_name=lead.name,
+                lead_email=lead.email,
+                lead_company=lead.company,
+                overall_score=float(overall_score),
+                tier=tier,
+            )
+
         return DiagnosticResult(
             diagnostic_id=diagnostic_id,
             scores=scores_dict,
             overall_score=float(overall_score),
             tier=tier,
-            key_findings=[f.model_dump() for f in key_findings],
-            gaps=[g.model_dump() for g in gaps],
+            key_findings=key_findings_serialized,
+            gaps=gaps_serialized,
             pdf_bytes=pdf_bytes,
             status="complete",
         )
@@ -245,6 +284,7 @@ class DiagnosticService:
         overall_score: int,
         tier: str,
         pdf_bytes: bytes | None,
+        lead_id: str | None = None,
     ) -> None:
         """Persist the diagnostic result to the database."""
         async with AsyncSessionLocal() as session:
@@ -253,6 +293,7 @@ class DiagnosticService:
 
             record = db_models.Diagnostic(
                 id=diagnostic_id,
+                lead_id=lead_id,
                 diagnostic_type="quick",
                 status="complete",
                 scores=scores_payload,

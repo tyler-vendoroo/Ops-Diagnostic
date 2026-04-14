@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
     database_url: str = "postgresql+asyncpg://user:pass@localhost:5432/vendoroo_diagnostics"
-    sendgrid_api_key: str = ""
+    resend_api_key: str = ""
     diagnostic_from_email: str = "diagnostics@vendoroo.com"
     sales_notification_email: str = "sales@vendoroo.com"
     revenue_hero_api_key: str = ""

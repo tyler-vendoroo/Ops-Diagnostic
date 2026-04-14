@@ -1,10 +1,24 @@
-from fastapi import APIRouter
+"""Leads API endpoints."""
+
+from fastapi import APIRouter, HTTPException
+
+from app.models.lead import LeadCapture
+from app.services.lead_service import LeadService
+
 router = APIRouter()
 
+
 @router.post("")
-async def create_lead():
-    return {"status": "not_implemented"}
+async def create_lead(lead: LeadCapture):
+    service = LeadService()
+    lead_id = await service.create_lead(lead)
+    return {"lead_id": lead_id}
+
 
 @router.get("/{id}")
 async def get_lead(id: str):
-    return {"status": "not_implemented"}
+    service = LeadService()
+    lead = await service.get_lead(id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return lead
