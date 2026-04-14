@@ -1,9 +1,15 @@
 """Diagnostic API endpoints."""
 
-from fastapi import APIRouter, HTTPException
+import json
+import uuid
+import asyncio
+import logging
+
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import select
+from typing import Optional
 
 from app.models.survey import SurveyResponse
 from app.models.input_data import ClientInfo
@@ -11,6 +17,8 @@ from app.models.lead import LeadCapture
 from app.services.diagnostic_service import DiagnosticService
 from app.db.database import AsyncSessionLocal
 from app.db import models as db_models
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -46,9 +54,108 @@ async def quick_diagnostic(request: QuickDiagnosticRequest):
     }
 
 
+async def _run_full_diagnostic_background(
+    diagnostic_id: str,
+    work_order_bytes: bytes,
+    work_order_filename: str,
+    client_info_dict: dict,
+    lease_bytes: bytes | None,
+    pma_bytes: bytes | None,
+    vendor_directory_bytes: bytes | None,
+    lead_id: str | None,
+) -> None:
+    """Background task: delegate to DiagnosticService; mark failed if not yet implemented."""
+    service = DiagnosticService()
+    try:
+        await service.run_full_diagnostic(
+            diagnostic_id=diagnostic_id,
+            work_order_bytes=work_order_bytes,
+            work_order_filename=work_order_filename,
+            client_info=client_info_dict,
+            lease_bytes=lease_bytes,
+            pma_bytes=pma_bytes,
+            vendor_directory_bytes=vendor_directory_bytes,
+            lead_id=lead_id,
+        )
+    except NotImplementedError as exc:
+        logger.info("Full diagnostic not yet implemented — marking %s as failed.", diagnostic_id)
+        await asyncio.sleep(2)
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(db_models.Diagnostic).where(db_models.Diagnostic.id == diagnostic_id)
+            )
+            record = result.scalar_one_or_none()
+            if record is not None:
+                record.status = "failed"
+                record.error = str(exc)
+                await session.commit()
+    except Exception as exc:
+        logger.error("Full diagnostic background task failed for %s: %s", diagnostic_id, exc)
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(db_models.Diagnostic).where(db_models.Diagnostic.id == diagnostic_id)
+            )
+            record = result.scalar_one_or_none()
+            if record is not None:
+                record.status = "failed"
+                record.error = str(exc)
+                await session.commit()
+
+
 @router.post("/full")
-async def full_diagnostic():
-    return {"status": "not_implemented"}
+async def full_diagnostic(
+    background_tasks: BackgroundTasks,
+    work_order_file: UploadFile = File(...),
+    lease_file: Optional[UploadFile] = File(None),
+    pma_file: Optional[UploadFile] = File(None),
+    vendor_directory_file: Optional[UploadFile] = File(None),
+    client_info: str = Form(...),
+    lead_id: Optional[str] = Form(None),
+):
+    """Accept uploaded diagnostic files, create a DB record, and process in the background."""
+    # Parse client info
+    try:
+        client_info_dict = json.loads(client_info)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid client_info JSON: {exc}") from exc
+
+    # Read file bytes into memory
+    work_order_bytes = await work_order_file.read()
+    lease_bytes = await lease_file.read() if lease_file else None
+    pma_bytes = await pma_file.read() if pma_file else None
+    vendor_directory_bytes = await vendor_directory_file.read() if vendor_directory_file else None
+
+    # Create diagnostic record immediately so the frontend can poll it
+    diagnostic_id = str(uuid.uuid4())
+    async with AsyncSessionLocal() as session:
+        record = db_models.Diagnostic(
+            id=diagnostic_id,
+            lead_id=lead_id or None,
+            diagnostic_type="full",
+            status="processing",
+            scores=None,
+            tier=None,
+            pdf_data=None,
+            pdf_path=None,
+            error=None,
+        )
+        session.add(record)
+        await session.commit()
+
+    # Queue background processing
+    background_tasks.add_task(
+        _run_full_diagnostic_background,
+        diagnostic_id=diagnostic_id,
+        work_order_bytes=work_order_bytes,
+        work_order_filename=work_order_file.filename or "work_orders",
+        client_info_dict=client_info_dict,
+        lease_bytes=lease_bytes,
+        pma_bytes=pma_bytes,
+        vendor_directory_bytes=vendor_directory_bytes,
+        lead_id=lead_id,
+    )
+
+    return {"diagnostic_id": diagnostic_id, "status": "processing"}
 
 
 @router.get("/{id}")

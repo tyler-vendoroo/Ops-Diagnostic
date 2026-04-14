@@ -183,6 +183,20 @@ class DiagnosticService:
             status="complete",
         )
 
+    async def run_full_diagnostic(
+        self,
+        diagnostic_id: str,
+        work_order_bytes: bytes,
+        work_order_filename: str,
+        client_info: dict,
+        lease_bytes: bytes | None = None,
+        pma_bytes: bytes | None = None,
+        vendor_directory_bytes: bytes | None = None,
+        lead_id: str | None = None,
+    ) -> None:
+        """Full path: uploaded documents → complete analysis → full PDF. Phase 2 backend."""
+        raise NotImplementedError("Full diagnostic not yet implemented")
+
     # ── Internal helpers ─────────────────────────────────────────────────────
 
     async def _generate_pdf(
