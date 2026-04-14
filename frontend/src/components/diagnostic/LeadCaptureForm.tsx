@@ -15,6 +15,9 @@ function saveLeadToStorage(lead: LeadCapture) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(lead));
 }
 
+const inputClassName =
+  "border-vendoroo-border bg-vendoroo-surface text-vendoroo-text placeholder:text-vendoroo-muted";
+
 export function LeadCaptureForm({
   onSubmitted,
 }: {
@@ -52,10 +55,10 @@ export function LeadCaptureForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full max-w-lg flex-col gap-5"
+      className="mx-auto flex w-full max-w-lg flex-col gap-5 rounded-xl border border-vendoroo-border bg-vendoroo-surface p-6 shadow-sm sm:p-8"
     >
       <div className="space-y-2">
-        <Label htmlFor="lead-name" className="text-slate-200">
+        <Label htmlFor="lead-name" className="text-vendoroo-text">
           Full name
         </Label>
         <Input
@@ -64,12 +67,12 @@ export function LeadCaptureForm({
           autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="border-white/15 bg-[#0B1220] text-slate-100 placeholder:text-slate-500"
+          className={inputClassName}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="lead-email" className="text-slate-200">
+        <Label htmlFor="lead-email" className="text-vendoroo-text">
           Work email
         </Label>
         <Input
@@ -79,12 +82,12 @@ export function LeadCaptureForm({
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="border-white/15 bg-[#0B1220] text-slate-100 placeholder:text-slate-500"
+          className={inputClassName}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="lead-company" className="text-slate-200">
+        <Label htmlFor="lead-company" className="text-vendoroo-text">
           Company name
         </Label>
         <Input
@@ -93,13 +96,13 @@ export function LeadCaptureForm({
           autoComplete="organization"
           value={company}
           onChange={(e) => setCompany(e.target.value)}
-          className="border-white/15 bg-[#0B1220] text-slate-100 placeholder:text-slate-500"
+          className={inputClassName}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="lead-phone" className="text-slate-200">
-          Phone <span className="font-normal text-slate-500">(optional)</span>
+        <Label htmlFor="lead-phone" className="text-vendoroo-text">
+          Phone <span className="font-normal text-vendoroo-muted">(optional)</span>
         </Label>
         <Input
           id="lead-phone"
@@ -108,33 +111,33 @@ export function LeadCaptureForm({
           autoComplete="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="border-white/15 bg-[#0B1220] text-slate-100 placeholder:text-slate-500"
+          className={inputClassName}
         />
       </div>
-      <div className="flex items-start gap-3 rounded-lg border border-white/10 bg-[#0B1220]/80 p-4">
+      <div className="flex items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-light p-4">
         <Checkbox
           id="lead-terms"
           checked={termsAccepted}
           onCheckedChange={(c) => setTermsAccepted(c === true)}
-          className="mt-0.5 border-white/25"
+          className="mt-0.5 border-vendoroo-border"
         />
         <Label
           htmlFor="lead-terms"
-          className="cursor-pointer text-sm font-normal leading-snug text-slate-300"
+          className="cursor-pointer text-sm font-normal leading-snug text-vendoroo-smoke"
         >
           I agree to Vendoroo contacting me about this diagnostic and related
-          operations services. I understand my responses inform a
-          confidential assessment.
+          operations services. I understand my responses inform a confidential
+          assessment.
         </Label>
       </div>
       {error ? (
-        <p className="text-sm text-amber-400" role="alert">
+        <p className="text-sm text-amber-700" role="alert">
           {error}
         </p>
       ) : null}
       <Button
         type="submit"
-        className="h-11 w-full bg-[#6366F1] text-base font-medium text-white hover:bg-[#4F46E5] sm:w-auto sm:self-start"
+        className="h-12 w-full rounded-full text-sm font-medium uppercase tracking-[-0.02em] sm:w-auto sm:self-start sm:px-10"
       >
         Continue
       </Button>

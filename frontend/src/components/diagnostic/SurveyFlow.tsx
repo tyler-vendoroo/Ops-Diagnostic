@@ -66,8 +66,8 @@ function radioCardClass(active: boolean) {
   return [
     "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
     active
-      ? "border-[#6366F1] bg-[#6366F1]/10 ring-1 ring-[#6366F1]/40"
-      : "border-white/10 bg-[#0B1220] hover:border-white/20",
+      ? "border-vendoroo-main bg-vendoroo-tint/50 ring-1 ring-vendoroo-main/30"
+      : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
   ].join(" ");
 }
 
@@ -296,10 +296,10 @@ export function SurveyFlow() {
   }
 
   const inputClass =
-    "border-white/15 bg-[#0B1220] text-slate-100 placeholder:text-slate-500";
+    "border-vendoroo-border bg-vendoroo-surface text-vendoroo-text placeholder:text-vendoroo-muted";
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 pb-16">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 rounded-xl border border-vendoroo-border bg-vendoroo-surface p-6 shadow-sm sm:p-8 pb-16 sm:pb-20">
       <DiagnosticProgress step={step} />
 
       {step === 1 ? (
@@ -307,11 +307,11 @@ export function SurveyFlow() {
           <div>
             <h2
               id="s1-heading"
-              className="text-lg font-medium tracking-tight text-slate-100"
+              className="text-lg font-medium tracking-tight text-vendoroo-text"
             >
               Company basics
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-vendoroo-muted">
               Establish scope and how your maintenance desk is staffed.
             </p>
           </div>
@@ -375,10 +375,10 @@ export function SurveyFlow() {
               <label className={radioCardClass(operationalModel === "va")}>
                 <RadioGroupItem value="va" id="om-va" />
                 <span>
-                  <span className="block font-medium text-slate-100">
+                  <span className="block font-medium text-vendoroo-text">
                     VA Coordinators
                   </span>
-                  <span className="text-sm text-slate-400">
+                  <span className="text-sm text-vendoroo-muted">
                     Centralized coordinators triage and dispatch vendor work.
                   </span>
                 </span>
@@ -386,10 +386,10 @@ export function SurveyFlow() {
               <label className={radioCardClass(operationalModel === "tech")}>
                 <RadioGroupItem value="tech" id="om-tech" />
                 <span>
-                  <span className="block font-medium text-slate-100">
+                  <span className="block font-medium text-vendoroo-text">
                     In-House Tech Team
                   </span>
-                  <span className="text-sm text-slate-400">
+                  <span className="text-sm text-vendoroo-muted">
                     Dedicated technicians handle a share of work orders
                     internally.
                   </span>
@@ -415,11 +415,11 @@ export function SurveyFlow() {
           <div>
             <h2
               id="s2-heading"
-              className="text-lg font-medium tracking-tight text-slate-100"
+              className="text-lg font-medium tracking-tight text-vendoroo-text"
             >
               Vendor coverage
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-vendoroo-muted">
               Quantify vendor depth across the trades you rely on most.
             </p>
           </div>
@@ -439,12 +439,12 @@ export function SurveyFlow() {
               {TRADES.map((t) => (
                 <label
                   key={t.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-[#0B1220] px-3 py-2 text-sm text-slate-200 hover:border-white/20"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface px-3 py-2 text-sm text-vendoroo-smoke hover:border-vendoroo-muted/50"
                 >
                   <Checkbox
                     checked={trades.includes(t.id)}
                     onCheckedChange={() => toggleTrade(t.id)}
-                    className="border-white/25"
+                    className="border-vendoroo-border"
                   />
                   {t.label}
                 </label>
@@ -459,11 +459,11 @@ export function SurveyFlow() {
           <div>
             <h2
               id="s3-heading"
-              className="text-lg font-medium tracking-tight text-slate-100"
+              className="text-lg font-medium tracking-tight text-vendoroo-text"
             >
               Policies
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-vendoroo-muted">
               Documented rules reduce variance when urgency is high.
             </p>
           </div>
@@ -480,13 +480,13 @@ export function SurveyFlow() {
             name="nte"
           />
           {definedNtes === "yes" ? (
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-[#0B1220] p-4">
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4">
               <Checkbox
                 checked={ntesTiered}
                 onCheckedChange={(c) => setNtesTiered(c === true)}
-                className="mt-0.5 border-white/25"
+                className="mt-0.5 border-vendoroo-border"
               />
-              <span className="text-sm text-slate-200">
+              <span className="text-sm text-vendoroo-smoke">
                 NTEs are tiered by trade or cost band (not a single flat cap).
               </span>
             </label>
@@ -505,11 +505,11 @@ export function SurveyFlow() {
           <div>
             <h2
               id="s4-heading"
-              className="text-lg font-medium tracking-tight text-slate-100"
+              className="text-lg font-medium tracking-tight text-vendoroo-text"
             >
               Operations
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-vendoroo-muted">
               Typical response behavior across the work order lifecycle.
             </p>
           </div>
@@ -559,29 +559,29 @@ export function SurveyFlow() {
             >
               <label className={radioCardClass(afterHours === "24_7_coverage")}>
                 <RadioGroupItem value="24_7_coverage" id="ah-247" />
-                <span className="text-slate-100">24/7 coverage</span>
+                <span className="text-vendoroo-text">24/7 coverage</span>
               </label>
               <label
                 className={radioCardClass(afterHours === "answering_service")}
               >
                 <RadioGroupItem value="answering_service" id="ah-ans" />
-                <span className="text-slate-100">Answering service</span>
+                <span className="text-vendoroo-text">Answering service</span>
               </label>
               <label
                 className={radioCardClass(afterHours === "on_call_rotation")}
               >
                 <RadioGroupItem value="on_call_rotation" id="ah-oncall" />
-                <span className="text-slate-100">On-call rotation</span>
+                <span className="text-vendoroo-text">On-call rotation</span>
               </label>
               <label
                 className={radioCardClass(afterHours === "voicemail_only")}
               >
                 <RadioGroupItem value="voicemail_only" id="ah-vm" />
-                <span className="text-slate-100">Voicemail only</span>
+                <span className="text-vendoroo-text">Voicemail only</span>
               </label>
               <label className={radioCardClass(afterHours === "none")}>
                 <RadioGroupItem value="none" id="ah-none" />
-                <span className="text-slate-100">None</span>
+                <span className="text-vendoroo-text">None</span>
               </label>
             </RadioGroup>
           </div>
@@ -593,11 +593,11 @@ export function SurveyFlow() {
           <div>
             <h2
               id="s5-heading"
-              className="text-lg font-medium tracking-tight text-slate-100"
+              className="text-lg font-medium tracking-tight text-vendoroo-text"
             >
               Goals
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-vendoroo-muted">
               Prioritize what success looks like over the next two quarters.
             </p>
           </div>
@@ -613,8 +613,8 @@ export function SurveyFlow() {
               <label className={radioCardClass(primaryGoal === "scale")}>
                 <RadioGroupItem value="scale" id="g-scale" />
                 <span>
-                  <span className="block font-medium text-slate-100">Scale</span>
-                  <span className="text-sm text-slate-400">
+                  <span className="block font-medium text-vendoroo-text">Scale</span>
+                  <span className="text-sm text-vendoroo-muted">
                     Grow portfolio without adding headcount.
                   </span>
                 </span>
@@ -622,10 +622,10 @@ export function SurveyFlow() {
               <label className={radioCardClass(primaryGoal === "optimize")}>
                 <RadioGroupItem value="optimize" id="g-opt" />
                 <span>
-                  <span className="block font-medium text-slate-100">
+                  <span className="block font-medium text-vendoroo-text">
                     Optimize
                   </span>
-                  <span className="text-sm text-slate-400">
+                  <span className="text-sm text-vendoroo-muted">
                     Reduce costs and tighten response time.
                   </span>
                 </span>
@@ -633,8 +633,8 @@ export function SurveyFlow() {
               <label className={radioCardClass(primaryGoal === "elevate")}>
                 <RadioGroupItem value="elevate" id="g-el" />
                 <span>
-                  <span className="block font-medium text-slate-100">Elevate</span>
-                  <span className="text-sm text-slate-400">
+                  <span className="block font-medium text-vendoroo-text">Elevate</span>
+                  <span className="text-sm text-vendoroo-muted">
                     Premium service positioning for higher-value properties.
                   </span>
                 </span>
@@ -644,7 +644,7 @@ export function SurveyFlow() {
           <div className="space-y-3">
             <div className="flex items-baseline justify-between gap-2">
               <Label>Biggest pain points</Label>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-vendoroo-muted">
                 {painPoints.length} of 3 selected
               </span>
             </div>
@@ -657,15 +657,15 @@ export function SurveyFlow() {
                     key={p.id}
                     className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
                       disabled
-                        ? "cursor-not-allowed border-white/5 text-slate-500"
-                        : "cursor-pointer border-white/10 bg-[#0B1220] text-slate-200 hover:border-white/20"
+                        ? "cursor-not-allowed border-vendoroo-border/50 text-vendoroo-muted"
+                        : "cursor-pointer border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50"
                     }`}
                   >
                     <Checkbox
                       checked={checked}
                       disabled={disabled}
                       onCheckedChange={() => togglePain(p.id)}
-                      className="border-white/25"
+                      className="border-vendoroo-border"
                     />
                     {p.label}
                   </label>
@@ -677,7 +677,7 @@ export function SurveyFlow() {
       ) : null}
 
       {formError ? (
-        <p className="text-sm text-amber-400" role="alert">
+        <p className="text-sm text-amber-700" role="alert">
           {formError}
         </p>
       ) : null}
@@ -688,7 +688,7 @@ export function SurveyFlow() {
           variant="outline"
           onClick={goBack}
           disabled={step === 1 || loading}
-          className="border-white/20 text-slate-200 hover:bg-white/5"
+          className="border-vendoroo-border text-vendoroo-text hover:bg-vendoroo-light"
         >
           Back
         </Button>
@@ -697,7 +697,7 @@ export function SurveyFlow() {
             type="button"
             onClick={goNext}
             disabled={loading}
-            className="bg-[#6366F1] text-white hover:bg-[#4F46E5] sm:min-w-40"
+            className="rounded-full text-sm font-medium uppercase tracking-[-0.02em] sm:min-w-40 sm:px-8"
           >
             Next
           </Button>
@@ -706,7 +706,7 @@ export function SurveyFlow() {
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-[#6366F1] text-white hover:bg-[#4F46E5] sm:min-w-40"
+            className="rounded-full text-sm font-medium uppercase tracking-[-0.02em] sm:min-w-40 sm:px-8"
           >
             {loading ? "Analyzing your operations..." : "Submit diagnostic"}
           </Button>
@@ -714,7 +714,7 @@ export function SurveyFlow() {
       </div>
 
       {loading ? (
-        <p className="text-center text-sm text-slate-400">
+        <p className="text-center text-sm text-vendoroo-muted">
           Analyzing your operations…
         </p>
       ) : null}
@@ -741,15 +741,15 @@ function PolicyRadio({
         onValueChange={(v) => onChange(v as "yes" | "no" | "unsure")}
         className="flex flex-wrap gap-4"
       >
-        <label className="flex items-center gap-2 text-sm text-slate-200">
+        <label className="flex items-center gap-2 text-sm text-vendoroo-smoke">
           <RadioGroupItem value="yes" id={`${name}-yes`} />
           Yes
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-200">
+        <label className="flex items-center gap-2 text-sm text-vendoroo-smoke">
           <RadioGroupItem value="no" id={`${name}-no`} />
           No
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-200">
+        <label className="flex items-center gap-2 text-sm text-vendoroo-smoke">
           <RadioGroupItem value="unsure" id={`${name}-un`} />
           Unsure
         </label>

@@ -8,7 +8,7 @@ export function DiagnosticProgress({ step }: { step: number }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between text-xs text-slate-400">
+      <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-vendoroo-muted">
         <span>
           Step {step} of {total}
         </span>
@@ -16,7 +16,7 @@ export function DiagnosticProgress({ step }: { step: number }) {
       </div>
       <Progress
         value={pct}
-        className="[&_[data-slot=progress-indicator]]:bg-[#6366F1]"
+        className="[&_[data-slot=progress-track]]:bg-vendoroo-border [&_[data-slot=progress-indicator]]:bg-vendoroo-main"
       />
     </div>
   );

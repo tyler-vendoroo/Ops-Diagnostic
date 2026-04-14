@@ -3,7 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 
-import type { DiagnosticStatusResponse, DiagnosticTier, GapFinding, KeyFinding } from "@/lib/types";
+import type {
+  DiagnosticStatusResponse,
+  DiagnosticTier,
+  GapFinding,
+  KeyFinding,
+} from "@/lib/types";
 import { getDiagnostic, getDiagnosticPdfUrl } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,15 +65,15 @@ function clampScore(n: number) {
 }
 
 function scoreColor(score: number) {
-  if (score >= 70) return "text-emerald-400";
-  if (score >= 50) return "text-amber-300";
-  return "text-rose-400";
+  if (score >= 70) return "text-vendoroo-success";
+  if (score >= 50) return "text-amber-600";
+  return "text-rose-600";
 }
 
 function ringColor(score: number) {
-  if (score >= 70) return "#34d399";
-  if (score >= 50) return "#fbbf24";
-  return "#fb7185";
+  if (score >= 70) return "#34ba49";
+  if (score >= 50) return "#fdbb00";
+  return "#f43f5e";
 }
 
 const findingIcons = [Activity, ShieldCheck, Gauge, ClipboardList];
@@ -76,10 +81,10 @@ const findingIcons = [Activity, ShieldCheck, Gauge, ClipboardList];
 function SeverityDot({ severity }: { severity?: GapFinding["severity"] }) {
   const cls =
     severity === "high"
-      ? "bg-rose-400"
+      ? "bg-rose-500"
       : severity === "medium"
-        ? "bg-amber-300"
-        : "bg-slate-500";
+        ? "bg-amber-500"
+        : "bg-vendoroo-muted";
   return (
     <span
       className={`mt-1.5 size-2 shrink-0 rounded-full ${cls}`}
@@ -130,13 +135,13 @@ export function ResultsView({ id }: { id: string }) {
   if (error && !data) {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <p className="text-slate-300">{error}</p>
+        <p className="text-vendoroo-muted">{error}</p>
         <Link
           href="/diagnostic"
           className={cn(
             buttonVariants({
               className:
-                "mt-6 inline-flex bg-[#6366F1] text-white hover:bg-[#4F46E5]",
+                "mt-6 inline-flex rounded-full px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em]",
             })
           )}
         >
@@ -150,10 +155,10 @@ export function ResultsView({ id }: { id: string }) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-24 text-center">
         <div
-          className="size-10 animate-spin rounded-full border-2 border-[#6366F1] border-t-transparent"
+          className="size-10 animate-spin rounded-full border-2 border-vendoroo-main border-t-transparent"
           aria-hidden
         />
-        <p className="text-sm text-slate-400">Retrieving your assessment…</p>
+        <p className="text-sm text-vendoroo-muted">Retrieving your assessment…</p>
       </div>
     );
   }
@@ -161,8 +166,8 @@ export function ResultsView({ id }: { id: string }) {
   if (data.status === "processing" || data.status === "pending") {
     return (
       <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <p className="text-lg text-slate-100">Processing your diagnostic…</p>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="text-lg text-vendoroo-text">Processing your diagnostic…</p>
+        <p className="mt-2 text-sm text-vendoroo-muted">
           Models are scoring vendor coverage, policy discipline, and response
           readiness. This usually finishes within a minute.
         </p>
@@ -173,12 +178,12 @@ export function ResultsView({ id }: { id: string }) {
   if (data.status === "failed") {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <p className="text-slate-300">
+        <p className="text-vendoroo-muted">
           {error ?? "This diagnostic could not be completed."}
         </p>
         <Link
           href="/diagnostic"
-          className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-[#6366F1] px-6 text-sm font-medium text-white hover:bg-[#4F46E5]"
+          className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-[#222] px-8 text-sm font-medium uppercase tracking-[-0.02em] text-white transition-colors hover:bg-[#039cac]"
         >
           Start over
         </Link>
@@ -195,27 +200,27 @@ export function ResultsView({ id }: { id: string }) {
   const pdfHref = getDiagnosticPdfUrl(id);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-12 px-4 py-12 sm:px-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-12 bg-vendoroo-page px-4 py-12 sm:px-6">
       <header className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
           <ScoreRing score={score} />
           <div>
-            <p className="text-xs font-medium uppercase tracking-widest text-slate-500">
+            <p className="text-xs font-medium uppercase tracking-widest text-vendoroo-muted">
               Operations score
             </p>
             <p
               className={`mt-1 text-4xl font-semibold tabular-nums ${scoreColor(score)}`}
             >
               {score}
-              <span className="text-lg font-normal text-slate-500">/100</span>
+              <span className="text-lg font-normal text-vendoroo-muted">/100</span>
             </p>
           </div>
         </div>
-        <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#0B1220] px-5 py-4 text-left">
-          <p className="text-xs font-medium uppercase tracking-wider text-[#6366F1]">
+        <div className="w-full max-w-sm rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-4 text-left shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-vendoroo-main">
             {tierInfo.label}
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
+          <p className="mt-2 text-sm leading-relaxed text-vendoroo-smoke">
             {tierInfo.line}
           </p>
         </div>
@@ -224,7 +229,7 @@ export function ResultsView({ id }: { id: string }) {
       <section aria-labelledby="findings-heading">
         <h2
           id="findings-heading"
-          className="text-base font-medium tracking-tight text-slate-100"
+          className="text-base font-medium tracking-tight text-vendoroo-text"
         >
           Key findings
         </h2>
@@ -235,25 +240,25 @@ export function ResultsView({ id }: { id: string }) {
               return (
                 <Card
                   key={`${f.title}-${i}`}
-                  className="border-white/10 bg-[#0B1220] ring-white/10"
+                  className="border-vendoroo-border bg-vendoroo-surface shadow-sm ring-0"
                 >
                   <CardHeader className="flex flex-row items-start gap-3 space-y-0">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#6366F1]/15 text-[#6366F1]">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-vendoroo-tint/80 text-vendoroo-main-dark">
                       <Icon className="size-4" aria-hidden />
                     </div>
                     <div>
-                      <CardTitle className="text-base text-slate-100">
+                      <CardTitle className="text-base text-vendoroo-text">
                         {f.title}
                       </CardTitle>
                       {f.category ? (
-                        <CardDescription className="text-xs uppercase tracking-wide text-slate-500">
+                        <CardDescription className="text-xs uppercase tracking-wide text-vendoroo-muted">
                           {f.category}
                         </CardDescription>
                       ) : null}
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm leading-relaxed text-slate-400">
+                    <p className="text-sm leading-relaxed text-vendoroo-muted">
                       {f.description}
                     </p>
                   </CardContent>
@@ -261,7 +266,7 @@ export function ResultsView({ id }: { id: string }) {
               );
             })
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-vendoroo-muted">
               Detailed findings will appear here once the assessment enriches this
               record.
             </p>
@@ -272,7 +277,7 @@ export function ResultsView({ id }: { id: string }) {
       <section aria-labelledby="gaps-heading">
         <h2
           id="gaps-heading"
-          className="text-base font-medium tracking-tight text-slate-100"
+          className="text-base font-medium tracking-tight text-vendoroo-text"
         >
           Gaps to address
         </h2>
@@ -281,24 +286,24 @@ export function ResultsView({ id }: { id: string }) {
             gaps.map((g: GapFinding, i: number) => (
               <li
                 key={`${g.title}-${i}`}
-                className="flex gap-3 rounded-lg border border-white/10 bg-[#0B1220]/80 px-4 py-3"
+                className="flex gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface px-4 py-3 shadow-sm"
               >
                 <SeverityDot severity={g.severity} />
                 <div>
-                  <p className="font-medium text-slate-100">{g.title}</p>
-                  <p className="mt-1 text-sm text-slate-400">{g.description}</p>
+                  <p className="font-medium text-vendoroo-text">{g.title}</p>
+                  <p className="mt-1 text-sm text-vendoroo-muted">{g.description}</p>
                 </div>
               </li>
             ))
           ) : (
-            <li className="text-sm text-slate-500">
+            <li className="text-sm text-vendoroo-muted">
               No structural gaps were flagged in this pass.
             </li>
           )}
         </ul>
       </section>
 
-      <section className="flex flex-col gap-3 border-t border-white/10 pt-10 sm:flex-row sm:flex-wrap">
+      <section className="flex flex-col gap-3 border-t border-vendoroo-border pt-10 sm:flex-row sm:flex-wrap">
         {showPdf ? (
           <a
             href={pdfHref}
@@ -307,7 +312,7 @@ export function ResultsView({ id }: { id: string }) {
             className={cn(
               buttonVariants({
                 className:
-                  "inline-flex gap-2 bg-[#6366F1] text-white hover:bg-[#4F46E5]",
+                  "inline-flex gap-2 rounded-full px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em]",
               })
             )}
           >
@@ -323,7 +328,7 @@ export function ResultsView({ id }: { id: string }) {
             buttonVariants({
               variant: "outline",
               className:
-                "inline-flex border-white/20 text-slate-100 hover:bg-white/5",
+                "inline-flex rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
             })
           )}
         >
@@ -336,7 +341,7 @@ export function ResultsView({ id }: { id: string }) {
               buttonVariants({
                 variant: "secondary",
                 className:
-                  "inline-flex gap-2 bg-white/10 text-slate-100 hover:bg-white/15",
+                  "inline-flex gap-2 rounded-full bg-vendoroo-light px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-border/60",
               })
             )}
           >
@@ -370,7 +375,7 @@ function ScoreRing({ score }: { score: number }) {
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="rgba(148,163,184,0.25)"
+        stroke="#e1e3e4"
         strokeWidth={stroke}
       />
       <circle

@@ -6,23 +6,18 @@ import { cn } from "@/lib/utils";
 export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
-      <section className="relative flex flex-1 flex-col justify-center overflow-hidden px-4 py-20 sm:px-8 sm:py-28">
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.14),_transparent_55%)]"
-          aria-hidden
-        />
+      <section className="relative flex flex-1 flex-col justify-center overflow-hidden bg-vendoroo-page px-4 py-16 sm:px-8 sm:py-24">
         <div className="relative mx-auto max-w-3xl text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#6366F1]">
-            Vendoroo · vendoroo.ai
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-vendoroo-muted">
+            Operations assessment
           </p>
-          <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Get Your Free Operations Diagnostic
+          <h1 className="mt-4 text-balance text-3xl font-normal leading-[0.95] tracking-[-0.06em] text-vendoroo-text sm:text-5xl md:text-[3.25rem]">
+            Get your free operations diagnostic
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:text-lg">
-            Vendoroo helps property operators coordinate maintenance with
-            discipline—clear vendors, accountable spend, and predictable
-            response when residents need help. This diagnostic benchmarks your
-            current operating model against teams running portfolios at scale.
+          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-vendoroo-muted sm:text-lg">
+            Benchmark how your team coordinates maintenance—vendors, policies,
+            after-hours coverage, and response discipline—against operators
+            running portfolios at scale with Vendoroo.
           </p>
           <div className="mt-10">
             <Link
@@ -31,7 +26,7 @@ export default function Home() {
                 buttonVariants({
                   size: "lg",
                   className:
-                    "h-12 min-w-[200px] bg-[#6366F1] px-8 text-base text-white hover:bg-[#4F46E5]",
+                    "h-auto min-w-[220px] rounded-full px-10 py-4 text-sm font-medium uppercase tracking-[-0.02em]",
                 })
               )}
             >
