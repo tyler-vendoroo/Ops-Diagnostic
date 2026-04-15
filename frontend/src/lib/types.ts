@@ -94,6 +94,7 @@ export interface KeyFinding {
   description: string;
   impact?: string;
   category?: string;
+  color?: string;
 }
 
 export interface GapFinding {

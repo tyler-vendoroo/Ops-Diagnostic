@@ -115,6 +115,15 @@ function ringColor(score: number) {
 
 const findingIcons = [Activity, ShieldCheck, Gauge, ClipboardList];
 
+function findingAccentClass(color?: string): string {
+  if (!color) return "bg-vendoroo-tint/80 text-vendoroo-main-dark";
+  if (color.includes("red")) return "bg-rose-50 text-rose-600";
+  if (color.includes("amber")) return "bg-amber-50 text-amber-600";
+  if (color.includes("green")) return "bg-emerald-50 text-emerald-600";
+  if (color.includes("blue")) return "bg-sky-50 text-sky-600";
+  return "bg-vendoroo-tint/80 text-vendoroo-main-dark";
+}
+
 function SeverityDot({ severity }: { severity?: string }) {
   const s = (severity ?? "").toLowerCase();
   const cls = s.includes("high")
@@ -472,7 +481,7 @@ export function ResultsView({ id }: { id: string }) {
   const score = scoreFromDiagnostic(data);
   const tier: DiagnosticTier = data.tier ?? "engage";
   const tierInfo = tierCopy[tier];
-  const findings = (data.key_findings ?? []).slice(0, 4);
+  const findings = data.key_findings ?? [];
   const gaps = data.gaps ?? [];
   const showPdf = Boolean(data.pdf_url);
   const pdfHref = getDiagnosticPdfUrl(id);
@@ -587,7 +596,7 @@ export function ResultsView({ id }: { id: string }) {
                   className="border-vendoroo-border bg-vendoroo-surface shadow-sm ring-0"
                 >
                   <CardHeader className="flex flex-row items-start gap-3 space-y-0">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-vendoroo-tint/80 text-vendoroo-main-dark">
+                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${findingAccentClass(f.color)}`}>
                       <Icon className="size-4" aria-hidden />
                     </div>
                     <div>
@@ -655,9 +664,14 @@ export function ResultsView({ id }: { id: string }) {
                     {g.description || g.detail}
                   </p>
                   {g.recommendation ? (
-                    <p className="mt-1.5 text-xs text-vendoroo-main">
-                      {g.recommendation}
-                    </p>
+                    <div className="mt-2 rounded-md bg-vendoroo-light px-3 py-2">
+                      <p className="text-xs font-medium text-vendoroo-smoke">
+                        How your AI Adoption Advisor addresses this
+                      </p>
+                      <p className="mt-0.5 text-xs text-vendoroo-muted">
+                        {g.recommendation}
+                      </p>
+                    </div>
                   ) : null}
                 </div>
               </li>

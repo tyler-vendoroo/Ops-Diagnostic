@@ -382,38 +382,206 @@ def generate_key_findings(
     doc_analysis: DocumentAnalysis,
     client_info: ClientInfo,
 ) -> list[KeyFinding]:
-    """Generate 4 key findings for the operations analysis page."""
+    """Generate key findings based on the prospect's specific operational data.
+
+    Each finding is conditional on actual metrics. No artificial cap —
+    the count reflects how many actionable observations the data supports.
+    """
     findings = []
     model = client_info.operational_model
     benchmarks = VENDOROO_AVG.get(model, VENDOROO_AVG["va"])
+    staff_benchmark = STAFFING_BENCHMARKS.get(model, STAFFING_BENCHMARKS["va"])
 
-    # Response Time Gap (usually red)
-    if wo_metrics.avg_first_response_hours and wo_metrics.avg_first_response_hours > 1:
+    # ── Staff label helpers (singular/plural aware) ──
+    if model == "pod":
+        staff_label_s, staff_label_p = "pod", "pods"
+    elif model == "tech":
+        staff_label_s, staff_label_p = "technician", "technicians"
+    else:
+        staff_label_s, staff_label_p = "coordinator", "coordinators"
+
+    staff_count = client_info.staff_count
+    staff_word = staff_label_s if staff_count == 1 else staff_label_p
+
+    doors_per = portfolio.doors_per_staff
+    benchmark_per = staff_benchmark["current_benchmark"]
+    vendoroo_per = staff_benchmark["vendoroo_benchmark"]
+    scale_doors = staff_count * vendoroo_per
+    optimize_staff = max(1, round(client_info.door_count / vendoroo_per))
+
+    # ── 1. Response Time ──
+    if wo_metrics.avg_first_response_hours is not None:
+        hrs = wo_metrics.avg_first_response_hours
+        if hrs > 12:
+            findings.append(KeyFinding(
+                title="Response Time Gap",
+                description=(
+                    f"Your average first response of {hrs} hours means most requests wait "
+                    f"until the next business day. Vendoroo's average is under 10 minutes. "
+                    f"This gap compounds after hours, where every evening request adds "
+                    f"8 to 12 hours before a vendor is even contacted."
+                ),
+                color="var(--red)",
+            ))
+        elif hrs > 4:
+            findings.append(KeyFinding(
+                title="Response Time Gap",
+                description=(
+                    f"Your average first response of {hrs} hours is common for teams "
+                    f"managing dispatch manually. Vendoroo's average is under 10 minutes — "
+                    f"AI triage and auto-dispatch eliminate the queue between request and action."
+                ),
+                color="var(--amber)",
+            ))
+        elif hrs > 1:
+            findings.append(KeyFinding(
+                title="Response Time Opportunity",
+                description=(
+                    f"Your average first response of {hrs} hours shows reasonable urgency. "
+                    f"AI coordination can compress this to under 10 minutes by eliminating "
+                    f"the manual triage step between resident request and vendor contact."
+                ),
+                color="var(--amber)",
+            ))
+        else:
+            findings.append(KeyFinding(
+                title="Strong Response Time",
+                description=(
+                    f"Your average first response of {hrs} hours is already fast. "
+                    f"AI coordination maintains this speed 24/7 — including nights, "
+                    f"weekends, and holidays when manual teams typically slow down."
+                ),
+                color="var(--green)",
+            ))
+
+    # ── 2. Open WO Rate ──
+    if wo_metrics.open_wo_rate_pct is not None:
+        rate = wo_metrics.open_wo_rate_pct
+        if rate > 20:
+            findings.append(KeyFinding(
+                title="High Open Work Order Rate",
+                description=(
+                    f"Your open work order rate of {rate}% means roughly 1 in 5 requests "
+                    f"is unresolved at any given time. Vendoroo clients average {benchmarks['open_wo_rate_pct']}%. "
+                    f"AI follow-up sequences and automated vendor check-ins close the loop "
+                    f"on stalled work orders without manual chasing."
+                ),
+                color="var(--red)",
+            ))
+        elif rate > 15:
+            findings.append(KeyFinding(
+                title="Open Work Order Rate",
+                description=(
+                    f"Your open work order rate of {rate}% is above the Vendoroo average "
+                    f"of {benchmarks['open_wo_rate_pct']}%. Automated follow-up and vendor "
+                    f"accountability tracking can reduce this by 40-60%."
+                ),
+                color="var(--amber)",
+            ))
+        elif rate <= 5:
+            findings.append(KeyFinding(
+                title="Excellent Completion Rate",
+                description=(
+                    f"Your open work order rate of {rate}% is at or below top performer "
+                    f"levels. AI coordination helps maintain this as you scale by ensuring "
+                    f"no work order falls through the cracks during high-volume periods."
+                ),
+                color="var(--green)",
+            ))
+
+    # ── 3. Vendor Coverage ──
+    covered = wo_metrics.trades_covered_count
+    required = wo_metrics.trades_required_count or 12
+    if wo_metrics.missing_trades:
+        missing_str = ", ".join(wo_metrics.missing_trades[:4])
+        missing_count = len(wo_metrics.missing_trades)
         findings.append(KeyFinding(
-            title="Response Time Gap",
+            title="Vendor Coverage Gaps",
             description=(
-                f"Your average first response of {wo_metrics.avg_first_response_hours} hours "
-                f"compared to Vendoroo's average of under 10 minutes. After hours issues "
-                f"are queuing until the next business day, adding 8 to 12 hours to every evening request."
+                f"You have {wo_metrics.unique_vendors} vendors covering "
+                f"{covered} of {required} required trades. "
+                f"Missing coverage in {missing_str} "
+                f"{'creates a single point' if missing_count == 1 else 'creates single points'} "
+                f"of failure during peak demand or vendor unavailability."
+            ),
+            color="var(--red)" if missing_count >= 3 else "var(--amber)",
+        ))
+    elif wo_metrics.unique_vendors > 0 and covered >= required:
+        findings.append(KeyFinding(
+            title="Strong Vendor Coverage",
+            description=(
+                f"You have {wo_metrics.unique_vendors} vendors covering all "
+                f"{required} required trades. AI coordination maximizes this network "
+                f"by routing each job to the best-fit vendor based on trade, "
+                f"availability, and past performance."
+            ),
+            color="var(--green)",
+        ))
+
+    # ── 4. After Hours Coverage ──
+    if wo_metrics.after_hours_pct is not None and wo_metrics.after_hours_pct > 0:
+        ah_pct = wo_metrics.after_hours_pct
+        if not doc_analysis.has_emergency_protocols and ah_pct > 15:
+            findings.append(KeyFinding(
+                title="After Hours Exposure",
+                description=(
+                    f"{ah_pct}% of your maintenance requests come in after hours, "
+                    f"but you have no written emergency protocols. Without documented "
+                    f"triage criteria, after-hours decisions rely on individual judgment — "
+                    f"AI needs clear rules to handle these consistently."
+                ),
+                color="var(--red)",
+            ))
+        elif ah_pct > 25:
+            findings.append(KeyFinding(
+                title="Heavy After Hours Volume",
+                description=(
+                    f"{ah_pct}% of your maintenance requests come in after hours. "
+                    f"This is above typical ranges and suggests residents are actively "
+                    f"submitting evenings and weekends. AI triage handles this volume "
+                    f"24/7 without adding staff or answering service costs."
+                ),
+                color="var(--amber)",
+            ))
+
+    # ── 5. Emergency Protocols ──
+    if not doc_analysis.has_emergency_protocols:
+        findings.append(KeyFinding(
+            title="No Written Emergency Protocols",
+            description=(
+                "Without documented emergency criteria, triage decisions rely on "
+                "individual judgment. This creates inconsistency — what one person "
+                "escalates as urgent, another might queue until morning. "
+                "AI needs explicit rules to classify and route emergencies correctly."
             ),
             color="var(--red)",
         ))
 
-    # Vendor Network (amber or red) — use wo_metrics as single source of truth
-    if wo_metrics.missing_trades:
-        missing_str = ", ".join(wo_metrics.missing_trades[:3])
+    # ── 6. NTE Governance ──
+    if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
         findings.append(KeyFinding(
-            title="Vendor Network Gaps",
+            title="Flat NTE Structure",
             description=(
-                f"You have {wo_metrics.unique_vendors} vendors covering "
-                f"{wo_metrics.trades_covered_count} of {wo_metrics.trades_required_count} required trades. "
-                f"Missing backup vendors in {missing_str} creates single points of failure "
-                f"during peak demand or vendor unavailability."
+                f"Your {doc_analysis.nte_threshold} NTE threshold applies uniformly "
+                f"across all work types. A $200 faucet repair and a $200 HVAC diagnostic "
+                f"face the same approval rules. Tiered NTEs by trade and urgency let AI "
+                f"auto-approve routine work while flagging exceptions."
             ),
             color="var(--amber)",
         ))
+    elif not doc_analysis.nte_threshold:
+        findings.append(KeyFinding(
+            title="No Defined NTE Thresholds",
+            description=(
+                "Without not-to-exceed thresholds, every vendor invoice is either "
+                "approved on trust or manually reviewed. Defined NTEs let AI enforce "
+                "spending limits automatically — approving routine work instantly "
+                "and escalating only the exceptions."
+            ),
+            color="var(--red)",
+        ))
 
-    # Documentation (usually green if docs provided)
+    # ── 7. Documentation ──
     has_both_docs = (
         doc_analysis.pma and doc_analysis.pma.status != "Not Provided"
         and doc_analysis.lease and doc_analysis.lease.status != "Not Provided"
@@ -422,69 +590,66 @@ def generate_key_findings(
         findings.append(KeyFinding(
             title="Strong Documentation Base",
             description=(
-                f"Your PMA and lease templates are well-structured with clear maintenance "
-                f"responsibility language. This gives Vendoroo a strong starting point for "
-                f"Maintenance Book configuration with minimal policy clarification needed."
+                "Your PMA and lease templates are well-structured with clear maintenance "
+                "responsibility language. This gives Vendoroo a strong starting point for "
+                "Maintenance Book configuration with minimal policy clarification needed."
             ),
             color="var(--green)",
         ))
-    else:
+    # For quick diagnostic: no docs is the default state, not a finding.
+    # Only flag documentation gaps in the full path where docs were uploaded and found lacking.
+
+    # ── 8. Scalability ──
+    if client_info.door_count < scale_doors:
+        growth_pct = round((scale_doors - client_info.door_count) / client_info.door_count * 100)
         findings.append(KeyFinding(
-            title="Documentation Gaps",
+            title="Scale Opportunity",
             description=(
-                "Key policy documents are missing or incomplete. Without a comprehensive PMA "
-                "and lease template, AI configuration requires additional discovery and policy "
-                "decisions during onboarding."
+                f"With {staff_count} {staff_word} managing {client_info.door_count} doors "
+                f"({int(doors_per)} doors/{staff_label_s}), AI coordination could extend "
+                f"your current team to {scale_doors}+ doors — a {growth_pct}% increase "
+                f"without adding headcount."
             ),
-            color="var(--red)",
+            color="var(--blue)",
         ))
-
-    # Scalability (blue)
-    staff_benchmark = STAFFING_BENCHMARKS.get(model, STAFFING_BENCHMARKS["va"])
-    doors_per = portfolio.doors_per_staff
-    benchmark_per = staff_benchmark["current_benchmark"]
-    vendoroo_per = staff_benchmark["vendoroo_benchmark"]
-    scale_doors = client_info.staff_count * vendoroo_per
-
-    if model == "pod":
-        staff_label = "pods"
-        staff_label_singular = "pod"
-    elif model == "tech":
-        staff_label = "technicians"
-        staff_label_singular = "technician"
-    else:
-        staff_label = "coordinators"
-        staff_label_singular = "coordinator"
-
-    if model == "pod":
+    elif staff_count > optimize_staff and optimize_staff < staff_count:
+        fte_savings = staff_count - optimize_staff
         findings.append(KeyFinding(
-            title="Scalability Opportunity",
+            title="Staffing Optimization",
             description=(
-                f"With {client_info.staff_count} {staff_label} managing {client_info.door_count} doors "
-                f"({int(doors_per)} doors/{staff_label_singular}), you are "
-                f"{'below' if doors_per < benchmark_per else 'at'} the "
-                f"pod-model benchmark of {benchmark_per} doors/{staff_label_singular}. "
-                f"AI coordination lets your pods take on more doors without adding a pod member, "
-                f"scaling to {scale_doors}+ doors with the same team structure."
+                f"With {staff_count} {staff_word} managing {client_info.door_count} doors "
+                f"({int(doors_per)} doors/{staff_label_s}), AI coordination could support "
+                f"the same portfolio with {optimize_staff} {staff_label_s if optimize_staff == 1 else staff_label_p}, "
+                f"freeing {fte_savings} FTE{'s' if fte_savings != 1 else ''} for growth or redeployment."
             ),
             color="var(--blue)",
         ))
     else:
         findings.append(KeyFinding(
-            title="Scalability Opportunity",
+            title="High Operational Efficiency",
             description=(
-                f"With {client_info.staff_count} {staff_label} managing {client_info.door_count} doors "
-                f"({int(doors_per)} doors/{staff_label_singular}), you are "
-                f"{'below' if doors_per < benchmark_per else 'at'} the "
-                f"{model.upper()}-model benchmark of {benchmark_per} doors/{staff_label_singular}. "
-                f"AI coordination could support your current portfolio with "
-                f"{max(1, round(client_info.door_count / vendoroo_per))} {staff_label_singular}, "
-                f"or scale to {scale_doors}+ doors with your current team."
+                f"At {int(doors_per)} doors/{staff_label_s}, you are already operating "
+                f"above the industry benchmark of {benchmark_per}. AI coordination "
+                f"protects this efficiency as you grow — maintaining response times and "
+                f"consistency that would otherwise degrade with added volume."
             ),
-            color="var(--blue)",
+            color="var(--green)",
         ))
 
-    return findings[:4]
+    # ── 9. SLA Definition ──
+    if not doc_analysis.has_defined_slas:
+        findings.append(KeyFinding(
+            title="No Defined SLAs",
+            description=(
+                "Without explicit service level agreements, there is no measurable "
+                "standard for vendor performance. AI coordination enforces SLAs "
+                "automatically — tracking response times, flagging misses, and "
+                "escalating before deadlines are breached."
+            ),
+            color="var(--amber)",
+        ))
+
+    return findings
 
 
 # ── Gap Analysis Generator ───────────────────────────────

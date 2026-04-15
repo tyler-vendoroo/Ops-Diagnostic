@@ -82,7 +82,7 @@ class SurveyAdapter:
         # Vendor / trade coverage pulled from the survey
         vendor_count = survey.vendor_count or 0
         trades_covered = survey.trades_covered or []
-        covered_set = {t.lower().strip() for t in trades_covered}
+        covered_set = {t.lower().strip().replace("_", " ") for t in trades_covered}
         missing_trades = [t for t in REQUIRED_TRADES if t not in covered_set]
 
         return WorkOrderMetrics(
@@ -110,7 +110,7 @@ class SurveyAdapter:
     ) -> VendorMetrics:
         """Build a VendorMetrics object from survey answers."""
         trades_covered = survey.trades_covered or []
-        covered_set = {t.lower().strip() for t in trades_covered}
+        covered_set = {t.lower().strip().replace("_", " ") for t in trades_covered}
         missing = [t for t in REQUIRED_TRADES if t not in covered_set]
 
         return VendorMetrics(
