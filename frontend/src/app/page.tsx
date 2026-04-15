@@ -84,17 +84,17 @@ export default function Home() {
 
             <h1 className="mt-8 text-balance font-normal leading-[1.05] tracking-[-0.05em] text-vendoroo-text">
               <span className="block text-[2rem] sm:text-5xl md:text-[3.25rem]">
-                We already know what&apos;s wrong
+                Every operation has a score.
               </span>
               <span className="mt-2 block text-[2rem] sm:text-5xl md:text-[3.25rem]">
-                with your maintenance operation.
+                What&apos;s yours?
               </span>
             </h1>
 
             <p className="mx-auto mt-8 max-w-2xl text-pretty text-base leading-relaxed text-vendoroo-muted sm:text-lg">
-              Answer 5 questions. In under two minutes we&apos;ll show you your
-              vendor gaps, policy blind spots, and how you compare to the
-              property managers already running AI-powered maintenance.
+              Answer 5 questions. In under two minutes we&apos;ll show you how
+              your vendors, policies, and response times compare to the property
+              managers already running AI-powered maintenance.
             </p>
 
             <div className="mt-10">
@@ -312,9 +312,7 @@ export default function Home() {
         <section className="bg-vendoroo-surface py-16 sm:py-20">
           <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
             <p className="text-xl font-normal leading-snug tracking-[-0.03em] text-vendoroo-text sm:text-2xl">
-              Every property manager has blind spots.
-              <br />
-              Most just don&apos;t know where to look.
+              Every operation has a number. The best operators already know theirs.
             </p>
             <Link
               href="/diagnostic"
