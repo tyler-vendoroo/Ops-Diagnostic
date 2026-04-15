@@ -5,6 +5,8 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: ./
     plan: free
+    branch: main
+    autoDeploy: true
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
