@@ -112,5 +112,24 @@ def validate_report_consistency(report_data: ReportData) -> list[str]:
                     f"Gap after-hours mismatch: expected {expected_after}% reference in '{gap.title}'"
                 )
 
+    # Projected score
+    if hasattr(report_data, 'projected_score') and report_data.projected_score is not None:
+        if report_data.projected_score < report_data.overall_score:
+            mismatches.append(
+                f"Projected score ({report_data.projected_score}) is less than current ({report_data.overall_score})"
+            )
+        if report_data.projected_score > 95:
+            mismatches.append(
+                f"Projected score ({report_data.projected_score}) exceeds cap of 95"
+            )
+
+    # Tier cards
+    if hasattr(report_data, 'tier_cards') and report_data.tier_cards:
+        rec_count = sum(1 for tc in report_data.tier_cards if tc.is_recommended)
+        if rec_count != 1:
+            mismatches.append(
+                f"Expected exactly 1 recommended tier card, found {rec_count}"
+            )
+
     return mismatches
 

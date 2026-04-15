@@ -694,84 +694,26 @@ class DiagnosticService:
         gaps: list,
         wo_metrics,
     ) -> bytes:
-        """Build a minimal ReportData and render the PDF.
-
-        We construct only the fields required for a quick diagnostic render.
-        Missing / optional fields use their model defaults.
-        """
+        """Build a fully-populated ReportData via builder and render the PDF."""
         import asyncio
-        from datetime import date
-        from app.models.report_data import ReportData, BenchmarkRow
+        from app.report.builder import build_report_data
         from app.report.generator import generate_pdf
-        from app.analysis.scoring_engine import (
-            generate_impact_projections,
-            generate_staffing_projection,
-        )
 
         portfolio_metrics = self._adapter.build_portfolio_metrics(survey, client_info)
+        doc_analysis = self._adapter.build_document_analysis(survey)
 
-        impact_rows = generate_impact_projections(wo_metrics, client_info, tier)
-        staffing = generate_staffing_projection(client_info, portfolio_metrics)
-
-        score_dashoffset = ReportData.calculate_dashoffset(overall_score)
-        report_date = date.today().strftime("%B %Y")
-
-        tier_display = tier.capitalize()
-
-        report_data = ReportData(
-            # Cover page
-            company_name=client_info.company_name,
-            door_count=client_info.door_count,
-            property_count=client_info.property_count,
-            pms_platform=client_info.pms_platform,
-            operational_model_display=client_info.operational_model_display or client_info.operational_model,
-            overall_score=overall_score,
-            score_ring_dashoffset=score_dashoffset,
-            monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders)),
-            avg_response_time=f"{wo_metrics.avg_first_response_hours} hrs"
-                if wo_metrics.avg_first_response_hours else "N/A",
-            open_wo_rate=f"{wo_metrics.open_wo_rate_pct}%",
-            vendor_count=f"{wo_metrics.unique_vendors} vendors",
-            report_date=report_date,
-            # Scores and summary
+        report_data = build_report_data(
+            client_info=client_info,
             category_scores=category_scores,
-            recommended_tier=tier,
-            recommended_tier_display=tier_display,
-            primary_goal=client_info.primary_goal or "scale",
-            primary_goal_display=client_info.primary_goal_display or "Scale",
-            goal_description=client_info.goal_description or "Grow portfolio without adding headcount",
-            staff_count=client_info.staff_count,
-            doors_per_staff=int(portfolio_metrics.doors_per_staff),
-            executive_summary=(
-                f"{client_info.company_name} scored {overall_score}/100 on the Vendoroo Operations "
-                f"Readiness Diagnostic. Based on {client_info.door_count} doors across "
-                f"{client_info.property_count} properties, the analysis identified "
-                f"{len(gaps)} operational gap(s). Recommended tier: {tier_display}."
-            ),
-            score_description=(
-                f"Your score of {overall_score} places you in the "
-                f"{'Ready' if overall_score >= 70 else 'Needs Work' if overall_score >= 50 else 'Not Ready'} "
-                f"tier. Addressing the identified gaps could raise your score by 20–30 points."
-            ),
-            # Operations
-            benchmark_rows=[],
-            benchmark_footnote="Estimated from survey data — upload work order history for full analysis.",
+            overall_score=overall_score,
+            tier=tier,
             key_findings=key_findings,
-            # Docs
-            document_sections=[],
-            # Gaps
             gaps=gaps,
-            # Impact
-            impact_intro="Based on your survey responses, here is your projected operational impact with Vendoroo.",
-            impact_rows=impact_rows,
-            staffing=staffing,
-            # Required non-optional fields
-            completed_items=[],
-            footer_text=f"Vendoroo Operations Analysis \u2022 {client_info.company_name} \u2022 {report_date}",
             wo_metrics=wo_metrics,
+            portfolio_metrics=portfolio_metrics,
+            doc_analysis=doc_analysis,
         )
 
-        # generate_pdf is sync; run in executor to avoid blocking the event loop
         loop = asyncio.get_event_loop()
         pdf_bytes = await loop.run_in_executor(None, generate_pdf, report_data)
         return pdf_bytes
