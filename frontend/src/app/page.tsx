@@ -200,7 +200,7 @@ export default function Home() {
                     "h-12 rounded-full px-10 text-sm font-semibold uppercase tracking-[-0.02em]",
                 })
               )}
-              >
+            >
               Begin diagnostic
             </Link>
           </div>
