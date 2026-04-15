@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  AlertTriangle,
   BarChart3,
   ClipboardList,
   FileStack,
@@ -52,6 +53,252 @@ const reportBullets = [
     text: "Your prescription — which Vendoroo plan fits your goals and portfolio",
   },
 ] as const;
+
+/** Static marketing preview — mirrors results layout; no API or interactivity. */
+function DiagnosticReportPreviewMockup() {
+  return (
+    <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-xl border border-vendoroo-border bg-vendoroo-surface shadow-lg">
+      <div className="border-b border-vendoroo-border bg-vendoroo-light/80 px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-vendoroo-muted">
+        SAMPLE PREVIEW — VENDOROO OPS DIAGNOSTIC
+      </div>
+
+      <div className="px-4 py-5 sm:px-6 sm:py-6">
+        {/* Section 1: Score header */}
+        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+          <div className="relative shrink-0 size-[100px]">
+            <svg
+              viewBox="0 0 100 100"
+              className="size-full -rotate-90"
+              aria-hidden
+            >
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                className="stroke-vendoroo-border"
+                strokeWidth="8"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="42"
+                fill="none"
+                className="stroke-[#fdbb00]"
+                strokeWidth="8"
+                strokeDasharray="142.5 264"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-semibold tabular-nums leading-none text-vendoroo-text">
+                54
+              </span>
+              <span className="mt-0.5 text-xs font-medium text-vendoroo-muted">
+                /100
+              </span>
+            </div>
+          </div>
+          <div className="w-full text-center sm:flex-1 sm:text-left">
+            <p className="text-xs font-medium uppercase tracking-wide text-vendoroo-muted">
+              Operations score
+            </p>
+            <p className="mt-1 flex items-baseline gap-1 text-3xl font-semibold tabular-nums text-vendoroo-text">
+              <span>54</span>
+              <span className="text-lg font-normal text-vendoroo-muted">/100</span>
+            </p>
+            <span className="mt-3 inline-block rounded-full bg-vendoroo-main px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+              Direct
+            </span>
+            <p className="mt-2 text-sm leading-snug text-vendoroo-muted">
+              Core operations run — tightening spend controls and SLAs will raise
+              consistency.
+            </p>
+          </div>
+        </div>
+
+        <div className="my-6 border-t border-vendoroo-border" />
+
+        {/* Section 2: Before → After */}
+        <div className="rounded-xl bg-[#222] px-4 py-5 sm:px-5">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative size-[60px]">
+                <svg
+                  viewBox="0 0 100 100"
+                  className="size-full -rotate-90"
+                  aria-hidden
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    className="stroke-white/20"
+                    strokeWidth="7"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    className="stroke-[#fdbb00]"
+                    strokeWidth="7"
+                    strokeDasharray="142.5 264"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-semibold tabular-nums text-white">
+                    54
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs text-vendoroo-muted">Current</span>
+            </div>
+            <span className="text-lg text-white/40" aria-hidden>
+              →
+            </span>
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative size-[60px]">
+                <svg
+                  viewBox="0 0 100 100"
+                  className="size-full -rotate-90"
+                  aria-hidden
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    className="stroke-white/20"
+                    strokeWidth="7"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    className="stroke-[#039cac]"
+                    strokeWidth="7"
+                    strokeDasharray="206 264"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-sm font-semibold tabular-nums text-white">
+                    78
+                  </span>
+                </div>
+              </div>
+              <span className="text-xs font-medium text-[#FDBB00]">
+                With Vendoroo
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="my-6 border-t border-vendoroo-border" />
+
+        {/* Section 3: Category breakdown */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap sm:gap-3">
+            <span className="w-full shrink-0 text-xs text-vendoroo-smoke sm:w-40 sm:min-w-0">
+              Response Efficiency
+            </span>
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-vendoroo-text sm:w-7">
+              38
+            </span>
+            <div className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-vendoroo-border">
+              <div className="absolute inset-y-0 left-0 w-[38%] rounded-full bg-rose-500" />
+            </div>
+            <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">
+              Not Ready
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap sm:gap-3">
+            <span className="w-full shrink-0 text-xs text-vendoroo-smoke sm:w-40 sm:min-w-0">
+              Vendor Coverage
+            </span>
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-vendoroo-text sm:w-7">
+              58
+            </span>
+            <div className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-vendoroo-border">
+              <div className="absolute inset-y-0 left-0 w-[58%] rounded-full bg-amber-500" />
+            </div>
+            <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              Needs Work
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap sm:gap-3">
+            <span className="w-full shrink-0 text-xs text-vendoroo-smoke sm:w-40 sm:min-w-0">
+              Policy Completeness
+            </span>
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-vendoroo-text sm:w-7">
+              25
+            </span>
+            <div className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-vendoroo-border">
+              <div className="absolute inset-y-0 left-0 w-[25%] rounded-full bg-rose-500" />
+            </div>
+            <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-600">
+              Not Ready
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap sm:gap-3">
+            <span className="w-full shrink-0 text-xs text-vendoroo-smoke sm:w-40 sm:min-w-0">
+              Scalability
+            </span>
+            <span className="w-8 shrink-0 text-right text-xs font-semibold tabular-nums text-vendoroo-text sm:w-7">
+              74
+            </span>
+            <div className="relative h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-vendoroo-border">
+              <div className="absolute inset-y-0 left-0 w-[74%] rounded-full bg-[#34ba49]" />
+            </div>
+            <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-vendoroo-success">
+              Ready
+            </span>
+          </div>
+          <p className="pt-1 text-xs text-vendoroo-muted">
+            + 4 more categories in your report
+          </p>
+        </div>
+
+        <div className="my-6 border-t border-vendoroo-border" />
+
+        {/* Section 4: Key finding */}
+        <div>
+          <div className="rounded-lg border border-vendoroo-border border-l-4 border-l-amber-500 bg-vendoroo-surface px-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600">
+                <AlertTriangle className="size-4" strokeWidth={2} aria-hidden />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-vendoroo-text">Response Time Gap</p>
+                <p className="mt-1 text-sm leading-relaxed text-vendoroo-muted">
+                  Average first response of 8 hrs — Vendoroo&apos;s average is under
+                  10 min.
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-vendoroo-muted">
+            + 2-5 more findings based on your data
+          </p>
+        </div>
+      </div>
+
+      {/* Section 5: CTA teaser */}
+      <div className="border-t border-vendoroo-border bg-vendoroo-light px-4 py-3 text-xs text-vendoroo-muted sm:px-6">
+        Your report includes: gap analysis · impact projections · tier
+        recommendation · downloadable PDF
+      </div>
+
+      <p className="border-t border-vendoroo-border px-4 py-3 text-center text-[11px] text-vendoroo-muted/80 sm:px-6">
+        Sample data — your report reflects your real inputs.
+      </p>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -235,69 +482,7 @@ export default function Home() {
               benchmarks, gaps, and a clear next step.
             </p>
 
-            {/* Report mockup */}
-            <div className="mx-auto mt-12 max-w-2xl overflow-hidden rounded-xl border border-vendoroo-border bg-white shadow-lg">
-              <div className="border-b border-vendoroo-border bg-vendoroo-light/80 px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-vendoroo-muted">
-                Sample preview — Vendoroo ops diagnostic
-              </div>
-              <div className="p-5 sm:p-6 space-y-5">
-
-                {/* Score + tier */}
-                <div className="flex items-center gap-5">
-                  <div className="relative shrink-0 size-20">
-                    <svg viewBox="0 0 100 100" className="size-full -rotate-90">
-                      <circle cx="50" cy="50" r="42" fill="none" stroke="#e1e3e4" strokeWidth="10" />
-                      <circle cx="50" cy="50" r="42" fill="none" stroke="#fdbb00" strokeWidth="10"
-                        strokeDasharray="145 264" strokeLinecap="round" />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xl font-semibold tabular-nums text-vendoroo-text">54</span>
-                      <span className="text-[9px] font-medium text-vendoroo-muted">/100</span>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="inline-block rounded-full bg-vendoroo-main px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Direct</span>
-                    <p className="mt-1 text-xs text-vendoroo-muted leading-relaxed">Core operations run — tightening spend controls and SLAs will raise consistency.</p>
-                  </div>
-                </div>
-
-                {/* Category bars */}
-                <div className="space-y-2.5">
-                  {[
-                    { name: "Response Efficiency", score: 38, fill: "bg-rose-500", pill: "text-rose-700 bg-rose-50", tier: "Not Ready" },
-                    { name: "Vendor Coverage",     score: 58, fill: "bg-amber-500", pill: "text-amber-700 bg-amber-50", tier: "Needs Work" },
-                    { name: "Policy Completeness", score: 25, fill: "bg-rose-500", pill: "text-rose-700 bg-rose-50", tier: "Not Ready" },
-                    { name: "Scalability Ops",     score: 74, fill: "bg-[#34ba49]", pill: "text-emerald-700 bg-emerald-50", tier: "Ready" },
-                  ].map((cat) => (
-                    <div key={cat.name} className="flex items-center gap-2">
-                      <span className="w-36 shrink-0 text-[11px] text-vendoroo-smoke">{cat.name}</span>
-                      <span className="w-6 shrink-0 text-right text-[11px] font-semibold tabular-nums text-vendoroo-text">{cat.score}</span>
-                      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-vendoroo-border">
-                        <div className={`absolute inset-y-0 left-0 rounded-full ${cat.fill}`} style={{ width: `${cat.score}%` }} />
-                      </div>
-                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${cat.pill}`}>{cat.tier}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Sample finding */}
-                <div className="rounded-lg border border-vendoroo-border bg-vendoroo-surface px-4 py-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-rose-50 text-rose-600">
-                      <svg className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" /></svg>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-vendoroo-text">Response Time Gap</p>
-                      <p className="mt-0.5 text-[11px] text-vendoroo-muted leading-relaxed">Average first response of 8 hrs — Vendoroo's average is under 10 min.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-vendoroo-muted/70 text-center">
-                  Sample data — your report reflects your real inputs.
-                </p>
-              </div>
-            </div>
+            <DiagnosticReportPreviewMockup />
 
             <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
               {reportBullets.map(({ icon: Icon, text }) => (
