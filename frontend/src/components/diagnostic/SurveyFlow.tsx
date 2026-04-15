@@ -23,7 +23,7 @@ import { DiagnosticProgress } from "@/components/diagnostic/DiagnosticProgress";
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
 const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
 
-const PMS_OPTIONS = ["AppFolio", "Buildium", "RentManager", "Other"] as const;
+const PMS_OPTIONS = ["AppFolio", "Buildium", "RentVine", "Rent Manager", "Other"] as const;
 
 const TRADES: { id: string; label: string }[] = [
   { id: "plumbing", label: "Plumbing" },
@@ -64,16 +64,99 @@ function readLead(): LeadCapture | null {
 
 function radioCardClass(active: boolean) {
   return [
-    "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+    "flex min-h-[52px] cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
     active
       ? "border-vendoroo-main bg-vendoroo-tint/50 ring-1 ring-vendoroo-main/30"
       : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
   ].join(" ");
 }
 
+function AnalyzingIndicator() {
+  const stages = [
+    "Mapping your vendor network",
+    "Benchmarking response times",
+    "Scoring operational readiness",
+    "Generating your report",
+  ];
+  const [stageIndex, setStageIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setStageIndex((prev) => Math.min(prev + 1, stages.length - 1));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [stages.length]);
+
+  return (
+    <div className="flex flex-col items-center gap-4 py-4">
+      <div className="size-8 animate-spin rounded-full border-2 border-vendoroo-main border-t-transparent" />
+      <div className="flex flex-col items-center gap-2">
+        {stages.map((stage, i) => (
+          <p
+            key={stage}
+            className={[
+              "text-sm transition-all duration-300",
+              i < stageIndex
+                ? "text-vendoroo-success"
+                : i === stageIndex
+                  ? "font-medium text-vendoroo-text"
+                  : "text-vendoroo-muted/50",
+            ].join(" ")}
+          >
+            {i < stageIndex ? "✓ " : ""}{stage}{i === stageIndex ? "..." : ""}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PolicyRadio({
+  label,
+  value,
+  onChange,
+  name,
+}: {
+  label: string;
+  value: "yes" | "no" | "unsure" | "";
+  onChange: (v: "yes" | "no" | "unsure") => void;
+  name: string;
+}) {
+  const options: { val: "yes" | "no" | "unsure"; label: string }[] = [
+    { val: "yes", label: "Yes" },
+    { val: "no", label: "No" },
+    { val: "unsure", label: "Unsure" },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt.val}
+            type="button"
+            onClick={() => onChange(opt.val)}
+            aria-pressed={value === opt.val}
+            className={[
+              "flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-150",
+              value === opt.val
+                ? "border-vendoroo-main bg-vendoroo-tint/30 text-vendoroo-main-dark"
+                : "border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50",
+            ].join(" ")}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SurveyFlow() {
   const router = useRouter();
   const [step, setStep] = React.useState(1);
+  const [animating, setAnimating] = React.useState(false);
   const [lead, setLead] = React.useState<LeadCapture | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -204,12 +287,26 @@ export function SurveyFlow() {
     if (step === 2 && !validateStep2()) return;
     if (step === 3 && !validateStep3()) return;
     if (step === 4 && !validateStep4()) return;
-    setStep((s) => Math.min(5, s + 1));
+    setAnimating(true);
+    setTimeout(() => {
+      setStep((s) => Math.min(5, s + 1));
+      setAnimating(false);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 50);
+    }, 150);
   }
 
   function goBack() {
     setFormError(null);
-    setStep((s) => Math.max(1, s - 1));
+    setAnimating(true);
+    setTimeout(() => {
+      setStep((s) => Math.max(1, s - 1));
+      setAnimating(false);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 50);
+    }, 150);
   }
 
   async function handleSubmit() {
@@ -302,379 +399,412 @@ export function SurveyFlow() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 rounded-xl border border-vendoroo-border bg-vendoroo-surface p-6 shadow-sm sm:p-8 pb-16 sm:pb-20">
       <DiagnosticProgress step={step} />
 
-      {step === 1 ? (
-        <section className="space-y-6" aria-labelledby="s1-heading">
-          <div>
-            <h2
-              id="s1-heading"
-              className="text-lg font-medium tracking-tight text-vendoroo-text"
-            >
-              Company basics
-            </h2>
-            <p className="mt-1 text-sm text-vendoroo-muted">
-              Establish scope and how your maintenance desk is staffed.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="co-name">Company name</Label>
-            <Input
-              id="co-name"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              className={inputClass}
-              autoComplete="organization"
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="doors">Door count</Label>
-              <Input
-                id="doors"
-                inputMode="numeric"
-                value={doorCount}
-                onChange={(e) => setDoorCount(e.target.value)}
-                className={inputClass}
-              />
+      <div
+        className={[
+          "transition-all duration-150 ease-in-out",
+          animating ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100",
+        ].join(" ")}
+      >
+        {step === 1 ? (
+          <section className="space-y-6" aria-labelledby="s1-heading">
+            <div>
+              <h2
+                id="s1-heading"
+                className="text-lg font-medium tracking-tight text-vendoroo-text"
+              >
+                Your portfolio
+              </h2>
+              <p className="mt-1 text-sm text-vendoroo-muted">
+                Tell us about your operation so we can benchmark against similar portfolios.
+              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="props">Property count</Label>
+              <Label htmlFor="co-name">Company name</Label>
               <Input
-                id="props"
-                inputMode="numeric"
-                value={propertyCount}
-                onChange={(e) => setPropertyCount(e.target.value)}
+                id="co-name"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
                 className={inputClass}
+                autoComplete="organization"
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>PMS platform</Label>
-            <Select
-              value={pmsPlatform || undefined}
-              onValueChange={(v) => setPmsPlatform(v ?? "")}
-            >
-              <SelectTrigger className={`w-full ${inputClass}`}>
-                <SelectValue placeholder="Select platform" />
-              </SelectTrigger>
-              <SelectContent>
-                {PMS_OPTIONS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-3">
-            <Label>Operational model</Label>
-            <RadioGroup
-              value={operationalModel || undefined}
-              onValueChange={(v) => setOperationalModel(v as "va" | "tech")}
-              className="grid gap-3"
-            >
-              <label className={radioCardClass(operationalModel === "va")}>
-                <RadioGroupItem value="va" id="om-va" />
-                <span>
-                  <span className="block font-medium text-vendoroo-text">
-                    VA Coordinators
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="doors">Door count</Label>
+                <Input
+                  id="doors"
+                  inputMode="numeric"
+                  value={doorCount}
+                  onChange={(e) => setDoorCount(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="props">Property count</Label>
+                <Input
+                  id="props"
+                  inputMode="numeric"
+                  value={propertyCount}
+                  onChange={(e) => setPropertyCount(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>PMS platform</Label>
+              <Select
+                value={pmsPlatform || undefined}
+                onValueChange={(v) => setPmsPlatform(v ?? "")}
+              >
+                <SelectTrigger className={`w-full ${inputClass}`}>
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PMS_OPTIONS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-3">
+              <Label>Operational model</Label>
+              <RadioGroup
+                value={operationalModel || undefined}
+                onValueChange={(v) => setOperationalModel(v as "va" | "tech")}
+                className="grid gap-3"
+              >
+                <label className={radioCardClass(operationalModel === "va")}>
+                  <RadioGroupItem value="va" id="om-va" />
+                  <span>
+                    <span className="block font-medium text-vendoroo-text">
+                      VA Coordinators
+                    </span>
+                    <span className="text-sm text-vendoroo-muted">
+                      Centralized coordinators triage and dispatch vendor work.
+                    </span>
                   </span>
-                  <span className="text-sm text-vendoroo-muted">
-                    Centralized coordinators triage and dispatch vendor work.
-                  </span>
-                </span>
-              </label>
-              <label className={radioCardClass(operationalModel === "tech")}>
-                <RadioGroupItem value="tech" id="om-tech" />
-                <span>
-                  <span className="block font-medium text-vendoroo-text">
-                    In-House Tech Team
-                  </span>
-                  <span className="text-sm text-vendoroo-muted">
-                    Dedicated technicians handle a share of work orders
-                    internally.
-                  </span>
-                </span>
-              </label>
-            </RadioGroup>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="staff">Staff count (maintenance &amp; ops)</Label>
-            <Input
-              id="staff"
-              inputMode="numeric"
-              value={staffCount}
-              onChange={(e) => setStaffCount(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-        </section>
-      ) : null}
-
-      {step === 2 ? (
-        <section className="space-y-6" aria-labelledby="s2-heading">
-          <div>
-            <h2
-              id="s2-heading"
-              className="text-lg font-medium tracking-tight text-vendoroo-text"
-            >
-              Vendor coverage
-            </h2>
-            <p className="mt-1 text-sm text-vendoroo-muted">
-              Quantify vendor depth across the trades you rely on most.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vendors">Active vendor count</Label>
-            <Input
-              id="vendors"
-              inputMode="numeric"
-              value={vendorCount}
-              onChange={(e) => setVendorCount(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div className="space-y-3">
-            <Label>Trades covered</Label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {TRADES.map((t) => (
-                <label
-                  key={t.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface px-3 py-2 text-sm text-vendoroo-smoke hover:border-vendoroo-muted/50"
-                >
-                  <Checkbox
-                    checked={trades.includes(t.id)}
-                    onCheckedChange={() => toggleTrade(t.id)}
-                    className="border-vendoroo-border"
-                  />
-                  {t.label}
                 </label>
-              ))}
+                <label className={radioCardClass(operationalModel === "tech")}>
+                  <RadioGroupItem value="tech" id="om-tech" />
+                  <span>
+                    <span className="block font-medium text-vendoroo-text">
+                      In-House Tech Team
+                    </span>
+                    <span className="text-sm text-vendoroo-muted">
+                      Dedicated technicians handle a share of work orders
+                      internally.
+                    </span>
+                  </span>
+                </label>
+              </RadioGroup>
             </div>
-          </div>
-        </section>
-      ) : null}
-
-      {step === 3 ? (
-        <section className="space-y-6" aria-labelledby="s3-heading">
-          <div>
-            <h2
-              id="s3-heading"
-              className="text-lg font-medium tracking-tight text-vendoroo-text"
-            >
-              Policies
-            </h2>
-            <p className="mt-1 text-sm text-vendoroo-muted">
-              Documented rules reduce variance when urgency is high.
-            </p>
-          </div>
-          <PolicyRadio
-            label="Written emergency protocols?"
-            value={writtenEmergency}
-            onChange={setWrittenEmergency}
-            name="emergency"
-          />
-          <PolicyRadio
-            label="Defined not-to-exceed (NTE) limits?"
-            value={definedNtes}
-            onChange={setDefinedNtes}
-            name="nte"
-          />
-          {definedNtes === "yes" ? (
-            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4">
-              <Checkbox
-                checked={ntesTiered}
-                onCheckedChange={(c) => setNtesTiered(c === true)}
-                className="mt-0.5 border-vendoroo-border"
+            <div className="space-y-2">
+              <Label htmlFor="staff">Staff count (maintenance &amp; ops)</Label>
+              <Input
+                id="staff"
+                inputMode="numeric"
+                value={staffCount}
+                onChange={(e) => setStaffCount(e.target.value)}
+                className={inputClass}
               />
-              <span className="text-sm text-vendoroo-smoke">
-                NTEs are tiered by trade or cost band (not a single flat cap).
-              </span>
-            </label>
-          ) : null}
-          <PolicyRadio
-            label="Defined SLAs with vendors?"
-            value={definedSlas}
-            onChange={setDefinedSlas}
-            name="sla"
-          />
-        </section>
-      ) : null}
-
-      {step === 4 ? (
-        <section className="space-y-6" aria-labelledby="s4-heading">
-          <div>
-            <h2
-              id="s4-heading"
-              className="text-lg font-medium tracking-tight text-vendoroo-text"
-            >
-              Operations
-            </h2>
-            <p className="mt-1 text-sm text-vendoroo-muted">
-              Typical response behavior across the work order lifecycle.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label>Typical first response time</Label>
-            <Select
-              value={responseTime || undefined}
-              onValueChange={(v) => setResponseTime(v ?? "")}
-            >
-              <SelectTrigger className={`w-full ${inputClass}`}>
-                <SelectValue placeholder="Select response window" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="under_1hr">Under 1 hour</SelectItem>
-                <SelectItem value="1_4hrs">1–4 hours</SelectItem>
-                <SelectItem value="4_12hrs">4–12 hours</SelectItem>
-                <SelectItem value="same_day">Same day</SelectItem>
-                <SelectItem value="next_day">Next day</SelectItem>
-                <SelectItem value="unsure">Unsure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Typical completion time</Label>
-            <Select
-              value={completionTime || undefined}
-              onValueChange={(v) => setCompletionTime(v ?? "")}
-            >
-              <SelectTrigger className={`w-full ${inputClass}`}>
-                <SelectValue placeholder="Select completion window" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1_3days">1–3 days</SelectItem>
-                <SelectItem value="3_7days">3–7 days</SelectItem>
-                <SelectItem value="7_14days">7–14 days</SelectItem>
-                <SelectItem value="14plus">14+ days</SelectItem>
-                <SelectItem value="unsure">Unsure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-3">
-            <Label>After-hours coverage method</Label>
-            <RadioGroup
-              value={afterHours || undefined}
-              onValueChange={setAfterHours}
-              className="grid gap-3"
-            >
-              <label className={radioCardClass(afterHours === "24_7_coverage")}>
-                <RadioGroupItem value="24_7_coverage" id="ah-247" />
-                <span className="text-vendoroo-text">24/7 coverage</span>
-              </label>
-              <label
-                className={radioCardClass(afterHours === "answering_service")}
-              >
-                <RadioGroupItem value="answering_service" id="ah-ans" />
-                <span className="text-vendoroo-text">Answering service</span>
-              </label>
-              <label
-                className={radioCardClass(afterHours === "on_call_rotation")}
-              >
-                <RadioGroupItem value="on_call_rotation" id="ah-oncall" />
-                <span className="text-vendoroo-text">On-call rotation</span>
-              </label>
-              <label
-                className={radioCardClass(afterHours === "voicemail_only")}
-              >
-                <RadioGroupItem value="voicemail_only" id="ah-vm" />
-                <span className="text-vendoroo-text">Voicemail only</span>
-              </label>
-              <label className={radioCardClass(afterHours === "none")}>
-                <RadioGroupItem value="none" id="ah-none" />
-                <span className="text-vendoroo-text">None</span>
-              </label>
-            </RadioGroup>
-          </div>
-        </section>
-      ) : null}
-
-      {step === 5 ? (
-        <section className="space-y-6" aria-labelledby="s5-heading">
-          <div>
-            <h2
-              id="s5-heading"
-              className="text-lg font-medium tracking-tight text-vendoroo-text"
-            >
-              Goals
-            </h2>
-            <p className="mt-1 text-sm text-vendoroo-muted">
-              Prioritize what success looks like over the next two quarters.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <Label>Primary goal</Label>
-            <RadioGroup
-              value={primaryGoal || undefined}
-              onValueChange={(v) =>
-                setPrimaryGoal(v as "scale" | "optimize" | "elevate")
-              }
-              className="grid gap-3"
-            >
-              <label className={radioCardClass(primaryGoal === "scale")}>
-                <RadioGroupItem value="scale" id="g-scale" />
-                <span>
-                  <span className="block font-medium text-vendoroo-text">Scale</span>
-                  <span className="text-sm text-vendoroo-muted">
-                    Grow portfolio without adding headcount.
-                  </span>
-                </span>
-              </label>
-              <label className={radioCardClass(primaryGoal === "optimize")}>
-                <RadioGroupItem value="optimize" id="g-opt" />
-                <span>
-                  <span className="block font-medium text-vendoroo-text">
-                    Optimize
-                  </span>
-                  <span className="text-sm text-vendoroo-muted">
-                    Reduce costs and tighten response time.
-                  </span>
-                </span>
-              </label>
-              <label className={radioCardClass(primaryGoal === "elevate")}>
-                <RadioGroupItem value="elevate" id="g-el" />
-                <span>
-                  <span className="block font-medium text-vendoroo-text">Elevate</span>
-                  <span className="text-sm text-vendoroo-muted">
-                    Premium service positioning for higher-value properties.
-                  </span>
-                </span>
-              </label>
-            </RadioGroup>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <Label>Biggest pain points</Label>
-              <span className="text-xs text-vendoroo-muted">
-                {painPoints.length} of 3 selected
-              </span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {PAIN_OPTIONS.map((p) => {
-                const checked = painPoints.includes(p.id);
-                const disabled = !checked && painPoints.length >= 3;
-                return (
-                  <label
-                    key={p.id}
-                    className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
-                      disabled
-                        ? "cursor-not-allowed border-vendoroo-border/50 text-vendoroo-muted"
-                        : "cursor-pointer border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      disabled={disabled}
-                      onCheckedChange={() => togglePain(p.id)}
-                      className="border-vendoroo-border"
-                    />
-                    {p.label}
-                  </label>
-                );
-              })}
+          </section>
+        ) : null}
+
+        {step === 2 ? (
+          <section className="space-y-6" aria-labelledby="s2-heading">
+            <div>
+              <h2
+                id="s2-heading"
+                className="text-lg font-medium tracking-tight text-vendoroo-text"
+              >
+                Vendor network
+              </h2>
+              <p className="mt-1 text-sm text-vendoroo-muted">
+                How deep is your bench? Select every trade you have a vendor relationship for.
+              </p>
             </div>
-          </div>
-        </section>
-      ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="vendors">Active vendor count</Label>
+              <Input
+                id="vendors"
+                inputMode="numeric"
+                value={vendorCount}
+                onChange={(e) => setVendorCount(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <Label>Trades covered</Label>
+                <span className={[
+                  "text-xs font-semibold tabular-nums transition-colors",
+                  trades.length >= 12 ? "text-[#34ba49]" : trades.length >= 8 ? "text-vendoroo-main" : "text-vendoroo-muted",
+                ].join(" ")}>
+                  {trades.length} of 12 required trades
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {TRADES.map((t) => {
+                  const selected = trades.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => toggleTrade(t.id)}
+                      className={[
+                        "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-all duration-150",
+                        selected
+                          ? "border-vendoroo-main bg-vendoroo-tint/30 font-medium text-vendoroo-main-dark"
+                          : "border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50",
+                      ].join(" ")}
+                    >
+                      <span className={[
+                        "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] transition-all duration-150",
+                        selected
+                          ? "bg-vendoroo-main text-white"
+                          : "bg-vendoroo-border text-vendoroo-muted",
+                      ].join(" ")}>
+                        {selected ? "✓" : ""}
+                      </span>
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {trades.length === 12 && (
+                <p className="text-xs font-medium text-[#34ba49]">
+                  Full coverage across all required trades
+                </p>
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        {step === 3 ? (
+          <section className="space-y-6" aria-labelledby="s3-heading">
+            <div>
+              <h2
+                id="s3-heading"
+                className="text-lg font-medium tracking-tight text-vendoroo-text"
+              >
+                Policies &amp; controls
+              </h2>
+              <p className="mt-1 text-sm text-vendoroo-muted">
+                AI needs rules to follow. The more you have documented, the faster you go live.
+              </p>
+            </div>
+            <PolicyRadio
+              label="Written emergency protocols?"
+              value={writtenEmergency}
+              onChange={setWrittenEmergency}
+              name="emergency"
+            />
+            <PolicyRadio
+              label="Defined not-to-exceed (NTE) limits?"
+              value={definedNtes}
+              onChange={setDefinedNtes}
+              name="nte"
+            />
+            {definedNtes === "yes" ? (
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4">
+                <Checkbox
+                  checked={ntesTiered}
+                  onCheckedChange={(c) => setNtesTiered(c === true)}
+                  className="mt-0.5 border-vendoroo-border"
+                />
+                <span className="text-sm text-vendoroo-smoke">
+                  NTEs are tiered by trade or cost band (not a single flat cap).
+                </span>
+              </label>
+            ) : null}
+            <PolicyRadio
+              label="Defined SLAs with vendors?"
+              value={definedSlas}
+              onChange={setDefinedSlas}
+              name="sla"
+            />
+          </section>
+        ) : null}
+
+        {step === 4 ? (
+          <section className="space-y-6" aria-labelledby="s4-heading">
+            <div>
+              <h2
+                id="s4-heading"
+                className="text-lg font-medium tracking-tight text-vendoroo-text"
+              >
+                Current performance
+              </h2>
+              <p className="mt-1 text-sm text-vendoroo-muted">
+                How fast does your team move today? We'll benchmark these against AI-assisted portfolios.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Typical first response time</Label>
+              <Select
+                value={responseTime || undefined}
+                onValueChange={(v) => setResponseTime(v ?? "")}
+              >
+                <SelectTrigger className={`w-full ${inputClass}`}>
+                  <SelectValue placeholder="Select response window" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="under_1hr">Under 1 hour</SelectItem>
+                  <SelectItem value="1_4hrs">1–4 hours</SelectItem>
+                  <SelectItem value="4_12hrs">4–12 hours</SelectItem>
+                  <SelectItem value="same_day">Same day</SelectItem>
+                  <SelectItem value="next_day">Next day</SelectItem>
+                  <SelectItem value="unsure">Unsure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Typical completion time</Label>
+              <Select
+                value={completionTime || undefined}
+                onValueChange={(v) => setCompletionTime(v ?? "")}
+              >
+                <SelectTrigger className={`w-full ${inputClass}`}>
+                  <SelectValue placeholder="Select completion window" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1_3days">1–3 days</SelectItem>
+                  <SelectItem value="3_7days">3–7 days</SelectItem>
+                  <SelectItem value="7_14days">7–14 days</SelectItem>
+                  <SelectItem value="14plus">14+ days</SelectItem>
+                  <SelectItem value="unsure">Unsure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-3">
+              <Label>After-hours coverage method</Label>
+              <RadioGroup
+                value={afterHours || undefined}
+                onValueChange={setAfterHours}
+                className="grid gap-3"
+              >
+                <label className={radioCardClass(afterHours === "24_7_coverage")}>
+                  <RadioGroupItem value="24_7_coverage" id="ah-247" />
+                  <span className="text-vendoroo-text">24/7 coverage</span>
+                </label>
+                <label
+                  className={radioCardClass(afterHours === "answering_service")}
+                >
+                  <RadioGroupItem value="answering_service" id="ah-ans" />
+                  <span className="text-vendoroo-text">Answering service</span>
+                </label>
+                <label
+                  className={radioCardClass(afterHours === "on_call_rotation")}
+                >
+                  <RadioGroupItem value="on_call_rotation" id="ah-oncall" />
+                  <span className="text-vendoroo-text">On-call rotation</span>
+                </label>
+                <label
+                  className={radioCardClass(afterHours === "voicemail_only")}
+                >
+                  <RadioGroupItem value="voicemail_only" id="ah-vm" />
+                  <span className="text-vendoroo-text">Voicemail only</span>
+                </label>
+                <label className={radioCardClass(afterHours === "none")}>
+                  <RadioGroupItem value="none" id="ah-none" />
+                  <span className="text-vendoroo-text">None</span>
+                </label>
+              </RadioGroup>
+            </div>
+          </section>
+        ) : null}
+
+        {step === 5 ? (
+          <section className="space-y-6" aria-labelledby="s5-heading">
+            <div>
+              <h2
+                id="s5-heading"
+                className="text-lg font-medium tracking-tight text-vendoroo-text"
+              >
+                Your goal
+              </h2>
+              <p className="mt-1 text-sm text-vendoroo-muted">
+                What does success look like in the next two quarters? This shapes your recommended plan.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Label>Primary goal</Label>
+              <RadioGroup
+                value={primaryGoal || undefined}
+                onValueChange={(v) =>
+                  setPrimaryGoal(v as "scale" | "optimize" | "elevate")
+                }
+                className="grid gap-3"
+              >
+                <label className={radioCardClass(primaryGoal === "scale")}>
+                  <RadioGroupItem value="scale" id="g-scale" />
+                  <span>
+                    <span className="block font-medium text-vendoroo-text">Scale</span>
+                    <span className="text-sm text-vendoroo-muted">
+                      Grow portfolio without adding headcount.
+                    </span>
+                  </span>
+                </label>
+                <label className={radioCardClass(primaryGoal === "optimize")}>
+                  <RadioGroupItem value="optimize" id="g-opt" />
+                  <span>
+                    <span className="block font-medium text-vendoroo-text">
+                      Optimize
+                    </span>
+                    <span className="text-sm text-vendoroo-muted">
+                      Reduce costs and tighten response time.
+                    </span>
+                  </span>
+                </label>
+                <label className={radioCardClass(primaryGoal === "elevate")}>
+                  <RadioGroupItem value="elevate" id="g-el" />
+                  <span>
+                    <span className="block font-medium text-vendoroo-text">Elevate</span>
+                    <span className="text-sm text-vendoroo-muted">
+                      Premium service positioning for higher-value properties.
+                    </span>
+                  </span>
+                </label>
+              </RadioGroup>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <Label>Biggest pain points</Label>
+                <span className="text-xs text-vendoroo-muted">
+                  {painPoints.length} of 3 selected
+                </span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {PAIN_OPTIONS.map((p) => {
+                  const checked = painPoints.includes(p.id);
+                  const disabled = !checked && painPoints.length >= 3;
+                  return (
+                    <label
+                      key={p.id}
+                      className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
+                        disabled
+                          ? "cursor-not-allowed border-vendoroo-border/50 text-vendoroo-muted"
+                          : "cursor-pointer border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        disabled={disabled}
+                        onCheckedChange={() => togglePain(p.id)}
+                        className="border-vendoroo-border"
+                      />
+                      {p.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
+      </div>
 
       {formError ? (
         <p className="text-sm text-amber-700" role="alert">
@@ -708,52 +838,17 @@ export function SurveyFlow() {
             disabled={loading}
             className="rounded-full text-sm font-medium uppercase tracking-[-0.02em] sm:min-w-40 sm:px-8"
           >
-            {loading ? "Analyzing your operations..." : "Submit diagnostic"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Analyzing
+              </span>
+            ) : "Run diagnostic"}
           </Button>
         )}
       </div>
 
-      {loading ? (
-        <p className="text-center text-sm text-vendoroo-muted">
-          Analyzing your operations…
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function PolicyRadio({
-  label,
-  value,
-  onChange,
-  name,
-}: {
-  label: string;
-  value: "yes" | "no" | "unsure" | "";
-  onChange: (v: "yes" | "no" | "unsure") => void;
-  name: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <RadioGroup
-        value={value || undefined}
-        onValueChange={(v) => onChange(v as "yes" | "no" | "unsure")}
-        className="flex flex-wrap gap-4"
-      >
-        <label className="flex items-center gap-2 text-sm text-vendoroo-smoke">
-          <RadioGroupItem value="yes" id={`${name}-yes`} />
-          Yes
-        </label>
-        <label className="flex items-center gap-2 text-sm text-vendoroo-smoke">
-          <RadioGroupItem value="no" id={`${name}-no`} />
-          No
-        </label>
-        <label className="flex items-center gap-2 text-sm text-vendoroo-smoke">
-          <RadioGroupItem value="unsure" id={`${name}-un`} />
-          Unsure
-        </label>
-      </RadioGroup>
+      {loading ? <AnalyzingIndicator /> : null}
     </div>
   );
 }

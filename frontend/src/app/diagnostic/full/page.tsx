@@ -10,7 +10,7 @@ import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
 const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
 
-const PMS_OPTIONS = ["AppFolio", "Buildium", "RentManager", "Other"] as const;
+const PMS_OPTIONS = ["AppFolio", "Buildium", "RentVine", "Rent Manager", "Other"] as const;
 
 const STATUS_MESSAGES = [
   "Uploading files...",
