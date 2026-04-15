@@ -355,6 +355,9 @@ def classify_trades(std, config):
         "n/a": np.nan,
         "na": np.nan,
     })
+    # Re-cast to object — if all values are NaN the apply() above re-infers float64,
+    # which breaks the string assignment loops below.
+    result = result.astype(object)
     # Normalize explicit categories from source when available.
     result = result.apply(lambda v: CATEGORY_NORMALIZE.get(v, v) if pd.notna(v) else v)
 
