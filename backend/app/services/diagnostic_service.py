@@ -685,6 +685,42 @@ class DiagnosticService:
                     exc,
                 )
 
+            # ── Step 9b: Build summary for API/frontend ───────────────────────
+            staff_label_map = {"va": "coordinators", "tech": "technicians", "pod": "pods"}
+            projected_score_full = calculate_projected_score(overall_score, gap_titles)
+            costs_full = calculate_cost_estimates(ci.door_count, tier)
+            impact_rows_summary = generate_impact_projections(wo_metrics, ci, tier)
+            staffing_summary = generate_staffing_projection(ci, portfolio_metrics)
+            goal_data_full = get_goal_card_data(
+                ci.operational_model, ci.staff_count, ci.door_count,
+                ci.primary_goal or "scale",
+            )
+
+            full_summary = {
+                "category_scores": [
+                    {"name": cat.name, "key": cat.key, "score": cat.score, "tier": cat.tier, "tier_css": cat.tier_css}
+                    for cat in category_scores
+                ],
+                "projected_score": projected_score_full,
+                "impact_rows": [row.model_dump() for row in impact_rows_summary],
+                "cost_estimates": costs_full,
+                "staffing": staffing_summary.model_dump(),
+                "paths": {
+                    "scale": goal_data_full["scale_data"],
+                    "optimize": goal_data_full["optimize_data"],
+                    "elevate": goal_data_full["elevate_data"],
+                },
+                "company_name": ci.company_name,
+                "door_count": ci.door_count,
+                "staff_count": ci.staff_count,
+                "staff_label": staff_label_map.get(ci.operational_model, "coordinators"),
+                "primary_goal": ci.primary_goal or "scale",
+                "operational_model": ci.operational_model,
+                "has_lease": lease_result is not None,
+                "has_pma": pma_result is not None,
+                "has_vendor_directory": vendor_directory_data is not None,
+            }
+
             # ── Step 10: Update existing DB record ────────────────────────────
             try:
                 await self._update_result(
@@ -696,6 +732,7 @@ class DiagnosticService:
                     pdf_bytes=pdf_bytes,
                     key_findings=key_findings_serialized,
                     gaps=gaps_serialized,
+                    summary=full_summary,
                 )
             except Exception as exc:
                 logger.error(
@@ -828,6 +865,7 @@ class DiagnosticService:
         key_findings: list | None = None,
         gaps: list | None = None,
         lead_id: str | None = None,
+        summary: dict | None = None,
     ) -> None:
         """Update an existing diagnostic record in the database (used by full diagnostic)."""
         async with AsyncSessionLocal() as session:
@@ -848,6 +886,7 @@ class DiagnosticService:
                     pdf_data=pdf_bytes,
                     pdf_path=None,
                     error=None,
+                    summary=summary,
                 )
                 session.add(record)
             else:
@@ -861,6 +900,7 @@ class DiagnosticService:
                 record.pdf_data = pdf_bytes
                 record.pdf_path = None
                 record.error = None
+                record.summary = summary
                 if lead_id is not None:
                     record.lead_id = lead_id
             await session.commit()
