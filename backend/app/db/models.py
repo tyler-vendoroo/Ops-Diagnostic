@@ -16,6 +16,7 @@ class Lead(Base):
     phone: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, default="new")
     event_source: Mapped[str | None] = mapped_column(String, nullable=True)
+    pms_platform: Mapped[str | None] = mapped_column(String, nullable=True)
     terms_accepted: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -15,6 +15,7 @@ from app.models.survey import SurveyResponse
 from app.models.input_data import ClientInfo
 from app.models.lead import LeadCapture
 from app.services.diagnostic_service import DiagnosticService
+from app.services.lead_service import LeadService
 from app.db.database import AsyncSessionLocal
 from app.db import models as db_models
 
@@ -38,6 +39,13 @@ async def quick_diagnostic(request: QuickDiagnosticRequest):
     """
     service = DiagnosticService()
     result = await service.run_quick_diagnostic(request.survey, request.client_info, request.lead)
+
+    # Persist PMS platform selection on the lead record
+    pms = request.survey.pms_platform
+    if pms:
+        lead_service = LeadService()
+        lead_id = await lead_service.create_lead(request.lead)
+        await lead_service.update_pms_platform(lead_id, pms)
 
     return {
         "diagnostic_id": result.diagnostic_id,
@@ -142,6 +150,12 @@ async def full_diagnostic(
         )
         session.add(record)
         await session.commit()
+
+    # Persist PMS platform selection on the lead record
+    pms = client_info_dict.get("pms_platform")
+    if lead_id and pms:
+        lead_service = LeadService()
+        await lead_service.update_pms_platform(lead_id, pms)
 
     # Queue background processing
     background_tasks.add_task(

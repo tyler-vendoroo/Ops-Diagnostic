@@ -10,7 +10,19 @@ import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
 const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
 
-const PMS_OPTIONS = ["AppFolio", "Buildium", "RentVine", "Rent Manager", "Other"] as const;
+const PMS_OPTIONS = [
+  "Rentvine",
+  "AppFolio",
+  "Propertyware",
+  "Rent Manager",
+  "DoorLoop",
+  "Buildium",
+  "Yardi Breeze",
+  "Yardi Voyager",
+  "RealPage",
+  "ManageGo",
+  "Other",
+] as const;
 
 const STATUS_MESSAGES = [
   "Uploading files...",
@@ -182,6 +194,7 @@ function FullDiagnosticContent() {
   const [doorCount, setDoorCount] = React.useState("");
   const [propertyCount, setPropertyCount] = React.useState("");
   const [pmsPlatform, setPmsPlatform] = React.useState("");
+  const [pmsOther, setPmsOther] = React.useState("");
   const [operationalModel, setOperationalModel] = React.useState<"va" | "tech" | "">("");
   const [staffCount, setStaffCount] = React.useState("");
   const [primaryGoal, setPrimaryGoal] = React.useState<"scale" | "optimize" | "elevate" | "">("");
@@ -257,11 +270,13 @@ function FullDiagnosticContent() {
 
     const lead = readLocalStorage<StoredLead>(LEAD_KEY);
 
+    const resolvedPms = pmsPlatform === "Other" ? pmsOther.trim() || null : pmsPlatform || null;
+
     const clientInfo = {
       company_name: companyName,
       door_count: doorCount ? Number(doorCount) : null,
       property_count: propertyCount ? Number(propertyCount) : null,
-      pms_platform: pmsPlatform || null,
+      pms_platform: resolvedPms,
       operational_model: operationalModel || null,
       staff_count: staffCount ? Number(staffCount) : null,
       primary_goal: primaryGoal || null,
@@ -423,7 +438,7 @@ function FullDiagnosticContent() {
                 id="pms"
                 required
                 value={pmsPlatform}
-                onChange={(e) => setPmsPlatform(e.target.value)}
+                onChange={(e) => { setPmsPlatform(e.target.value); setPmsOther(""); }}
                 className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
               >
                 <option value="" disabled>Select platform</option>
@@ -431,6 +446,16 @@ function FullDiagnosticContent() {
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
+              {pmsPlatform === "Other" && (
+                <input
+                  id="pms-other"
+                  type="text"
+                  placeholder="Which PMS do you use?"
+                  value={pmsOther}
+                  onChange={(e) => setPmsOther(e.target.value)}
+                  className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+                />
+              )}
             </div>
 
             {/* Staff count */}

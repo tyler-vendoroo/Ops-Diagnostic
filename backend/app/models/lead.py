@@ -15,4 +15,5 @@ class LeadCapture(BaseModel):
     company: str
     phone: Optional[str] = None
     event_source: Optional[str] = None
+    pms_platform: Optional[str] = None
     terms_accepted: bool = False

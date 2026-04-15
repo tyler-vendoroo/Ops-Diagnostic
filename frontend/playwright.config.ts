@@ -18,9 +18,10 @@ export default defineConfig({
       name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'mobile',
-      use: { ...devices['iPhone 14'] },
-    },
+    // Mobile requires: npx playwright install webkit
+    // {
+    //   name: 'mobile',
+    //   use: { ...devices['iPhone 14'] },
+    // },
   ],
 });

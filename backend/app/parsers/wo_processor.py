@@ -168,7 +168,7 @@ def normalize_dataframe(df, config, client_info):
         std["unit_label"] = std["unit"].fillna("Unknown").astype(str)
 
     # ── Category: fallback chain ──
-    std["raw_category"] = None
+    std["raw_category"] = pd.Series(dtype=object, index=df.index)
     for field_key in config["category_fallback_chain"]:
         if field_key == "description_keywords":
             break  # Handle separately after normalization

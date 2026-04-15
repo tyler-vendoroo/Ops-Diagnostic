@@ -23,7 +23,19 @@ import { DiagnosticProgress } from "@/components/diagnostic/DiagnosticProgress";
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
 const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
 
-const PMS_OPTIONS = ["AppFolio", "Buildium", "RentVine", "Rent Manager", "Other"] as const;
+const PMS_OPTIONS = [
+  "Rentvine",
+  "AppFolio",
+  "Propertyware",
+  "Rent Manager",
+  "DoorLoop",
+  "Buildium",
+  "Yardi Breeze",
+  "Yardi Voyager",
+  "RealPage",
+  "ManageGo",
+  "Other",
+] as const;
 
 const TRADES: { id: string; label: string }[] = [
   { id: "plumbing", label: "Plumbing" },
@@ -39,6 +51,23 @@ const TRADES: { id: string; label: string }[] = [
   { id: "pool_spa", label: "Pool/Spa" },
   { id: "locksmith", label: "Locksmith" },
 ];
+
+const RESPONSE_TIME_OPTIONS = [
+  { value: "under_1hr", label: "Under 1 hour" },
+  { value: "1_4hrs", label: "1–4 hours" },
+  { value: "4_12hrs", label: "4–12 hours" },
+  { value: "same_day", label: "Same day" },
+  { value: "next_day", label: "Next day" },
+  { value: "unsure", label: "Unsure" },
+] as const;
+
+const COMPLETION_TIME_OPTIONS = [
+  { value: "1_3days", label: "1–3 days" },
+  { value: "3_7days", label: "3–7 days" },
+  { value: "7_14days", label: "7–14 days" },
+  { value: "14plus", label: "14+ days" },
+  { value: "unsure", label: "Unsure" },
+] as const;
 
 const PAIN_OPTIONS: { id: string; label: string }[] = [
   { id: "vendor_reliability", label: "Vendor reliability" },
@@ -165,6 +194,7 @@ export function SurveyFlow() {
   const [doorCount, setDoorCount] = React.useState("");
   const [propertyCount, setPropertyCount] = React.useState("");
   const [pmsPlatform, setPmsPlatform] = React.useState<string>("");
+  const [pmsOther, setPmsOther] = React.useState<string>("");
   const [operationalModel, setOperationalModel] = React.useState<
     "va" | "tech" | ""
   >("");
@@ -322,10 +352,12 @@ export function SurveyFlow() {
     const staff = Number.parseInt(staffCount, 10);
     const vendors = Number.parseInt(vendorCount, 10);
 
+    const resolvedPms = pmsPlatform === "Other" ? pmsOther.trim() : pmsPlatform;
+
     const survey: SurveyResponse = {
       door_count: doors,
       property_count: props,
-      pms_platform: pmsPlatform,
+      pms_platform: resolvedPms,
       staff_count: staff,
       vendor_count: vendors,
       trades_covered: trades,
@@ -355,7 +387,7 @@ export function SurveyFlow() {
       company_name: companyName.trim(),
       door_count: doors,
       property_count: props,
-      pms_platform: pmsPlatform,
+      pms_platform: resolvedPms,
       operational_model: operationalModel as "va" | "tech",
       operational_model_display:
         operationalModel === "va"
@@ -454,7 +486,7 @@ export function SurveyFlow() {
               <Label>PMS platform</Label>
               <Select
                 value={pmsPlatform || undefined}
-                onValueChange={(v) => setPmsPlatform(v ?? "")}
+                onValueChange={(v) => { setPmsPlatform(v ?? ""); setPmsOther(""); }}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
                   <SelectValue placeholder="Select platform" />
@@ -467,6 +499,15 @@ export function SurveyFlow() {
                   ))}
                 </SelectContent>
               </Select>
+              {pmsPlatform === "Other" && (
+                <Input
+                  id="pms-other"
+                  placeholder="Which PMS do you use?"
+                  value={pmsOther}
+                  onChange={(e) => setPmsOther(e.target.value)}
+                  className={inputClass}
+                />
+              )}
             </div>
             <div className="space-y-3">
               <Label>Operational model</Label>
@@ -647,17 +688,17 @@ export function SurveyFlow() {
               <Select
                 value={responseTime || undefined}
                 onValueChange={(v) => setResponseTime(v ?? "")}
+                items={RESPONSE_TIME_OPTIONS}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
                   <SelectValue placeholder="Select response window" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="under_1hr">Under 1 hour</SelectItem>
-                  <SelectItem value="1_4hrs">1–4 hours</SelectItem>
-                  <SelectItem value="4_12hrs">4–12 hours</SelectItem>
-                  <SelectItem value="same_day">Same day</SelectItem>
-                  <SelectItem value="next_day">Next day</SelectItem>
-                  <SelectItem value="unsure">Unsure</SelectItem>
+                  {RESPONSE_TIME_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -666,16 +707,17 @@ export function SurveyFlow() {
               <Select
                 value={completionTime || undefined}
                 onValueChange={(v) => setCompletionTime(v ?? "")}
+                items={COMPLETION_TIME_OPTIONS}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
                   <SelectValue placeholder="Select completion window" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1_3days">1–3 days</SelectItem>
-                  <SelectItem value="3_7days">3–7 days</SelectItem>
-                  <SelectItem value="7_14days">7–14 days</SelectItem>
-                  <SelectItem value="14plus">14+ days</SelectItem>
-                  <SelectItem value="unsure">Unsure</SelectItem>
+                  {COMPLETION_TIME_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

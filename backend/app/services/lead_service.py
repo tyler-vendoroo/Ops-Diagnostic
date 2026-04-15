@@ -38,6 +38,7 @@ class LeadService:
                 company=lead.company,
                 phone=lead.phone,
                 event_source=lead.event_source,
+                pms_platform=lead.pms_platform,
                 terms_accepted=lead.terms_accepted,
                 status="new",
             )
@@ -54,6 +55,20 @@ class LeadService:
                 select(db_models.Lead).where(db_models.Lead.id == lead_id)
             )
             return result.scalar_one_or_none()
+
+    async def update_pms_platform(self, lead_id: str, pms_platform: str) -> None:
+        """Set pms_platform on an existing lead (overwrites if already set)."""
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(db_models.Lead).where(db_models.Lead.id == lead_id)
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("update_pms_platform: lead %s not found", lead_id)
+                return
+            record.pms_platform = pms_platform
+            await session.commit()
+            logger.info("Updated lead %s pms_platform to %s", lead_id, pms_platform)
 
     async def update_status(self, lead_id: str, status: str) -> None:
         """Update the status field of an existing lead."""
