@@ -17,6 +17,9 @@ from app.services.email_service import EmailService
 from app.analysis.scoring_engine import (
     calculate_all_scores,
     calculate_overall_score,
+    calculate_projected_score,
+    calculate_cost_estimates,
+    get_goal_card_data,
     generate_key_findings,
     generate_gaps,
     recommend_tier,
@@ -41,6 +44,7 @@ class DiagnosticResult:
     gaps: list                      # list of GapFinding dicts
     pdf_bytes: bytes | None = None
     status: str = "complete"
+    summary: dict | None = None
 
 
 class DiagnosticService:
@@ -124,6 +128,66 @@ class DiagnosticService:
             },
         )
 
+        # ── Step 4b: Build summary payload ───────────────────────────────────
+        summary: dict | None = None
+        try:
+            from app.models.analysis import PortfolioMetrics as _PortfolioMetrics
+            _portfolio_metrics = self._adapter.build_portfolio_metrics(survey, client_info)
+            _impact_rows = generate_impact_projections(wo_metrics, client_info, tier)
+            _staffing = generate_staffing_projection(client_info, _portfolio_metrics)
+            _costs = calculate_cost_estimates(client_info.door_count, tier)
+            _projected_score = calculate_projected_score(overall_score, gap_titles)
+            _goal_data = get_goal_card_data(
+                client_info.operational_model,
+                client_info.staff_count,
+                client_info.door_count,
+                client_info.primary_goal or "scale",
+            )
+            _model = client_info.operational_model
+            _staff_label = {
+                "va": "coordinators",
+                "tech": "technicians",
+                "pod": "pods",
+            }.get(_model, "staff")
+            _staffing_dict = (
+                _staffing.model_dump()
+                if hasattr(_staffing, "model_dump")
+                else dict(_staffing)
+            )
+            summary = {
+                "category_scores": [
+                    {
+                        "name": cat.name,
+                        "key": cat.key,
+                        "score": cat.score,
+                        "tier": cat.tier,
+                        "tier_css": cat.tier_css,
+                    }
+                    for cat in category_scores
+                ],
+                "projected_score": _projected_score,
+                "impact_rows": [row.model_dump() for row in _impact_rows],
+                "cost_estimates": _costs,
+                "staffing": _staffing_dict,
+                "paths": {
+                    "scale": _goal_data["scale_data"],
+                    "optimize": _goal_data["optimize_data"],
+                    "elevate": _goal_data["elevate_data"],
+                },
+                "company_name": client_info.company_name,
+                "door_count": client_info.door_count,
+                "staff_count": client_info.staff_count,
+                "staff_label": _staff_label,
+                "primary_goal": client_info.primary_goal or "scale",
+                "operational_model": _model,
+            }
+        except Exception as exc:
+            logger.warning(
+                "Summary computation failed for diagnostic %s — continuing without summary. Error: %s",
+                diagnostic_id,
+                exc,
+            )
+
         # ── Step 5: PDF Generation ───────────────────────────────────────────
         pdf_bytes: bytes | None = None
         try:
@@ -152,6 +216,7 @@ class DiagnosticService:
                 pdf_bytes=pdf_bytes,
                 key_findings=key_findings_serialized,
                 gaps=gaps_serialized,
+                summary=summary,
             )
         except Exception as exc:
             logger.error(
@@ -189,6 +254,7 @@ class DiagnosticService:
             gaps=gaps_serialized,
             pdf_bytes=pdf_bytes,
             status="complete",
+            summary=summary,
         )
 
     async def run_full_diagnostic(
@@ -728,6 +794,7 @@ class DiagnosticService:
         key_findings: list | None = None,
         gaps: list | None = None,
         lead_id: str | None = None,
+        summary: dict | None = None,
     ) -> None:
         """Persist the diagnostic result to the database."""
         async with AsyncSessionLocal() as session:
@@ -742,6 +809,7 @@ class DiagnosticService:
                 scores=scores_payload,
                 key_findings=key_findings or [],
                 gaps=gaps or [],
+                summary=summary,
                 tier=tier,
                 pdf_data=pdf_bytes,
                 pdf_path=None,

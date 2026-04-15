@@ -51,6 +51,7 @@ async def quick_diagnostic(request: QuickDiagnosticRequest):
             if result.pdf_bytes else None
         ),
         "status": result.status,
+        "summary": result.summary,
     }
 
 
@@ -187,6 +188,7 @@ async def get_diagnostic(id: str):
             if record.pdf_data else None
         ),
         "created_at": record.created_at.isoformat() if record.created_at else None,
+        "summary": record.summary,
     }
 
 

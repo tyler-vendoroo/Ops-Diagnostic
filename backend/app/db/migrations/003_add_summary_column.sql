@@ -1,0 +1,1 @@
+ALTER TABLE diagnostics ADD COLUMN IF NOT EXISTS summary JSON;

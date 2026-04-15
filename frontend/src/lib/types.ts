@@ -98,9 +98,73 @@ export interface KeyFinding {
 
 export interface GapFinding {
   title: string;
-  description: string;
-  severity?: "high" | "medium" | "low";
+  description?: string;
+  detail?: string;
+  severity?: string;
+  recommendation?: string;
   category?: string;
+}
+
+export interface CategoryScoreEntry {
+  name: string;
+  key: string;
+  score: number;
+  tier: string;
+  tier_css: string;
+}
+
+export interface ImpactRow {
+  metric: string;
+  current_value: string;
+  current_is_bad?: boolean;
+  projected_value: string;
+  benchmark_range?: string;
+  improvement: string | null;
+  note?: string | null;
+}
+
+export interface CostEstimates {
+  recommended_cost: number;
+  recommended_tier_name?: string;
+  next_tier_cost?: number;
+  next_tier_name?: string;
+  rescueroo_cost?: number;
+}
+
+export interface PathData {
+  stat_value: string;
+  stat_label: string;
+  description: string;
+  best_tier: string;
+}
+
+export interface StaffingData {
+  current_staff: number;
+  current_doors: number;
+  doors_per_staff: number;
+  staff_benchmark?: number;
+  scale_doors?: number;
+  optimize_staff?: number;
+  fte_savings?: number;
+}
+
+export interface DiagnosticSummary {
+  category_scores: CategoryScoreEntry[];
+  projected_score: number;
+  impact_rows: ImpactRow[];
+  cost_estimates: CostEstimates;
+  staffing: StaffingData;
+  paths: {
+    scale: PathData;
+    optimize: PathData;
+    elevate: PathData;
+  };
+  company_name: string;
+  door_count: number;
+  staff_count: number;
+  staff_label: string;
+  primary_goal: string;
+  operational_model: string;
 }
 
 export interface DiagnosticResult {
@@ -112,6 +176,7 @@ export interface DiagnosticResult {
   gaps: GapFinding[];
   pdf_url: string | null;
   status: DiagnosticStatus;
+  summary?: DiagnosticSummary;
 }
 
 // ─── API Request Payloads ─────────────────────────────────────────────────────
@@ -147,4 +212,5 @@ export interface DiagnosticStatusResponse {
   key_findings?: KeyFinding[];
   gaps?: GapFinding[];
   pdf_url?: string;
+  summary?: DiagnosticSummary;
 }
