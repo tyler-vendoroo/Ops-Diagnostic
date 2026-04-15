@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { DiagnosticProgress } from "@/components/diagnostic/DiagnosticProgress";
+import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
 const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
@@ -170,7 +171,7 @@ function Dropzone({ label, helper, accept, file, onFile, required }: DropzonePro
   );
 }
 
-export default function FullDiagnosticPage() {
+function FullDiagnosticContent() {
   const router = useRouter();
 
   // ── Determine initial step ─────────────────────────────────────────────────
@@ -571,5 +572,13 @@ export default function FullDiagnosticPage() {
         </form>
       )}
     </div>
+  );
+}
+
+export default function FullDiagnosticPage() {
+  return (
+    <RequireLeadGate returnPath="/diagnostic/full">
+      <FullDiagnosticContent />
+    </RequireLeadGate>
   );
 }

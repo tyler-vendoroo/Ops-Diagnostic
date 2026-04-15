@@ -1,8 +1,9 @@
 import Link from "next/link";
 
+import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 import { SurveyFlow } from "@/components/diagnostic/SurveyFlow";
 
-export default function QuickDiagnosticPage() {
+function QuickDiagnosticContent() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 bg-vendoroo-page px-4 py-10 sm:px-6 sm:py-14">
       <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -24,5 +25,13 @@ export default function QuickDiagnosticPage() {
       </div>
       <SurveyFlow />
     </div>
+  );
+}
+
+export default function QuickDiagnosticPage() {
+  return (
+    <RequireLeadGate returnPath="/diagnostic/quick">
+      <QuickDiagnosticContent />
+    </RequireLeadGate>
   );
 }

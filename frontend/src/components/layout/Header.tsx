@@ -8,7 +8,7 @@ export function Header() {
   return (
     <header className="border-b border-vendoroo-border bg-vendoroo-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 py-1">
+        <Link href="/" className="flex shrink-0 items-center gap-2 py-1">
           <Image
             src={LOGO_SRC}
             alt="Vendoroo"
@@ -18,36 +18,22 @@ export function Header() {
             priority
           />
         </Link>
-        <nav className="flex items-center gap-5 text-sm font-medium uppercase tracking-wide text-vendoroo-smoke">
-          <Link
-            href="/diagnostic"
-            className="transition-colors hover:text-vendoroo-main-dark"
-          >
-            Diagnostic
-          </Link>
+        <nav className="flex items-center gap-6 text-xs font-semibold uppercase tracking-[0.12em] text-vendoroo-smoke sm:gap-8 sm:text-sm sm:tracking-[0.14em]">
           <a
-            href="https://vendoroo.ai/how-vendoroo-works"
+            href="https://vendoroo.ai"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden transition-colors hover:text-vendoroo-main-dark sm:inline"
+            className="transition-colors hover:text-vendoroo-main-dark"
           >
-            Product
+            Vendoroo.ai
           </a>
           <a
             href="https://vendoroo.ai/pricing"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden transition-colors hover:text-vendoroo-main-dark sm:inline"
+            className="transition-colors hover:text-vendoroo-main-dark"
           >
             Plans
-          </a>
-          <a
-            href="https://vendoroo.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-vendoroo-muted transition-colors hover:text-vendoroo-main-dark"
-          >
-            vendoroo.ai
           </a>
         </nav>
       </div>
