@@ -192,6 +192,7 @@ async def get_diagnostic(id: str):
         "diagnostic_id": record.id,
         "diagnostic_type": record.diagnostic_type,
         "status": record.status,
+        "error": record.error,
         "overall_score": overall_score,
         "scores": scores,
         "tier": record.tier,

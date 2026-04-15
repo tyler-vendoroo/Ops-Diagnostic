@@ -207,6 +207,7 @@ export interface DiagnosticStatusResponse {
   id?: string;
   diagnostic_id?: string;
   status: DiagnosticStatus;
+  error?: string | null;
   overall_score?: number;
   scores?: Record<string, number>;
   tier?: DiagnosticTier;

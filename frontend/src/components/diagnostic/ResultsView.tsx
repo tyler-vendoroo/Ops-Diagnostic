@@ -396,7 +396,7 @@ export function ResultsView({ id }: { id: string }) {
       const res = await getDiagnostic(id);
       setData(res);
       if (res.status === "failed") {
-        setError("This diagnostic could not be completed. Please start again.");
+        setError(res.error ?? "This diagnostic could not be completed. Please start again.");
       } else {
         setError(null);
       }
