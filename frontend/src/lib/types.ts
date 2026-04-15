@@ -138,8 +138,10 @@ export interface CreateLeadResponse {
 }
 
 export interface DiagnosticStatusResponse {
-  id: string;
+  id?: string;
+  diagnostic_id?: string;
   status: DiagnosticStatus;
+  overall_score?: number;
   scores?: Record<string, number>;
   tier?: DiagnosticTier;
   key_findings?: KeyFinding[];
