@@ -49,10 +49,10 @@ const tierCopy: Record<
 };
 
 function scoreFromDiagnostic(d: DiagnosticStatusResponse): number {
+  if (typeof d.overall_score === "number") return clampScore(d.overall_score);
   const s = d.scores;
   if (!s) return 0;
   if (typeof s.overall === "number") return clampScore(s.overall);
-  if (typeof s.total === "number") return clampScore(s.total);
   const vals = Object.values(s).filter(
     (v): v is number => typeof v === "number"
   );
