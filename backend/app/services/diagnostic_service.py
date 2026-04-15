@@ -80,6 +80,7 @@ class DiagnosticService:
         if lead is not None:
             try:
                 lead_id = await self._lead_service.create_lead(lead)
+                await self._lead_service.update_status(lead_id, "diagnostic_started")
             except Exception as exc:
                 logger.error("Lead capture failed for diagnostic %s: %s", diagnostic_id, exc)
 
@@ -218,6 +219,8 @@ class DiagnosticService:
                 gaps=gaps_serialized,
                 summary=summary,
             )
+            if lead_id is not None:
+                await self._lead_service.update_status(lead_id, "diagnostic_complete")
         except Exception as exc:
             logger.error(
                 "DB write failed for diagnostic %s: %s",
@@ -272,6 +275,13 @@ class DiagnosticService:
         try:
             loop = asyncio.get_event_loop()
             client_info_dict = client_info  # keep raw dict for functions that need it
+
+            # ── Step 0: Mark lead as started ─────────────────────────────────
+            if lead_id is not None:
+                try:
+                    await self._lead_service.update_status(lead_id, "diagnostic_started")
+                except Exception as exc:
+                    logger.warning("Could not update lead status for %s: %s", lead_id, exc)
 
             # ── Step 1: Build ClientInfo ─────────────────────────────────────
             ci = ClientInfo(
@@ -734,6 +744,8 @@ class DiagnosticService:
                     gaps=gaps_serialized,
                     summary=full_summary,
                 )
+                if lead_id is not None:
+                    await self._lead_service.update_status(lead_id, "diagnostic_complete")
             except Exception as exc:
                 logger.error(
                     "DB update failed for full diagnostic %s: %s", diagnostic_id, exc
