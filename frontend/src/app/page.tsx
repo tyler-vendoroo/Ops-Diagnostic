@@ -240,56 +240,62 @@ export default function Home() {
               <div className="border-b border-vendoroo-border bg-vendoroo-light/80 px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-vendoroo-muted">
                 Sample preview — Vendoroo ops diagnostic
               </div>
-              <div className="grid gap-6 p-6 sm:grid-cols-[1fr_1.2fr] sm:gap-8">
-                <div className="flex flex-col items-center justify-center">
-                  <div className="relative size-28">
+              <div className="p-5 sm:p-6 space-y-5">
+
+                {/* Score + tier */}
+                <div className="flex items-center gap-5">
+                  <div className="relative shrink-0 size-20">
                     <svg viewBox="0 0 100 100" className="size-full -rotate-90">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="42"
-                        fill="none"
-                        stroke="#e1e3e4"
-                        strokeWidth="10"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="42"
-                        fill="none"
-                        stroke="#039cac"
-                        strokeWidth="10"
-                        strokeDasharray="175 264"
-                        strokeLinecap="round"
-                      />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#e1e3e4" strokeWidth="10" />
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="#fdbb00" strokeWidth="10"
+                        strokeDasharray="145 264" strokeLinecap="round" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-semibold tabular-nums text-vendoroo-text">
-                        54
-                      </span>
-                      <span className="text-[10px] font-medium uppercase text-vendoroo-muted">
-                        /100
-                      </span>
+                      <span className="text-xl font-semibold tabular-nums text-vendoroo-text">54</span>
+                      <span className="text-[9px] font-medium text-vendoroo-muted">/100</span>
                     </div>
                   </div>
-                  <p className="mt-3 text-center text-xs font-semibold text-vendoroo-main-dark">
-                    Engage
-                  </p>
+                  <div>
+                    <span className="inline-block rounded-full bg-vendoroo-main px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Direct</span>
+                    <p className="mt-1 text-xs text-vendoroo-muted leading-relaxed">Core operations run — tightening spend controls and SLAs will raise consistency.</p>
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="h-2 w-full rounded-full bg-vendoroo-border">
-                    <div className="h-2 w-[62%] rounded-full bg-vendoroo-main" />
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-vendoroo-border">
-                    <div className="h-2 w-[45%] rounded-full bg-vendoroo-warn" />
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-vendoroo-border">
-                    <div className="h-2 w-[78%] rounded-full bg-vendoroo-success" />
-                  </div>
-                  <p className="pt-2 text-xs leading-relaxed text-vendoroo-muted">
-                    Illustrative preview — your report reflects your real inputs.
-                  </p>
+
+                {/* Category bars */}
+                <div className="space-y-2.5">
+                  {[
+                    { name: "Response Efficiency", score: 38, fill: "bg-rose-500", pill: "text-rose-700 bg-rose-50", tier: "Not Ready" },
+                    { name: "Vendor Coverage",     score: 58, fill: "bg-amber-500", pill: "text-amber-700 bg-amber-50", tier: "Needs Work" },
+                    { name: "Policy Completeness", score: 25, fill: "bg-rose-500", pill: "text-rose-700 bg-rose-50", tier: "Not Ready" },
+                    { name: "Scalability Ops",     score: 74, fill: "bg-[#34ba49]", pill: "text-emerald-700 bg-emerald-50", tier: "Ready" },
+                  ].map((cat) => (
+                    <div key={cat.name} className="flex items-center gap-2">
+                      <span className="w-36 shrink-0 text-[11px] text-vendoroo-smoke">{cat.name}</span>
+                      <span className="w-6 shrink-0 text-right text-[11px] font-semibold tabular-nums text-vendoroo-text">{cat.score}</span>
+                      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-vendoroo-border">
+                        <div className={`absolute inset-y-0 left-0 rounded-full ${cat.fill}`} style={{ width: `${cat.score}%` }} />
+                      </div>
+                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${cat.pill}`}>{cat.tier}</span>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Sample finding */}
+                <div className="rounded-lg border border-vendoroo-border bg-vendoroo-surface px-4 py-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-rose-50 text-rose-600">
+                      <svg className="size-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-vendoroo-text">Response Time Gap</p>
+                      <p className="mt-0.5 text-[11px] text-vendoroo-muted leading-relaxed">Average first response of 8 hrs — Vendoroo's average is under 10 min.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-vendoroo-muted/70 text-center">
+                  Sample data — your report reflects your real inputs.
+                </p>
               </div>
             </div>
 
