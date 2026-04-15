@@ -11,16 +11,16 @@ const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
 const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
 
 const PMS_OPTIONS = [
-  "Rentvine",
   "AppFolio",
-  "Propertyware",
-  "Rent Manager",
-  "DoorLoop",
   "Buildium",
+  "DoorLoop",
+  "ManageGo",
+  "Propertyware",
+  "RealPage",
+  "Rent Manager",
+  "Rentvine",
   "Yardi Breeze",
   "Yardi Voyager",
-  "RealPage",
-  "ManageGo",
   "Other",
 ] as const;
 
