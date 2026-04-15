@@ -346,20 +346,21 @@ def classify_trades(std, config):
     """Classify each WO into a standard trade category using the fallback chain."""
     result = std["raw_category"].astype("object").copy()
     # Treat blank placeholder values as missing so fallback classification can run.
-    result = result.apply(lambda v: str(v).strip() if pd.notna(v) else np.nan)
+    # Use None (not np.nan) so pandas never re-infers the Series as float64.
+    result = result.apply(lambda v: str(v).strip() if pd.notna(v) else None)
     result = result.replace({
-        "": np.nan,
-        "nan": np.nan,
-        "none": np.nan,
-        "null": np.nan,
-        "n/a": np.nan,
-        "na": np.nan,
+        "": None,
+        "nan": None,
+        "none": None,
+        "null": None,
+        "n/a": None,
+        "na": None,
     })
-    # Re-cast to object — if all values are NaN the apply() above re-infers float64,
-    # which breaks the string assignment loops below.
-    result = result.astype(object)
     # Normalize explicit categories from source when available.
-    result = result.apply(lambda v: CATEGORY_NORMALIZE.get(v, v) if pd.notna(v) else v)
+    result = result.apply(lambda v: CATEGORY_NORMALIZE.get(v, v) if v is not None else None)
+    # Guarantee object dtype — any of the apply() calls above can re-infer float64
+    # when every value is None/NaN, which breaks the string assignment loops below.
+    result = result.astype(object)
 
     # Where raw_category is null, try vendor name keywords
     needs_classification = result.isna()
