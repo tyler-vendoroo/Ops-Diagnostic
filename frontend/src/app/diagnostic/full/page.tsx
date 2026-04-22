@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { DiagnosticProgress } from "@/components/diagnostic/DiagnosticProgress";
 import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
@@ -187,9 +186,6 @@ function Dropzone({ label, helper, accept, file, onFile, required }: DropzonePro
 function FullDiagnosticContent() {
   const router = useRouter();
 
-  // ── Determine initial step ─────────────────────────────────────────────────
-  const [step, setStep] = React.useState<1 | 2>(1);
-
   // ── Company info fields ────────────────────────────────────────────────────
   const [companyName, setCompanyName] = React.useState("");
   const [doorCount, setDoorCount] = React.useState("");
@@ -250,13 +246,7 @@ function FullDiagnosticContent() {
     return () => clearInterval(interval);
   }, [submitting]);
 
-  // ── Step 1 submit ──────────────────────────────────────────────────────────
-  function handleContinue(e: React.FormEvent) {
-    e.preventDefault();
-    setStep(2);
-  }
-
-  // ── Step 2 submit ──────────────────────────────────────────────────────────
+  // ── Form submit ────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!workOrderFile) return;
@@ -366,232 +356,213 @@ function FullDiagnosticContent() {
         </Link>
       </div>
 
-      {/* Progress */}
-      <div className="mb-8">
-        <DiagnosticProgress step={step === 1 ? 4 : 5} />
-      </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-vendoroo-muted">
+          Your operation
+        </p>
 
-      {/* Step 1 — Company info */}
-      {step === 1 && (
-        <form onSubmit={handleContinue} className="flex flex-col gap-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Company name */}
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-sm font-medium text-vendoroo-text" htmlFor="company">
-                Company name
-              </label>
-              <input
-                id="company"
-                type="text"
-                required
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                placeholder="Acme Property Management"
-              />
-            </div>
-
-            {/* Door count */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-vendoroo-text" htmlFor="door-count">
-                Door count
-              </label>
-              <input
-                id="door-count"
-                type="number"
-                min={1}
-                required
-                value={doorCount}
-                onChange={(e) => setDoorCount(e.target.value)}
-                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                placeholder="500"
-              />
-            </div>
-
-            {/* Property count */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-vendoroo-text" htmlFor="property-count">
-                Property count
-              </label>
-              <input
-                id="property-count"
-                type="number"
-                min={1}
-                required
-                value={propertyCount}
-                onChange={(e) => setPropertyCount(e.target.value)}
-                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                placeholder="120"
-              />
-            </div>
-
-            {/* PMS platform */}
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <label className="text-sm font-medium text-vendoroo-text" htmlFor="pms">
-                PMS platform
-              </label>
-              <select
-                id="pms"
-                required
-                value={pmsPlatform}
-                onChange={(e) => { setPmsPlatform(e.target.value); setPmsOther(""); }}
-                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-              >
-                <option value="" disabled>Select platform</option>
-                {PMS_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-              {pmsPlatform === "Other" && (
-                <input
-                  id="pms-other"
-                  type="text"
-                  placeholder="Which PMS do you use?"
-                  value={pmsOther}
-                  onChange={(e) => setPmsOther(e.target.value)}
-                  className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                />
-              )}
-            </div>
-
-            {/* Staff count */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-vendoroo-text" htmlFor="staff-count">
-                Staff count
-              </label>
-              <input
-                id="staff-count"
-                type="number"
-                min={1}
-                value={staffCount}
-                onChange={(e) => setStaffCount(e.target.value)}
-                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                placeholder="8"
-              />
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Company name */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-sm font-medium text-vendoroo-text" htmlFor="company">
+              Company name
+            </label>
+            <input
+              id="company"
+              type="text"
+              required
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+              placeholder="Acme Property Management"
+            />
           </div>
 
-          {/* Operational model */}
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-vendoroo-text">Operational model</span>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(
-                [
-                  { value: "va", label: "VA Coordinators", desc: "Offshore or contract coordinators handle dispatch" },
-                  { value: "tech", label: "In-House Tech Team", desc: "Dedicated internal maintenance staff" },
-                ] as const
-              ).map(({ value, label, desc }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setOperationalModel(value)}
-                  className={[
-                    "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
-                    operationalModel === value
-                      ? "border-vendoroo-main bg-vendoroo-light ring-1 ring-vendoroo-main/30"
-                      : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
-                  ].join(" ")}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-vendoroo-text">{label}</p>
-                    <p className="mt-0.5 text-xs text-vendoroo-muted">{desc}</p>
-                  </div>
-                </button>
+          {/* Door count */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-vendoroo-text" htmlFor="door-count">
+              Door count
+            </label>
+            <input
+              id="door-count"
+              type="number"
+              min={1}
+              required
+              value={doorCount}
+              onChange={(e) => setDoorCount(e.target.value)}
+              className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+              placeholder="500"
+            />
+          </div>
+
+          {/* Property count */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-vendoroo-text" htmlFor="property-count">
+              Property count
+            </label>
+            <input
+              id="property-count"
+              type="number"
+              min={1}
+              required
+              value={propertyCount}
+              onChange={(e) => setPropertyCount(e.target.value)}
+              className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+              placeholder="120"
+            />
+          </div>
+
+          {/* PMS platform */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-sm font-medium text-vendoroo-text" htmlFor="pms">
+              PMS platform
+            </label>
+            <select
+              id="pms"
+              required
+              value={pmsPlatform}
+              onChange={(e) => { setPmsPlatform(e.target.value); setPmsOther(""); }}
+              className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+            >
+              <option value="" disabled>Select platform</option>
+              {PMS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
               ))}
-            </div>
+            </select>
+            {pmsPlatform === "Other" && (
+              <input
+                id="pms-other"
+                type="text"
+                placeholder="Which PMS do you use?"
+                value={pmsOther}
+                onChange={(e) => setPmsOther(e.target.value)}
+                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+              />
+            )}
           </div>
 
-          {/* Primary goal */}
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-vendoroo-text">Primary goal</span>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {(
-                [
-                  { value: "scale", label: "Scale", desc: "Grow without adding headcount" },
-                  { value: "optimize", label: "Optimize", desc: "Improve ops efficiency" },
-                  { value: "elevate", label: "Elevate", desc: "Raise service quality" },
-                ] as const
-              ).map(({ value, label, desc }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setPrimaryGoal(value)}
-                  className={[
-                    "flex cursor-pointer flex-col rounded-xl border p-4 text-left transition-colors",
-                    primaryGoal === value
-                      ? "border-vendoroo-main bg-vendoroo-light ring-1 ring-vendoroo-main/30"
-                      : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
-                  ].join(" ")}
-                >
+          {/* Staff count */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-vendoroo-text" htmlFor="staff-count">
+              Staff count
+            </label>
+            <input
+              id="staff-count"
+              type="number"
+              min={1}
+              value={staffCount}
+              onChange={(e) => setStaffCount(e.target.value)}
+              className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+              placeholder="8"
+            />
+          </div>
+        </div>
+
+        {/* Operational model */}
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-vendoroo-text">Operational model</span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(
+              [
+                { value: "va", label: "VA Coordinators", desc: "Offshore or contract coordinators handle dispatch" },
+                { value: "tech", label: "In-House Tech Team", desc: "Dedicated internal maintenance staff" },
+              ] as const
+            ).map(({ value, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setOperationalModel(value)}
+                className={[
+                  "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                  operationalModel === value
+                    ? "border-vendoroo-main bg-vendoroo-light ring-1 ring-vendoroo-main/30"
+                    : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
+                ].join(" ")}
+              >
+                <div>
                   <p className="text-sm font-medium text-vendoroo-text">{label}</p>
                   <p className="mt-0.5 text-xs text-vendoroo-muted">{desc}</p>
-                </button>
-              ))}
-            </div>
+                </div>
+              </button>
+            ))}
           </div>
+        </div>
 
-          <div className="pt-2">
-            <button
-              type="submit"
-              className="rounded-full bg-vendoroo-main px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-vendoroo-main/90 disabled:opacity-50"
-            >
-              Continue to uploads
-            </button>
+        {/* Primary goal */}
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-vendoroo-text">Primary goal</span>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(
+              [
+                { value: "scale", label: "Scale", desc: "Grow without adding headcount" },
+                { value: "optimize", label: "Optimize", desc: "Improve ops efficiency" },
+                { value: "elevate", label: "Elevate", desc: "Raise service quality" },
+              ] as const
+            ).map(({ value, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPrimaryGoal(value)}
+                className={[
+                  "flex cursor-pointer flex-col rounded-xl border p-4 text-left transition-colors",
+                  primaryGoal === value
+                    ? "border-vendoroo-main bg-vendoroo-light ring-1 ring-vendoroo-main/30"
+                    : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
+                ].join(" ")}
+              >
+                <p className="text-sm font-medium text-vendoroo-text">{label}</p>
+                <p className="mt-0.5 text-xs text-vendoroo-muted">{desc}</p>
+              </button>
+            ))}
           </div>
-        </form>
-      )}
+        </div>
 
-      {/* Step 2 — File uploads */}
-      {step === 2 && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-          <Dropzone
-            label="Work Order History"
-            helper="Export from your PMS. 12 months of data recommended."
-            accept=".csv,.xlsx,.xls,.tsv,.json"
-            file={workOrderFile}
-            onFile={setWorkOrderFile}
-            required
-          />
-          <Dropzone
-            label="Lease Agreement"
-            helper="Template, not executed copy."
-            accept=".pdf"
-            file={leaseFile}
-            onFile={setLeaseFile}
-          />
-          <Dropzone
-            label="PMA"
-            helper="Template, not executed copy."
-            accept=".pdf"
-            file={pmaFile}
-            onFile={setPmaFile}
-          />
-          <Dropzone
-            label="Vendor Directory"
-            helper="Vendor name and trade minimum."
-            accept=".csv,.xlsx,.xls"
-            file={vendorDirFile}
-            onFile={setVendorDirFile}
-          />
+        <hr className="border-vendoroo-border" />
 
-          <div className="flex items-center gap-4 pt-2">
-            <button
-              type="submit"
-              disabled={!workOrderFile}
-              className="rounded-full bg-vendoroo-main px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-vendoroo-main/90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Run Full Diagnostic
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="text-sm font-medium text-vendoroo-muted transition-colors hover:text-vendoroo-text"
-            >
-              ← Back
-            </button>
-          </div>
-        </form>
-      )}
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-vendoroo-muted">
+          Operational data
+        </p>
+
+        <Dropzone
+          label="Work Order History"
+          helper="Export from your PMS. 12 months of data recommended."
+          accept=".csv,.xlsx,.xls,.tsv,.json"
+          file={workOrderFile}
+          onFile={setWorkOrderFile}
+          required
+        />
+        <Dropzone
+          label="Lease Agreement"
+          helper="Template, not executed copy."
+          accept=".pdf"
+          file={leaseFile}
+          onFile={setLeaseFile}
+        />
+        <Dropzone
+          label="PMA"
+          helper="Template, not executed copy."
+          accept=".pdf"
+          file={pmaFile}
+          onFile={setPmaFile}
+        />
+        <Dropzone
+          label="Vendor Directory"
+          helper="Vendor name and trade minimum."
+          accept=".csv,.xlsx,.xls"
+          file={vendorDirFile}
+          onFile={setVendorDirFile}
+        />
+
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={!workOrderFile}
+            className="rounded-full bg-vendoroo-main px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-vendoroo-main/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Run Full Diagnostic
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

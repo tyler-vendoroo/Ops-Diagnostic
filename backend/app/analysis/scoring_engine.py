@@ -671,13 +671,17 @@ def generate_gaps(
     if score_map.get("emergency_protocols", 0) < 70:
         severity = "High Priority" if score_map["emergency_protocols"] < 50 else "Medium Priority"
         is_high = severity == "High Priority"
+        if doc_analysis.has_emergency_protocols:
+            ep_detail = "Emergency procedures exist in your documentation but lack formal dispatch integration — criteria are not encoded into your triage workflow."
+        else:
+            ep_detail = "No formal written emergency criteria found. After-hours triage relies on answering service judgment with no documented escalation path."
         gaps.append(GapFinding(
             title="Emergency Protocol",
             severity=severity,
             severity_color="var(--red)" if is_high else "var(--amber)",
             severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
             severity_border="var(--red)" if is_high else "var(--amber)",
-            detail="No formal written emergency criteria. After hours triage relies on answering service judgment with no documented escalation rules.",
+            detail=ep_detail,
             recommendation="Your Advisor works with you to define emergency categories, response SLAs, and escalation paths during onboarding. These are encoded directly into your Maintenance Book so your AI teammate knows exactly how to handle emergencies from Day 1.",
         ))
 
@@ -737,20 +741,50 @@ def generate_gaps(
             recommendation="Your Advisor configures Rooceptionist for 24/7 intelligent call handling with AI triage and troubleshooting. For full emergency dispatch coverage around the clock, RescueRoo extends your team's capabilities to true 24/7.",
         ))
 
-    # Policy Documentation gap (usually low priority if docs are provided)
+    # Policy Documentation gap
     if score_map.get("policy_completeness", 0) < 70:
         is_minor = score_map["policy_completeness"] >= 50
+        missing_docs = []
+        if not doc_analysis.pma or (hasattr(doc_analysis.pma, "status") and doc_analysis.pma.status == "Not Provided"):
+            missing_docs.append("PMA")
+        if not doc_analysis.lease or (hasattr(doc_analysis.lease, "status") and doc_analysis.lease.status == "Not Provided"):
+            missing_docs.append("lease agreement")
+        policy_gaps = []
+        if missing_docs:
+            policy_gaps.append(f"{' and '.join(missing_docs)} not provided")
+        if not doc_analysis.has_emergency_protocols:
+            policy_gaps.append("emergency procedures not documented")
+        if not doc_analysis.nte_threshold:
+            policy_gaps.append("no NTE threshold defined")
+        if policy_gaps:
+            policy_detail = "; ".join(policy_gaps).capitalize() + "."
+        else:
+            policy_detail = "Policy documentation is partially complete — some maintenance responsibility language is ambiguous."
         gaps.append(GapFinding(
             title="Policy Documentation",
             severity="Low Priority" if is_minor else "Medium Priority",
             severity_color="var(--green)" if is_minor else "var(--amber)",
             severity_bg="var(--green-light)" if is_minor else "var(--amber-light)",
             severity_border="var(--green)" if is_minor else "var(--amber)",
-            detail="PMA and lease templates are solid. Minor gaps in maintenance responsibility language for appliance coverage and HVAC filter replacement.",
+            detail=policy_detail,
             recommendation="Any unclear or missing policies are clarified with you during onboarding. Your Advisor ensures every policy decision is documented in your Maintenance Book before go-live.",
         ))
 
-    return gaps[:6]  # Limit to 6 for page space
+    # Open WO Rate gap
+    if wo_metrics.open_wo_rate_pct is not None and wo_metrics.open_wo_rate_pct > 20:
+        severity = "High Priority" if wo_metrics.open_wo_rate_pct > 30 else "Medium Priority"
+        is_high = severity == "High Priority"
+        gaps.append(GapFinding(
+            title="Open Work Order Backlog",
+            severity=severity,
+            severity_color="var(--red)" if is_high else "var(--amber)",
+            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
+            severity_border="var(--red)" if is_high else "var(--amber)",
+            detail=f"{wo_metrics.open_wo_rate_pct}% of work orders are open at any given time. Vendoroo clients average under 10% — a backlog this size signals follow-up and dispatch coordination gaps.",
+            recommendation="Your AI teammate tracks every open work order and sends automated follow-ups to vendors on your configured cadence, surfacing stale tickets before they become resident complaints.",
+        ))
+
+    return gaps
 
 
 # ── Impact Projections ───────────────────────────────────
@@ -1002,7 +1036,11 @@ def recommend_tier(goal, category_scores, gaps, client_info=None):
             return "command"
         return "direct"
     elif goal == "optimize":
-        return "command"
+        if below_50_count >= 4:
+            return "command"
+        if below_50_count >= 2:
+            return "direct"
+        return "engage"
 
     return "direct"  # fallback
 
