@@ -138,10 +138,12 @@ export function LeadCaptureForm({
         />
         <Label
           htmlFor="trial-interest"
-          className="cursor-pointer text-sm font-normal leading-snug text-vendoroo-smoke"
+          className="cursor-pointer text-pretty text-sm font-normal leading-relaxed text-vendoroo-smoke"
         >
           I&apos;m interested in a{" "}
-          <span className="font-semibold text-vendoroo-main">90-day free trial</span>{" "}
+          <span className="whitespace-nowrap font-semibold text-vendoroo-main">
+            90-day free trial
+          </span>{" "}
           of Vendoroo AI maintenance coordination.
         </Label>
       </div>
