@@ -147,11 +147,12 @@ class DiagnosticService:
         summary: dict | None = None
         try:
             from app.config.benchmarks import STAFFING_BENCHMARKS
+            from app.config import CORE_TRADES as _CORE_TRADES_LIST
 
             _model = client_info.operational_model
             _staff_label_s = {"va": "coordinator", "tech": "technician", "pod": "pod"}.get(_model, "staff member")
             _staff_label_p = {"va": "coordinators", "tech": "technicians", "pod": "pods"}.get(_model, "staff")
-            _doors_per = round(client_info.door_count / max(1, client_info.staff_count))
+            _doors_per = int(client_info.door_count / max(1, client_info.staff_count))
             _bench = STAFFING_BENCHMARKS.get(_model, STAFFING_BENCHMARKS["va"])
             _benchmark_per = _bench.get("current_benchmark", 175)
 
@@ -185,7 +186,7 @@ class DiagnosticService:
                         f"the dispatch workload so your team isn't buried in logistics."
                     ),
                 })
-            elif _doors_per < _benchmark_per * 0.7:
+            elif _doors_per < _benchmark_per * 0.85:
                 insights.append({
                     "icon": "scale",
                     "title": "Capacity to grow without adding headcount",
@@ -228,9 +229,11 @@ class DiagnosticService:
                     ),
                 })
 
-            # Trade coverage insight
-            _core_covered = wo_metrics.trades_covered_count or 0
-            _core_required = wo_metrics.trades_required_count or 8
+            # Trade coverage insight — count only core trades, not specialty
+            _core_set = {t.lower() for t in _CORE_TRADES_LIST}
+            _covered_set = {t.lower() for t in (wo_metrics.covered_trades or [])}
+            _core_covered = len(_covered_set & _core_set)
+            _core_required = len(_CORE_TRADES_LIST)  # always 8
             if wo_metrics.missing_trades:
                 _missing_str = ", ".join(t.title() for t in wo_metrics.missing_trades[:4])
                 insights.append({
@@ -410,7 +413,7 @@ class DiagnosticService:
             diagnostic_id=diagnostic_id,
             scores=scores_dict,
             overall_score=float(overall_score),
-            tier=tier,
+            tier=None,  # No tier recommendation on quick path — not enough data
             key_findings=key_findings_serialized,
             gaps=gaps_serialized,
             pdf_bytes=pdf_bytes,
