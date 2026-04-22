@@ -649,6 +649,23 @@ def generate_key_findings(
             color="var(--amber)",
         ))
 
+    # ── 10. Property Concentration ──
+    if client_info.property_count and client_info.property_count > 0:
+        dpp = client_info.door_count / client_info.property_count
+        if dpp >= 10:
+            findings.append(KeyFinding(
+                title="Concentrated Portfolio",
+                description=(
+                    f"Your portfolio averages {round(dpp)} doors per property "
+                    f"({client_info.door_count} doors across {client_info.property_count} "
+                    f"{'property' if client_info.property_count == 1 else 'properties'}). "
+                    f"At this concentration, a single building event — HVAC failure, "
+                    f"water intrusion, pest issue — can generate many concurrent work orders. "
+                    f"Vendor capacity and triage speed matter more at higher ratios."
+                ),
+                color="var(--amber)" if dpp < 50 else "var(--red)",
+            ))
+
     return findings
 
 
@@ -894,6 +911,34 @@ def generate_gaps(
                 "goes stale without action."
             ),
         ))
+
+    # ── Property Concentration ──
+    if client_info.property_count and client_info.property_count > 0:
+        dpp = client_info.door_count / client_info.property_count
+        if dpp > 30:
+            is_high = dpp > 100
+            gaps.append(GapFinding(
+                title="Property Concentration Risk",
+                severity="High Priority" if is_high else "Medium Priority",
+                severity_color="var(--red)" if is_high else "var(--amber)",
+                severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
+                severity_border="var(--red)" if is_high else "var(--amber)",
+                detail=(
+                    f"{round(dpp)} doors per property on average "
+                    f"({client_info.door_count} doors across "
+                    f"{client_info.property_count} "
+                    f"{'property' if client_info.property_count == 1 else 'properties'}). "
+                    f"A single building event — water intrusion, HVAC failure, pest — "
+                    f"can trigger concurrent requests across many units. Standard vendor "
+                    f"agreements rarely account for this volume at one location."
+                ),
+                recommendation=(
+                    "Your Advisor reviews your vendor agreements for capacity clauses and "
+                    "configures triage rules that handle concurrent building-wide events — "
+                    "batching related requests, routing to high-capacity vendors, and "
+                    "escalating automatically when volume spikes from a single property."
+                ),
+            ))
 
     return gaps  # No artificial cap — count reflects the data
 
