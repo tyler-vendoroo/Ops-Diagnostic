@@ -754,7 +754,6 @@ export function SurveyFlow() {
               <Select
                 value={responseTime || undefined}
                 onValueChange={(v) => setResponseTime(v ?? "")}
-                items={RESPONSE_TIME_OPTIONS}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
                   <SelectValue placeholder="Select response window" />
@@ -773,7 +772,6 @@ export function SurveyFlow() {
               <Select
                 value={completionTime || undefined}
                 onValueChange={(v) => setCompletionTime(v ?? "")}
-                items={COMPLETION_TIME_OPTIONS}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
                   <SelectValue placeholder="Select completion window" />
