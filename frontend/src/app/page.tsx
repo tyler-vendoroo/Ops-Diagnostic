@@ -8,8 +8,6 @@ import {
   BarChart3,
   ClipboardList,
   FileStack,
-  Pill,
-  Search,
 } from "lucide-react";
 
 import { LandingRefTracker } from "./landing-ref-tracker";
@@ -18,39 +16,20 @@ const howSteps = [
   {
     n: "Step 1",
     title: "Tell us about your operation",
-    body: "5 questions about your portfolio, vendors, policies, and goals. Takes 2 minutes.",
+    body: "5 steps covering your portfolio, vendors, policies, and goals.",
     icon: ClipboardList,
   },
   {
     n: "Step 2",
     title: "We run the diagnostics",
-    body: "Our scoring engine compares you against benchmarks from thousands of work orders.",
+    body: "Benchmarked against AI-managed portfolios.",
     icon: BarChart3,
   },
   {
     n: "Step 3",
     title: "Get your prescription",
-    body: "A personalized report with your gaps, projected improvements, and a recommended plan.",
+    body: "Gaps, projections, and a recommended plan.",
     icon: FileStack,
-  },
-] as const;
-
-const reportBullets = [
-  {
-    icon: BarChart3,
-    text: "Your operations score — benchmarked against property managers already using AI coordination",
-  },
-  {
-    icon: Search,
-    text: "Key findings — the 3–4 things about your operation we can see from your data",
-  },
-  {
-    icon: ClipboardList,
-    text: "Gap analysis — exactly what needs to change before AI can run your maintenance",
-  },
-  {
-    icon: Pill,
-    text: "Your prescription — which Vendoroo plan fits your goals and portfolio",
   },
 ] as const;
 
@@ -326,7 +305,7 @@ export default function Home() {
           <div className="relative mx-auto max-w-4xl px-4 pb-10 pt-14 text-center sm:px-6 sm:pb-14 sm:pt-20">
             <div className="inline-flex items-center gap-2 rounded-full border border-vendoroo-border bg-vendoroo-surface/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-vendoroo-main-dark shadow-sm backdrop-blur-sm">
               <span aria-hidden>🩺</span>
-              <span>Vendoroo · AI Diagnostics</span>
+              <span>NARPM Broker-Owner 2026 · Complimentary Diagnostic</span>
             </div>
 
             <h1 className="mt-8 text-balance font-normal leading-[1.05] tracking-[-0.05em] text-vendoroo-text">
@@ -339,12 +318,12 @@ export default function Home() {
             </h1>
 
             <p className="mx-auto mt-8 max-w-2xl text-pretty text-base leading-relaxed text-vendoroo-muted sm:text-lg">
-              Answer 5 questions. In under two minutes we&apos;ll show you how
-              your vendors, policies, and response times compare to the property
-              managers already running AI-powered maintenance.
+              5 steps. Under two minutes. We&apos;ll show you how your operation
+              compares to property managers already running AI-powered
+              maintenance.
             </p>
 
-            <div className="mt-10">
+            <div className="mt-10 flex flex-col items-center">
               <Link
                 href="/diagnostic"
                 className={cn(
@@ -357,6 +336,14 @@ export default function Home() {
               >
                 Start your diagnostic
               </Link>
+              <a
+                href="/sample-report.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block text-sm font-medium text-vendoroo-main transition-colors hover:text-vendoroo-main-dark"
+              >
+                See a sample report →
+              </a>
             </div>
           </div>
 
@@ -374,10 +361,23 @@ export default function Home() {
               <span>Avg. score: 54/100</span>
             </p>
           </div>
+
+          <div className="border-b border-vendoroo-main/15 bg-vendoroo-tint/15 py-3">
+            <p className="mx-auto max-w-5xl px-4 text-center text-xs font-medium text-vendoroo-main-dark sm:text-sm">
+              Qualifying companies at NARPM Broker-Owner eligible for a 90-day
+              free trial.{" "}
+              <Link
+                href="/diagnostic"
+                className="font-semibold underline underline-offset-2 hover:text-vendoroo-main"
+              >
+                Complete your diagnostic to find out →
+              </Link>
+            </p>
+          </div>
         </section>
 
         {/* How it works */}
-        <section className="border-b border-vendoroo-border bg-vendoroo-page py-16 sm:py-20">
+        <section className="border-b border-vendoroo-border bg-vendoroo-page py-12 sm:py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-2xl font-normal tracking-[-0.04em] text-vendoroo-text sm:text-3xl">
               How it works
@@ -406,7 +406,7 @@ export default function Home() {
         </section>
 
         {/* Two paths */}
-        <section className="bg-vendoroo-surface py-16 sm:py-20">
+        <section className="bg-vendoroo-surface py-12 sm:py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-2xl font-normal tracking-[-0.04em] text-vendoroo-text sm:text-3xl">
               Choose your depth
@@ -419,14 +419,8 @@ export default function Home() {
                 <h3 className="text-lg font-bold uppercase tracking-wide text-vendoroo-text">
                   Quick diagnostic
                 </h3>
-                <ul className="mt-6 flex flex-col gap-3 text-sm text-vendoroo-smoke">
-                  <li>🩺 5 survey questions</li>
-                  <li>⏱ Under 2 minutes</li>
-                  <li>📄 Estimated benchmarks</li>
-                </ul>
-                <p className="mt-6 text-sm leading-relaxed text-vendoroo-muted">
-                  Best for: a fast read on where you stand and what to
-                  prioritize.
+                <p className="mt-4 text-sm leading-relaxed text-vendoroo-muted">
+                  Survey-based. Estimated benchmarks in under 2 minutes.
                 </p>
                 <Link
                   href="/diagnostic/quick"
@@ -445,14 +439,9 @@ export default function Home() {
                 <h3 className="text-lg font-bold uppercase tracking-wide text-vendoroo-text">
                   Full diagnostic
                 </h3>
-                <ul className="mt-6 flex flex-col gap-3 text-sm text-vendoroo-smoke">
-                  <li>📊 Upload your PMS data</li>
-                  <li>⏱ Under 5 minutes</li>
-                  <li>📄 Data-backed benchmarks</li>
-                </ul>
-                <p className="mt-6 text-sm leading-relaxed text-vendoroo-muted">
-                  Best for: a precise diagnosis from your actual work order
-                  history, policies, and vendor data.
+                <p className="mt-4 text-sm leading-relaxed text-vendoroo-muted">
+                  Upload your PMS data. Data-grounded analysis in under 5
+                  minutes.
                 </p>
                 <Link
                   href="/diagnostic/full"
@@ -472,30 +461,13 @@ export default function Home() {
         </section>
 
         {/* What you'll get */}
-        <section className="border-t border-vendoroo-border bg-vendoroo-light/60 py-16 sm:py-20">
+        <section className="border-t border-vendoroo-border bg-vendoroo-light/60 py-10 sm:py-14">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <h2 className="text-center text-2xl font-normal tracking-[-0.04em] text-vendoroo-text sm:text-3xl">
-              What&apos;s in your diagnostic report
+              What you&apos;ll get
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-center text-sm leading-relaxed text-vendoroo-muted sm:text-base">
-              Same structure as the sample report from our events—score,
-              benchmarks, gaps, and a clear next step.
-            </p>
 
             <DiagnosticReportPreviewMockup />
-
-            <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
-              {reportBullets.map(({ icon: Icon, text }) => (
-                <div key={text} className="flex gap-3 text-left">
-                  <span className="mt-0.5 shrink-0 text-vendoroo-main">
-                    <Icon className="size-5" strokeWidth={1.75} aria-hidden />
-                  </span>
-                  <p className="text-sm leading-relaxed text-vendoroo-smoke">
-                    {text}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -504,6 +476,9 @@ export default function Home() {
           <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
             <p className="text-xl font-normal leading-snug tracking-[-0.03em] text-vendoroo-text sm:text-2xl">
               Every operation has a number. The best operators already know theirs.
+            </p>
+            <p className="mt-4 text-sm font-medium text-vendoroo-main">
+              Qualifying companies eligible for a 90-day free trial.
             </p>
             <Link
               href="/diagnostic"
