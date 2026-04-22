@@ -28,6 +28,7 @@ export function LeadCaptureForm({
   const [email, setEmail] = React.useState("");
   const [company, setCompany] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [trialInterest, setTrialInterest] = React.useState(false);
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -49,11 +50,12 @@ export function LeadCaptureForm({
       company: company.trim(),
       phone: phone.trim() || undefined,
       terms_accepted: true,
+      trial_interest: trialInterest,
     };
     setLoading(true);
     try {
       const { lead_id } = await createLead(lead);
-      saveLeadToStorage({ ...lead, lead_id });
+      saveLeadToStorage({ ...lead, lead_id, trial_interest: trialInterest });
       onSubmitted(lead);
     } catch (err) {
       console.error("Lead capture failed:", err);
@@ -126,6 +128,22 @@ export function LeadCaptureForm({
           onChange={(e) => setPhone(e.target.value)}
           className={inputClassName}
         />
+      </div>
+      <div className="flex items-start gap-3 rounded-lg border border-vendoroo-main/20 bg-vendoroo-tint/10 p-4">
+        <Checkbox
+          id="trial-interest"
+          checked={trialInterest}
+          onCheckedChange={(c) => setTrialInterest(c === true)}
+          className="mt-0.5 border-vendoroo-main"
+        />
+        <Label
+          htmlFor="trial-interest"
+          className="cursor-pointer text-sm font-normal leading-snug text-vendoroo-smoke"
+        >
+          I&apos;m interested in a{" "}
+          <span className="font-semibold text-vendoroo-main">90-day free trial</span>{" "}
+          of Vendoroo AI maintenance coordination.
+        </Label>
       </div>
       <div className="flex items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-light p-4">
         <Checkbox

@@ -268,6 +268,16 @@ export function ResultsView({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* ── Free trial qualifying banner ── */}
+      <div className="rounded-xl border border-vendoroo-main/20 bg-vendoroo-tint/10 px-5 py-4 text-center">
+        <p className="text-sm font-semibold text-vendoroo-main-dark">
+          You qualify for a 90-day free trial
+        </p>
+        <p className="mt-1 text-xs text-vendoroo-muted">
+          Complete your full diagnostic or book a call to get started.
+        </p>
+      </div>
+
       {/* ── Areas that need attention (worst 3 categories) ── */}
       {worstCategories.length > 0 && (
         <section>

@@ -14,6 +14,7 @@ export interface LeadCapture {
   phone?: string;
   event_source?: string;
   terms_accepted: boolean;
+  trial_interest?: boolean;
 }
 
 // ─── Client Info ─────────────────────────────────────────────────────────────

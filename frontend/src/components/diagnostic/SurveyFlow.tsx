@@ -314,6 +314,16 @@ export function SurveyFlow() {
 
   function goNext() {
     if (step === 1 && !validateStep1()) return;
+    if (step === 1) {
+      const doors = Number.parseInt(doorCount, 10);
+      if (doors < 25) {
+        setFormError(
+          "This diagnostic is designed for portfolios of 25+ doors. " +
+          "For smaller portfolios, book a call with our team to discuss your operation."
+        );
+        return;
+      }
+    }
     if (step === 2 && !validateStep2()) return;
     if (step === 3 && !validateStep3()) return;
     if (step === 4 && !validateStep4()) return;

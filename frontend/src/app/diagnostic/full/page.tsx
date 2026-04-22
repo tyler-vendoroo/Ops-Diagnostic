@@ -254,6 +254,16 @@ function FullDiagnosticContent() {
     setError(null);
     setSubmitting(true);
 
+    const doors = doorCount ? Number(doorCount) : 0;
+    if (doors < 25) {
+      setError(
+        "This diagnostic is designed for portfolios of 25+ doors. " +
+        "For smaller portfolios, please book a call with our team."
+      );
+      setSubmitting(false);
+      return;
+    }
+
     const lead = readLocalStorage<StoredLead>(LEAD_KEY);
 
     const resolvedPms = pmsPlatform === "Other" ? pmsOther.trim() || "Other" : pmsPlatform || "Other";

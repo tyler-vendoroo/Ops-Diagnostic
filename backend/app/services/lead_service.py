@@ -40,6 +40,7 @@ class LeadService:
                 event_source=lead.event_source,
                 pms_platform=lead.pms_platform,
                 terms_accepted=lead.terms_accepted,
+                trial_interest=lead.trial_interest,
                 status="new",
             )
             session.add(record)

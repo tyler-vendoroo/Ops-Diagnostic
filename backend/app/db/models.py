@@ -18,6 +18,7 @@ class Lead(Base):
     event_source: Mapped[str | None] = mapped_column(String, nullable=True)
     pms_platform: Mapped[str | None] = mapped_column(String, nullable=True)
     terms_accepted: Mapped[bool] = mapped_column(default=False)
+    trial_interest: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     diagnostics: Mapped[list["Diagnostic"]] = relationship(back_populates="lead")

@@ -17,3 +17,4 @@ class LeadCapture(BaseModel):
     event_source: Optional[str] = None
     pms_platform: Optional[str] = None
     terms_accepted: bool = False
+    trial_interest: bool = False
