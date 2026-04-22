@@ -134,16 +134,14 @@ export function LeadCaptureForm({
           id="trial-interest"
           checked={trialInterest}
           onCheckedChange={(c) => setTrialInterest(c === true)}
-          className="mt-0.5 border-vendoroo-main"
+          className="mt-0.5 shrink-0 border-vendoroo-main"
         />
         <Label
           htmlFor="trial-interest"
-          className="cursor-pointer text-pretty text-sm font-normal leading-relaxed text-vendoroo-smoke"
+          className="block min-w-0 flex-1 cursor-pointer text-left text-sm font-normal leading-relaxed text-vendoroo-smoke"
         >
           I&apos;m interested in a{" "}
-          <span className="whitespace-nowrap font-semibold text-vendoroo-main">
-            90-day free trial
-          </span>{" "}
+          <span className="font-semibold text-vendoroo-main">90-day free trial</span>{" "}
           of Vendoroo AI maintenance coordination.
         </Label>
       </div>
