@@ -43,6 +43,10 @@ export function getDiagnosticPdfUrl(id: string): string {
   return `${API_URL}/api/v1/diagnostic/${id}/pdf`;
 }
 
+export function getDiagnosticReportUrl(id: string): string {
+  return `${API_URL}/api/v1/diagnostic/${id}/report`;
+}
+
 // ─── Leads ────────────────────────────────────────────────────────────────────
 
 export async function createLead(

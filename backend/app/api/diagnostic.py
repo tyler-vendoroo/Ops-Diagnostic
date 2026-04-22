@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import Response
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from typing import Optional
@@ -205,6 +205,27 @@ async def get_diagnostic(id: str):
         "created_at": record.created_at.isoformat() if record.created_at else None,
         "summary": record.summary,
     }
+
+
+@router.get("/{id}/report")
+async def get_diagnostic_report(id: str):
+    """Return the full HTML report for inline browser viewing."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(db_models.Diagnostic).where(db_models.Diagnostic.id == id)
+        )
+        record = result.scalar_one_or_none()
+
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Diagnostic '{id}' not found.")
+
+    if not record.html_report:
+        raise HTTPException(
+            status_code=404,
+            detail="HTML report not available for this diagnostic.",
+        )
+
+    return HTMLResponse(content=record.html_report)
 
 
 @router.get("/{id}/pdf")

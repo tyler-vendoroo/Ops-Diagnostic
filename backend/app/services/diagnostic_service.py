@@ -191,8 +191,9 @@ class DiagnosticService:
 
         # ── Step 5: PDF Generation ───────────────────────────────────────────
         pdf_bytes: bytes | None = None
+        html_report: str | None = None
         try:
-            pdf_bytes = await self._generate_pdf(
+            pdf_bytes, html_report = await self._generate_pdf(
                 survey, client_info, category_scores, overall_score,
                 tier, key_findings, gaps, wo_metrics,
             )
@@ -215,6 +216,7 @@ class DiagnosticService:
                 overall_score=overall_score,
                 tier=tier,
                 pdf_bytes=pdf_bytes,
+                html_report=html_report,
                 key_findings=key_findings_serialized,
                 gaps=gaps_serialized,
                 summary=summary,
@@ -577,7 +579,7 @@ class DiagnosticService:
             # ── Step 9: Generate PDF ──────────────────────────────────────────
             from datetime import date
             from app.models.report_data import ReportData
-            from app.report.generator import generate_pdf
+            from app.report.generator import generate_pdf, render_html
 
             staffing = generate_staffing_projection(ci, portfolio_metrics)
             impact_rows = generate_impact_projections(wo_metrics, ci, tier)
@@ -685,8 +687,10 @@ class DiagnosticService:
                 wo_metrics=wo_metrics,
             )
 
+            html_report: str | None = None
             pdf_bytes: bytes | None = None
             try:
+                html_report = render_html(report_data)
                 pdf_bytes = await loop.run_in_executor(None, generate_pdf, report_data)
             except Exception as exc:
                 logger.warning(
@@ -740,6 +744,7 @@ class DiagnosticService:
                     overall_score=overall_score,
                     tier=tier,
                     pdf_bytes=pdf_bytes,
+                    html_report=html_report,
                     key_findings=key_findings_serialized,
                     gaps=gaps_serialized,
                     summary=full_summary,
@@ -808,11 +813,11 @@ class DiagnosticService:
         key_findings: list,
         gaps: list,
         wo_metrics,
-    ) -> bytes:
-        """Build a fully-populated ReportData via builder and render the PDF."""
+    ) -> tuple[bytes, str]:
+        """Build a fully-populated ReportData via builder and render the PDF + HTML."""
         import asyncio
         from app.report.builder import build_report_data
-        from app.report.generator import generate_pdf
+        from app.report.generator import generate_pdf, render_html
 
         portfolio_metrics = self._adapter.build_portfolio_metrics(survey, client_info)
         doc_analysis = self._adapter.build_document_analysis(survey)
@@ -829,9 +834,10 @@ class DiagnosticService:
             doc_analysis=doc_analysis,
         )
 
+        html_report = render_html(report_data)
         loop = asyncio.get_event_loop()
         pdf_bytes = await loop.run_in_executor(None, generate_pdf, report_data)
-        return pdf_bytes
+        return pdf_bytes, html_report
 
     async def _store_result(
         self,
@@ -844,6 +850,7 @@ class DiagnosticService:
         gaps: list | None = None,
         lead_id: str | None = None,
         summary: dict | None = None,
+        html_report: str | None = None,
     ) -> None:
         """Persist the diagnostic result to the database."""
         async with AsyncSessionLocal() as session:
@@ -861,6 +868,7 @@ class DiagnosticService:
                 summary=summary,
                 tier=tier,
                 pdf_data=pdf_bytes,
+                html_report=html_report,
                 pdf_path=None,
                 error=None,
             )
@@ -878,6 +886,7 @@ class DiagnosticService:
         gaps: list | None = None,
         lead_id: str | None = None,
         summary: dict | None = None,
+        html_report: str | None = None,
     ) -> None:
         """Update an existing diagnostic record in the database (used by full diagnostic)."""
         async with AsyncSessionLocal() as session:
@@ -896,6 +905,7 @@ class DiagnosticService:
                     gaps=gaps or [],
                     tier=tier,
                     pdf_data=pdf_bytes,
+                    html_report=html_report,
                     pdf_path=None,
                     error=None,
                     summary=summary,
@@ -910,6 +920,7 @@ class DiagnosticService:
                 record.gaps = gaps or []
                 record.tier = tier
                 record.pdf_data = pdf_bytes
+                record.html_report = html_report
                 record.pdf_path = None
                 record.error = None
                 record.summary = summary

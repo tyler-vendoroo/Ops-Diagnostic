@@ -35,6 +35,7 @@ class Diagnostic(Base):
     tier: Mapped[str | None] = mapped_column(String, nullable=True)
     pdf_path: Mapped[str | None] = mapped_column(String, nullable=True)
     pdf_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    html_report: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
