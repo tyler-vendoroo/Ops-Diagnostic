@@ -270,16 +270,16 @@ function FullDiagnosticContent() {
 
     const lead = readLocalStorage<StoredLead>(LEAD_KEY);
 
-    const resolvedPms = pmsPlatform === "Other" ? pmsOther.trim() || null : pmsPlatform || null;
+    const resolvedPms = pmsPlatform === "Other" ? pmsOther.trim() || "Other" : pmsPlatform || "Other";
 
     const clientInfo = {
-      company_name: companyName,
-      door_count: doorCount ? Number(doorCount) : null,
-      property_count: propertyCount ? Number(propertyCount) : null,
+      company_name: companyName || "Unknown Company",
+      door_count: doorCount ? Number(doorCount) : 100,
+      property_count: propertyCount ? Number(propertyCount) : 1,
       pms_platform: resolvedPms,
-      operational_model: operationalModel || null,
-      staff_count: staffCount ? Number(staffCount) : null,
-      primary_goal: primaryGoal || null,
+      operational_model: operationalModel || "va",
+      staff_count: staffCount ? Number(staffCount) : 1,
+      primary_goal: primaryGoal || "scale",
     };
 
     const formData = new FormData();

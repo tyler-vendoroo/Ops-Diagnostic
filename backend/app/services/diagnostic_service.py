@@ -278,18 +278,16 @@ class DiagnosticService:
 
             # ── Step 1: Build ClientInfo ─────────────────────────────────────
             ci = ClientInfo(
-                company_name=client_info_dict.get("company_name", ""),
-                door_count=int(client_info_dict.get("door_count", 0)),
-                property_count=int(client_info_dict.get("property_count", 0)),
-                pms_platform=client_info_dict.get("pms_platform", "Other"),
-                operational_model=client_info_dict.get("operational_model", "va"),
-                operational_model_display=client_info_dict.get("operational_model_display", ""),
-                staff_count=int(client_info_dict.get("staff_count", 1)),
-                primary_goal=client_info_dict.get("primary_goal", "scale"),
-                primary_goal_display=client_info_dict.get("primary_goal_display", "Scale"),
-                goal_description=client_info_dict.get(
-                    "goal_description", "Grow portfolio without adding headcount"
-                ),
+                company_name=client_info_dict.get("company_name") or "Unknown Company",
+                door_count=int(client_info_dict.get("door_count") or 100),
+                property_count=int(client_info_dict.get("property_count") or 1),
+                pms_platform=client_info_dict.get("pms_platform") or "Other",
+                operational_model=client_info_dict.get("operational_model") or "va",
+                operational_model_display=client_info_dict.get("operational_model_display") or "",
+                staff_count=int(client_info_dict.get("staff_count") or 1),
+                primary_goal=client_info_dict.get("primary_goal") or "scale",
+                primary_goal_display=client_info_dict.get("primary_goal_display") or "Scale",
+                goal_description=client_info_dict.get("goal_description") or "Grow portfolio without adding headcount",
             )
 
             # ── Step 2: Process work orders ──────────────────────────────────
@@ -641,7 +639,7 @@ class DiagnosticService:
                 operational_model_display=ci.operational_model_display or ci.operational_model,
                 overall_score=overall_score,
                 score_ring_dashoffset=score_dashoffset,
-                monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders)),
+                monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders or 0)),
                 avg_response_time=(
                     f"{wo_metrics.avg_first_response_hours} hrs"
                     if wo_metrics.avg_first_response_hours
@@ -657,7 +655,7 @@ class DiagnosticService:
                 primary_goal_display=ci.primary_goal_display or "Scale",
                 goal_description=ci.goal_description or "Grow portfolio without adding headcount",
                 staff_count=ci.staff_count,
-                doors_per_staff=int(portfolio_metrics.doors_per_staff),
+                doors_per_staff=int(portfolio_metrics.doors_per_staff or 0),
                 executive_summary=executive_summary,
                 score_description=score_description,
                 benchmark_rows=benchmark_rows,

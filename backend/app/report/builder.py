@@ -305,7 +305,7 @@ def build_report_data(
     )
     current_state_detail = (
         f"{client_info.door_count} doors "
-        f"({int(portfolio_metrics.doors_per_staff)} doors/{staff_label_singular}) "
+        f"({int(portfolio_metrics.doors_per_staff or 0)} doors/{staff_label_singular}) "
         f"| Benchmark: {staff_benchmarks['current_benchmark']} doors/{staff_label_singular}"
     )
 
@@ -480,7 +480,7 @@ def build_report_data(
         current_score_color=current_score_color,
         projected_score=projected_score,
         projected_score_dashoffset=projected_score_dashoffset,
-        monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders)),
+        monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders or 0)),
         avg_response_time=(
             f"{wo_metrics.avg_first_response_hours} hrs"
             if wo_metrics.avg_first_response_hours is not None
@@ -499,7 +499,7 @@ def build_report_data(
         primary_goal_display=client_info.primary_goal_display or "Scale",
         goal_description=client_info.goal_description or "Grow portfolio without adding headcount",
         staff_count=client_info.staff_count,
-        doors_per_staff=int(portfolio_metrics.doors_per_staff),
+        doors_per_staff=int(portfolio_metrics.doors_per_staff or 0),
         # Operations
         benchmark_rows=benchmark_rows,
         benchmark_footnote=(
