@@ -1048,32 +1048,43 @@ def recommend_tier(goal, category_scores, gaps, client_info=None):
 # ── Projected Score Calculator ───────────────────────────
 
 _GAP_POINT_MAP = {
-    "response_time": 10,
-    "Response Time SLAs": 10,
-    "vendor_coverage": 7,
-    "Vendor Coverage": 7,
-    "emergency_protocol": 9,
-    "Emergency Protocol": 9,
-    "nte_governance": 5,
-    "NTE Governance": 5,
-    "after_hours": 9,
-    "After Hours Operations": 9,
-    "policy_documentation": 3,
-    "Policy Documentation": 3,
+    "response_time": 6,
+    "Response Time SLAs": 6,
+    "vendor_coverage": 4,
+    "Vendor Coverage": 4,
+    "emergency_protocol": 5,
+    "Emergency Protocol": 5,
+    "nte_governance": 3,
+    "NTE Governance": 3,
+    "after_hours": 5,
+    "After Hours Operations": 5,
+    "policy_documentation": 2,
+    "Policy Documentation": 2,
+    "Open Work Order Backlog": 4,
 }
 
 
 def calculate_projected_score(current_score, gaps):
     """Calculate projected readiness score after addressing gaps.
 
-    current_score: int, the current overall readiness score
-    gaps: list of gap name strings that will be addressed
-    Returns: int, projected score capped at 95 and never less than current_score
+    Improvement is proportional — diminishing returns as score increases.
+    A prospect at 40 has more room to improve than one at 70.
+    Max improvement capped at 25 points. Max projected score capped at 90.
     """
-    projected = current_score
-    for gap in gaps:
-        projected += _GAP_POINT_MAP.get(gap, 0)
-    projected = min(95, projected)
+    raw_improvement = sum(_GAP_POINT_MAP.get(gap, 0) for gap in gaps)
+
+    # Diminishing returns: the higher you already are, the less each gap is worth
+    # At score 40: you get 100% of the improvement
+    # At score 60: you get ~80%
+    # At score 80: you get ~50%
+    headroom_factor = max(0.3, (100 - current_score) / 60)
+    adjusted_improvement = round(raw_improvement * headroom_factor)
+
+    # Hard caps
+    adjusted_improvement = min(25, adjusted_improvement)  # Max 25-point jump
+    projected = current_score + adjusted_improvement
+    projected = min(90, projected)  # Never above 90
+
     return max(current_score, projected)
 
 
