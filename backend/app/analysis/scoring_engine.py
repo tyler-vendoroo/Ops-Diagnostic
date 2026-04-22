@@ -661,61 +661,121 @@ def generate_gaps(
     doc_analysis: DocumentAnalysis,
     client_info: ClientInfo,
 ) -> list[GapFinding]:
-    """Generate gap findings with severity and recommendations."""
-    gaps = []
+    """Generate gap findings with data-driven details and recommendations.
 
-    # Map scores to find weak areas
+    Every detail sentence references actual values from the analysis.
+    No hardcoded fiction. If we don't have data, say so.
+    """
+    gaps = []
     score_map = {cat.key: cat.score for cat in categories}
 
-    # Emergency Protocol gap
+    def _severity(score: int) -> tuple[str, bool]:
+        is_high = score < 50
+        return ("High Priority" if is_high else "Medium Priority"), is_high
+
+    def _colors(is_high: bool) -> dict:
+        return {
+            "severity_color": "var(--red)" if is_high else "var(--amber)",
+            "severity_bg": "var(--red-light)" if is_high else "var(--amber-light)",
+            "severity_border": "var(--red)" if is_high else "var(--amber)",
+        }
+
+    # ── Emergency Protocol ──
     if score_map.get("emergency_protocols", 0) < 70:
-        severity = "High Priority" if score_map["emergency_protocols"] < 50 else "Medium Priority"
-        is_high = severity == "High Priority"
+        sev, is_high = _severity(score_map["emergency_protocols"])
         if doc_analysis.has_emergency_protocols:
-            ep_detail = "Emergency procedures exist in your documentation but lack formal dispatch integration — criteria are not encoded into your triage workflow."
+            detail = (
+                "Emergency authorization exists in your PMA but lacks specific classification "
+                "criteria. Without defined triage rules by urgency level, after-hours handling "
+                "depends on individual judgment."
+            )
+        elif doc_analysis.pma and doc_analysis.pma.status not in ("Not Documented", "Not Provided"):
+            detail = (
+                "Your PMA was reviewed but contains no emergency authorization language. "
+                "Without documented criteria, after-hours triage relies on answering service "
+                "judgment with no escalation rules."
+            )
         else:
-            ep_detail = "No formal written emergency criteria found. After-hours triage relies on answering service judgment with no documented escalation path."
+            detail = (
+                "No policy documents were provided for emergency protocol assessment. "
+                "Your Advisor will work with you to define emergency categories and "
+                "escalation paths during onboarding."
+            )
         gaps.append(GapFinding(
             title="Emergency Protocol",
-            severity=severity,
-            severity_color="var(--red)" if is_high else "var(--amber)",
-            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
-            severity_border="var(--red)" if is_high else "var(--amber)",
-            detail=ep_detail,
-            recommendation="Your Advisor works with you to define emergency categories, response SLAs, and escalation paths during onboarding. These are encoded directly into your Maintenance Book so your AI teammate knows exactly how to handle emergencies from Day 1.",
+            severity=sev, **_colors(is_high),
+            detail=detail,
+            recommendation=(
+                "Your Advisor works with you to define emergency categories, response SLAs, "
+                "and escalation paths during onboarding. These are encoded directly into your "
+                "Maintenance Book so your AI teammate knows exactly how to handle emergencies."
+            ),
         ))
 
-    # Vendor Coverage gap — use wo_metrics as single source of truth
+    # ── Vendor Coverage ──
     if score_map.get("vendor_coverage", 0) < 70:
-        missing = ", ".join(wo_metrics.missing_trades[:3]) if wo_metrics.missing_trades else "critical trades"
-        severity = "High Priority" if score_map["vendor_coverage"] < 50 else "Medium Priority"
-        is_high = severity == "High Priority"
+        sev, is_high = _severity(score_map["vendor_coverage"])
+        covered = wo_metrics.trades_covered_count
+        required = wo_metrics.trades_required_count or 12
+        vendor_count = wo_metrics.unique_vendors
+
+        if wo_metrics.missing_trades:
+            missing_str = ", ".join(wo_metrics.missing_trades[:4])
+            detail = (
+                f"{vendor_count} vendors covering {covered} of {required} required trades. "
+                f"Missing: {missing_str}."
+            )
+        elif not vendor_count:
+            detail = (
+                "No vendor assignment data found in work order history. "
+                "Vendor coverage could not be assessed from the uploaded data."
+            )
+        else:
+            detail = (
+                f"{vendor_count} vendors detected but trade classification could not confirm "
+                f"coverage across all {required} required trades."
+            )
         gaps.append(GapFinding(
             title="Vendor Coverage",
-            severity=severity,
-            severity_color="var(--red)" if is_high else "var(--amber)",
-            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
-            severity_border="var(--red)" if is_high else "var(--amber)",
-            detail=f"{wo_metrics.unique_vendors} vendors covering {wo_metrics.trades_covered_count} of {wo_metrics.trades_required_count} required trades. No backup vendors for {missing}.",
-            recommendation="Your Advisor maps your existing vendor network against required trades and identifies the specific gaps. From there, you can fill those gaps during onboarding, or Vendoroo can assist through our vendor recruitment product. Either way, you go live knowing exactly where your coverage stands.",
+            severity=sev, **_colors(is_high),
+            detail=detail,
+            recommendation=(
+                "Your Advisor maps your existing vendor network against required trades and "
+                "identifies specific gaps. You can fill those during onboarding, or Vendoroo "
+                "can assist through our vendor recruitment product."
+            ),
         ))
 
-    # Response Time SLA gap
+    # ── Response Time SLAs ──
     if score_map.get("response_efficiency", 0) < 70:
-        response_str = f"{wo_metrics.avg_first_response_hours} hours" if wo_metrics.avg_first_response_hours else "unknown"
-        severity = "High Priority" if score_map["response_efficiency"] < 50 else "Medium Priority"
-        is_high = severity == "High Priority"
+        sev, is_high = _severity(score_map["response_efficiency"])
+        hrs = wo_metrics.avg_first_response_hours
+        if hrs is not None:
+            detail = (
+                f"Average first response of {hrs} hours compared to Vendoroo's average "
+                f"of under 10 minutes. "
+            )
+            if hrs > 12:
+                detail += "Most requests wait until the next business day before a vendor is contacted."
+            elif hrs > 4:
+                detail += "Requests submitted in the afternoon often roll to the next morning."
+        else:
+            detail = (
+                "Response time could not be measured from the available data. "
+                "No defined response time targets were identified."
+            )
         gaps.append(GapFinding(
             title="Response Time SLAs",
-            severity=severity,
-            severity_color="var(--red)" if is_high else "var(--amber)",
-            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
-            severity_border="var(--red)" if is_high else "var(--amber)",
-            detail=f"No defined response time targets. Average first response of {response_str} compared to Vendoroo's average of under 10 minutes.",
-            recommendation="Your Advisor helps you align on what good SLAs look like for your portfolio and trains your AI teammate to meet them. This includes setting response targets by urgency level and configuring vendor-specific expectations so the right vendor is responding within the right timeframe.",
+            severity=sev, **_colors(is_high),
+            detail=detail,
+            recommendation=(
+                "Your Advisor helps you define SLA targets by urgency level and configures "
+                "your AI teammate to meet them — including vendor-specific expectations so "
+                "the right vendor responds within the right timeframe."
+            ),
         ))
 
-    # NTE Governance gap
+    # ── NTE Governance ──
     if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
         gaps.append(GapFinding(
             title="NTE Governance",
@@ -723,68 +783,119 @@ def generate_gaps(
             severity_color="var(--amber)",
             severity_bg="var(--amber-light)",
             severity_border="var(--amber)",
-            detail=f"Single {doc_analysis.nte_threshold} NTE threshold across all work types. No differentiation by trade, property, or urgency.",
-            recommendation="Your Advisor educates and guides you on how to structure tiered NTEs, including per-property configurations if desired. Your AI teammate then enforces these rules automatically on every work order, so spending stays within the limits you set.",
+            detail=(
+                f"Single {doc_analysis.nte_threshold} NTE threshold across all work types. "
+                f"No differentiation by trade, property, or urgency."
+            ),
+            recommendation=(
+                "Your Advisor guides you on structuring tiered NTEs, including per-property "
+                "configurations. Your AI teammate then enforces these rules automatically "
+                "on every work order."
+            ),
         ))
 
-    # After Hours gap
+    # ── After Hours ──
     if score_map.get("after_hours_readiness", 0) < 70:
-        severity = "High Priority" if score_map["after_hours_readiness"] < 50 else "Medium Priority"
-        is_high = severity == "High Priority"
+        sev, is_high = _severity(score_map["after_hours_readiness"])
+        ah_pct = wo_metrics.after_hours_pct
+        if ah_pct and ah_pct > 0:
+            detail = f"{ah_pct}% of maintenance requests occur after hours. "
+            if not doc_analysis.has_emergency_protocols:
+                detail += (
+                    "No documented triage criteria exist for after-hours handling, "
+                    "so urgent issues queue until the next business day."
+                )
+            else:
+                detail += (
+                    "Emergency protocols exist but after-hours coverage may not include "
+                    "AI triage and automated dispatch."
+                )
+        else:
+            detail = (
+                "After-hours coverage could not be fully assessed. "
+                "Time-of-day data may not be available in the work order export."
+            )
         gaps.append(GapFinding(
             title="After Hours Operations",
-            severity=severity,
-            severity_color="var(--red)" if is_high else "var(--amber)",
-            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
-            severity_border="var(--red)" if is_high else "var(--amber)",
-            detail=f"{wo_metrics.after_hours_pct}% of maintenance requests are after hours. Answering service handles calls but cannot triage or dispatch, so urgent issues queue until next business day.",
-            recommendation="Your Advisor configures Rooceptionist for 24/7 intelligent call handling with AI triage and troubleshooting. For full emergency dispatch coverage around the clock, RescueRoo extends your team's capabilities to true 24/7.",
+            severity=sev, **_colors(is_high),
+            detail=detail,
+            recommendation=(
+                "Your Advisor configures Rooceptionist for 24/7 intelligent call handling "
+                "with AI triage and troubleshooting. For full emergency dispatch, RescueRoo "
+                "extends your team's capabilities to true 24/7."
+            ),
         ))
 
-    # Policy Documentation gap
+    # ── Policy Documentation ──
     if score_map.get("policy_completeness", 0) < 70:
-        is_minor = score_map["policy_completeness"] >= 50
-        missing_docs = []
-        if not doc_analysis.pma or (hasattr(doc_analysis.pma, "status") and doc_analysis.pma.status == "Not Provided"):
-            missing_docs.append("PMA")
-        if not doc_analysis.lease or (hasattr(doc_analysis.lease, "status") and doc_analysis.lease.status == "Not Provided"):
-            missing_docs.append("lease agreement")
-        policy_gaps = []
-        if missing_docs:
-            policy_gaps.append(f"{' and '.join(missing_docs)} not provided")
-        if not doc_analysis.has_emergency_protocols:
-            policy_gaps.append("emergency procedures not documented")
-        if not doc_analysis.nte_threshold:
-            policy_gaps.append("no NTE threshold defined")
-        if policy_gaps:
-            policy_detail = "; ".join(policy_gaps).capitalize() + "."
+        sev_score = score_map["policy_completeness"]
+        is_minor = sev_score >= 50
+        sev = "Low Priority" if is_minor else "Medium Priority"
+
+        has_pma = doc_analysis.pma and doc_analysis.pma.status not in ("Not Provided", "Not Documented")
+        has_lease = doc_analysis.lease and doc_analysis.lease.status not in ("Not Provided", "Not Documented")
+
+        if has_pma and has_lease:
+            detail = (
+                f"PMA status: {doc_analysis.pma.status}. "
+                f"Lease status: {doc_analysis.lease.status}. "
+            )
+            missing_findings = [f for f in (doc_analysis.pma.findings or []) if not f.is_positive]
+            if missing_findings:
+                detail += f"{len(missing_findings)} area(s) need clarification in the PMA."
+        elif has_pma:
+            detail = (
+                f"PMA reviewed ({doc_analysis.pma.status}). "
+                f"Lease agreement was not provided — maintenance responsibility language "
+                f"will need clarification during onboarding."
+            )
+        elif has_lease:
+            detail = (
+                f"Lease reviewed ({doc_analysis.lease.status}). "
+                f"PMA was not provided — vendor authority, NTE rules, and approval workflows "
+                f"will need to be documented during onboarding."
+            )
         else:
-            policy_detail = "Policy documentation is partially complete — some maintenance responsibility language is ambiguous."
+            detail = (
+                "No policy documents were provided for review. Your PMA and lease templates "
+                "will be assessed during onboarding to configure your Maintenance Book."
+            )
+
         gaps.append(GapFinding(
             title="Policy Documentation",
-            severity="Low Priority" if is_minor else "Medium Priority",
+            severity=sev,
             severity_color="var(--green)" if is_minor else "var(--amber)",
             severity_bg="var(--green-light)" if is_minor else "var(--amber-light)",
             severity_border="var(--green)" if is_minor else "var(--amber)",
-            detail=policy_detail,
-            recommendation="Any unclear or missing policies are clarified with you during onboarding. Your Advisor ensures every policy decision is documented in your Maintenance Book before go-live.",
+            detail=detail,
+            recommendation=(
+                "Any unclear or missing policies are clarified during onboarding. Your Advisor "
+                "ensures every policy decision is documented in your Maintenance Book before go-live."
+            ),
         ))
 
-    # Open WO Rate gap
-    if wo_metrics.open_wo_rate_pct is not None and wo_metrics.open_wo_rate_pct > 20:
-        severity = "High Priority" if wo_metrics.open_wo_rate_pct > 30 else "Medium Priority"
-        is_high = severity == "High Priority"
+    # ── Open WO Rate ──
+    if wo_metrics.open_wo_rate_pct and wo_metrics.open_wo_rate_pct > 20:
+        is_high = wo_metrics.open_wo_rate_pct > 30
+        benchmark = VENDOROO_AVG.get(client_info.operational_model, VENDOROO_AVG["va"])
         gaps.append(GapFinding(
             title="Open Work Order Backlog",
-            severity=severity,
-            severity_color="var(--red)" if is_high else "var(--amber)",
-            severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
-            severity_border="var(--red)" if is_high else "var(--amber)",
-            detail=f"{wo_metrics.open_wo_rate_pct}% of work orders are open at any given time. Vendoroo clients average under 10% — a backlog this size signals follow-up and dispatch coordination gaps.",
-            recommendation="Your AI teammate tracks every open work order and sends automated follow-ups to vendors on your configured cadence, surfacing stale tickets before they become resident complaints.",
+            severity="High Priority" if is_high else "Medium Priority",
+            **_colors(is_high),
+            detail=(
+                f"Open work order rate of {wo_metrics.open_wo_rate_pct}% — "
+                f"{wo_metrics.open_wo_count or 'unknown'} open across "
+                f"{client_info.door_count} doors. Vendoroo clients average "
+                f"{benchmark['open_wo_rate_pct']}%."
+            ),
+            recommendation=(
+                "AI follow-up sequences and automated vendor check-ins close the loop on "
+                "stalled work orders. Your Advisor configures escalation rules so no work order "
+                "goes stale without action."
+            ),
         ))
 
-    return gaps
+    return gaps  # No artificial cap — count reflects the data
 
 
 # ── Impact Projections ───────────────────────────────────
@@ -1024,17 +1135,17 @@ def recommend_tier(goal, category_scores, gaps, client_info=None):
     if high_concentration and is_tech_model and below_50_count <= 2:
         return "engage"
 
-    # Goal-based defaults with conditional bumps
+    # Goal-based recommendation with score awareness
     if goal == "elevate":
-        if category_scores.get("vendor_coverage", 100) < 70 or (
+        if below_50_count >= 3:
+            return "direct"
+        return "engage"
+    elif goal == "scale":
+        if below_50_count >= 3 or (
             {"vendor_coverage", "open_wo_rate", "response_time_slas"} & normalized_gaps
         ):
             return "direct"
         return "engage"
-    elif goal == "scale":
-        if {"owner_communication", "edge_cases", "owner_communication_and_approval_workflows"} & normalized_gaps:
-            return "command"
-        return "direct"
     elif goal == "optimize":
         if below_50_count >= 4:
             return "command"
