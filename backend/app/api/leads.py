@@ -1,8 +1,13 @@
 """Leads API endpoints."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 
+from app.api.internal_auth import verify_internal_token
+from app.db import models as db_models
+from app.db.database import AsyncSessionLocal
 from app.models.lead import LeadCapture
 from app.services.lead_service import LeadService
 
@@ -19,6 +24,68 @@ async def create_lead(lead: LeadCapture):
     service = LeadService()
     lead_id = await service.create_lead(lead)
     return {"lead_id": lead_id}
+
+
+@router.get("")
+async def list_leads(
+    search: str = Query(default=None),
+    limit: int = Query(default=50, le=200),
+    offset: int = Query(default=0, ge=0),
+    authed: bool = Depends(verify_internal_token),
+):
+    """List leads with diagnostics. Searchable by name, email, or company."""
+    async with AsyncSessionLocal() as session:
+        query = (
+            select(db_models.Lead)
+            .options(selectinload(db_models.Lead.diagnostics))
+            .order_by(db_models.Lead.created_at.desc())
+        )
+
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.where(
+                or_(
+                    db_models.Lead.name.ilike(term),
+                    db_models.Lead.email.ilike(term),
+                    db_models.Lead.company.ilike(term),
+                )
+            )
+
+        total = (await session.execute(
+            select(func.count()).select_from(query.subquery())
+        )).scalar() or 0
+
+        leads = (await session.execute(query.offset(offset).limit(limit))).scalars().all()
+
+        return {
+            "total": total,
+            "leads": [
+                {
+                    "id": lead.id,
+                    "name": lead.name,
+                    "email": lead.email,
+                    "company": lead.company,
+                    "phone": lead.phone,
+                    "pms_platform": lead.pms_platform,
+                    "door_count": lead.door_count,
+                    "trial_interest": lead.trial_interest,
+                    "status": lead.status,
+                    "created_at": lead.created_at.isoformat() if lead.created_at else None,
+                    "diagnostics": [
+                        {
+                            "id": d.id,
+                            "type": d.diagnostic_type,
+                            "status": d.status,
+                            "overall_score": d.scores.get("overall") if d.scores else None,
+                            "tier": d.tier,
+                            "created_at": d.created_at.isoformat() if d.created_at else None,
+                        }
+                        for d in (lead.diagnostics or [])
+                    ],
+                }
+                for lead in leads
+            ],
+        }
 
 
 @router.patch("/{id}/door-count")

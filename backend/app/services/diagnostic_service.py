@@ -222,24 +222,24 @@ class DiagnosticService:
             )
             # Non-fatal — still return the result
 
-        # ── Step 7: Send emails ──────────────────────────────────────────────
-        if lead is not None:
-            await self._email_service.send_diagnostic_results(
-                lead_email=lead.email,
-                lead_name=lead.name,
-                diagnostic_id=diagnostic_id,
-                overall_score=float(overall_score),
-                tier=tier,
-                key_findings=key_findings_serialized,
-                pdf_bytes=pdf_bytes,
-            )
-            await self._email_service.send_sales_notification(
-                lead_name=lead.name,
-                lead_email=lead.email,
-                lead_company=lead.company,
-                overall_score=float(overall_score),
-                tier=tier,
-            )
+        # ── Step 7: Send emails (DISABLED) ──────────────────────────────────
+        # if lead is not None:
+        #     await self._email_service.send_diagnostic_results(
+        #         lead_email=lead.email,
+        #         lead_name=lead.name,
+        #         diagnostic_id=diagnostic_id,
+        #         overall_score=float(overall_score),
+        #         tier=tier,
+        #         key_findings=key_findings_serialized,
+        #         pdf_bytes=pdf_bytes,
+        #     )
+        #     await self._email_service.send_sales_notification(
+        #         lead_name=lead.name,
+        #         lead_email=lead.email,
+        #         lead_company=lead.company,
+        #         overall_score=float(overall_score),
+        #         tier=tier,
+        #     )
 
         return DiagnosticResult(
             diagnostic_id=diagnostic_id,
@@ -745,32 +745,32 @@ class DiagnosticService:
                     "DB update failed for full diagnostic %s: %s", diagnostic_id, exc
                 )
 
-            # ── Step 11: Send emails ──────────────────────────────────────────
-            if lead_id is not None:
-                try:
-                    async with AsyncSessionLocal() as session:
-                        lead_record = await session.get(db_models.Lead, lead_id)
-                    if lead_record is not None:
-                        await self._email_service.send_diagnostic_results(
-                            lead_email=lead_record.email,
-                            lead_name=lead_record.name,
-                            diagnostic_id=diagnostic_id,
-                            overall_score=float(overall_score),
-                            tier=tier,
-                            key_findings=key_findings_serialized,
-                            pdf_bytes=pdf_bytes,
-                        )
-                        await self._email_service.send_sales_notification(
-                            lead_name=lead_record.name,
-                            lead_email=lead_record.email,
-                            lead_company=lead_record.company,
-                            overall_score=float(overall_score),
-                            tier=tier,
-                        )
-                except Exception as exc:
-                    logger.warning(
-                        "Email send failed for full diagnostic %s: %s", diagnostic_id, exc
-                    )
+            # ── Step 11: Send emails (DISABLED) ──────────────────────────────
+            # if lead_id is not None:
+            #     try:
+            #         async with AsyncSessionLocal() as session:
+            #             lead_record = await session.get(db_models.Lead, lead_id)
+            #         if lead_record is not None:
+            #             await self._email_service.send_diagnostic_results(
+            #                 lead_email=lead_record.email,
+            #                 lead_name=lead_record.name,
+            #                 diagnostic_id=diagnostic_id,
+            #                 overall_score=float(overall_score),
+            #                 tier=tier,
+            #                 key_findings=key_findings_serialized,
+            #                 pdf_bytes=pdf_bytes,
+            #             )
+            #             await self._email_service.send_sales_notification(
+            #                 lead_name=lead_record.name,
+            #                 lead_email=lead_record.email,
+            #                 lead_company=lead_record.company,
+            #                 overall_score=float(overall_score),
+            #                 tier=tier,
+            #             )
+            #     except Exception as exc:
+            #         logger.warning(
+            #             "Email send failed for full diagnostic %s: %s", diagnostic_id, exc
+            #         )
 
         except Exception as exc:
             logger.error(
