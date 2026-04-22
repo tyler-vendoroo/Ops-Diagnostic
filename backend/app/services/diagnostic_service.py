@@ -117,6 +117,18 @@ class DiagnosticService:
             client_info,
         )
 
+        # Float gaps that match the user's stated pain points to the top
+        _PAIN_TO_GAP = {
+            "vendor_reliability": "Vendor Coverage",
+            "response_times": "Response Time SLAs",
+            "cost_control": "NTE Governance",
+            "compliance_documentation": "Policy Documentation",
+            "after_hours_coverage": "After Hours Operations",
+        }
+        _pain_gap_titles = {_PAIN_TO_GAP[p] for p in (survey.pain_points or []) if p in _PAIN_TO_GAP}
+        if _pain_gap_titles:
+            gaps = sorted(gaps, key=lambda g: (0 if g.title in _pain_gap_titles else 1))
+
         gap_titles = [g.title for g in gaps]
         tier = recommend_tier(
             goal=client_info.primary_goal or "scale",
@@ -181,6 +193,8 @@ class DiagnosticService:
                 "staff_label": _staff_label,
                 "primary_goal": client_info.primary_goal or "scale",
                 "operational_model": _model,
+                "pms_platform": client_info.pms_platform or "",
+                "pain_points": list(survey.pain_points or []),
             }
         except Exception as exc:
             logger.warning(

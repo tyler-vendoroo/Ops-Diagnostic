@@ -11,7 +11,7 @@ from app.models.analysis import (
     PortfolioMetrics,
 )
 from app.models.input_data import ClientInfo
-from app.config import DEFAULT_CATEGORY_WEIGHTS, REQUIRED_TRADES
+from app.config import DEFAULT_CATEGORY_WEIGHTS, REQUIRED_TRADES, CORE_TRADES, SPECIALTY_TRADES
 from app.config.benchmarks import VENDOROO_AVG, TOP_PERFORMERS, STAFFING_BENCHMARKS
 
 
@@ -68,55 +68,46 @@ def score_policy_completeness(doc: DocumentAnalysis) -> int:
 
 
 def score_vendor_coverage(vendor_metrics: VendorMetrics, wo_metrics: WorkOrderMetrics = None) -> int:
-    """Score based on vendor network coverage and redundancy.
+    """Score vendor coverage. Core trades are the denominator; specialty trades are a bonus.
 
-    Uses wo_metrics as the single source of truth when available (new pipeline).
-    Falls back to vendor_metrics for legacy path.
+    Core trades (80 pts): Vendoroo's 8 recommended trades every PM company needs.
+    Specialty trades (20 pts): portfolio-dependent — not penalized for missing.
     """
-    score = 0
+    core_set = {t.lower() for t in CORE_TRADES}
+    specialty_set = {t.lower() for t in SPECIALTY_TRADES}
 
-    # Use WO processor output as source of truth when available
-    if wo_metrics and wo_metrics.trades_covered_count is not None:
-        # Trade coverage from WO processor (0-35 pts)
-        required = wo_metrics.trades_required_count or len(REQUIRED_TRADES)
-        covered = wo_metrics.trades_covered_count
-        coverage_pct = covered / max(1, required)
-        score += _clamp(coverage_pct * 35, 0, 35)
+    # Prefer wo_metrics as source of truth (has normalized trade names)
+    if wo_metrics and wo_metrics.covered_trades is not None:
+        covered_trades = {t.lower().replace("_", " ") for t in (wo_metrics.covered_trades or [])}
 
-        # Vendor count adequacy (0-40 pts) — more vendors = better coverage
-        vendor_count = wo_metrics.unique_vendors or 0
-        vendor_score = min(40, vendor_count * 1.0)
-        score += vendor_score
+        core_covered = len(covered_trades & core_set)
+        specialty_covered = len(covered_trades & specialty_set)
 
-        # Give points for having reasonable trade diversity (0-25 pts)
-        if covered >= 10:
-            score += 25
-        elif covered >= 8:
-            score += 20
-        elif covered >= 6:
-            score += 15
-        elif covered >= 4:
-            score += 10
-        else:
-            score += 5
+        core_pct = core_covered / len(CORE_TRADES) if CORE_TRADES else 0
+        core_score = round(core_pct * 80)
 
-        return _clamp(score)
+        max_specialty = len(SPECIALTY_TRADES)
+        specialty_score = round((specialty_covered / max_specialty) * 20) if max_specialty else 0
 
-    # Legacy path: use vendor_metrics
-    if REQUIRED_TRADES:
-        coverage_pct = (len(REQUIRED_TRADES) - len(vendor_metrics.trades_missing)) / len(REQUIRED_TRADES)
-        score += _clamp(coverage_pct * 35, 0, 35)
+        return _clamp(core_score + specialty_score)
 
-    if vendor_metrics.unique_trades > 0:
-        backup_ratio = vendor_metrics.trades_with_backup / vendor_metrics.unique_trades
-        score += _clamp(backup_ratio * 25, 0, 25)
+    # Fallback: vendor_metrics (legacy path)
+    if vendor_metrics and vendor_metrics.trades_missing is not None:
+        missing_set = {t.lower() for t in (vendor_metrics.trades_missing or [])}
+        core_missing = len(missing_set & core_set)
+        core_covered = len(CORE_TRADES) - core_missing
 
-    vendor_score = min(20, vendor_metrics.total_vendors * 1.0)
-    score += vendor_score
+        core_pct = core_covered / len(CORE_TRADES) if CORE_TRADES else 0
+        core_score = round(core_pct * 80)
 
-    score += _clamp(vendor_metrics.contact_completeness_pct * 0.2, 0, 20)
+        specialty_missing = len(missing_set & specialty_set)
+        specialty_covered = max(0, len(SPECIALTY_TRADES) - specialty_missing)
+        max_specialty = len(SPECIALTY_TRADES)
+        specialty_score = round((specialty_covered / max_specialty) * 20) if max_specialty else 0
 
-    return _clamp(score)
+        return _clamp(core_score + specialty_score)
+
+    return 50  # Default when no data
 
 
 def score_response_efficiency(wo_metrics: WorkOrderMetrics, model: str) -> int:

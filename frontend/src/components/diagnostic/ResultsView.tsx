@@ -227,6 +227,19 @@ export function ResultsView({ id }: { id: string }) {
     .sort((a, b) => a.score - b.score)
     .slice(0, 3);
 
+  const PAIN_LABELS: Record<string, string> = {
+    vendor_reliability: "vendor reliability",
+    response_times: "response times",
+    cost_control: "cost control",
+    compliance_documentation: "compliance/documentation",
+    scaling_team: "scaling the team",
+    owner_communication: "owner communication",
+    after_hours_coverage: "after-hours coverage",
+    reporting_visibility: "reporting/visibility",
+  };
+  const painPoints = data.summary?.pain_points ?? [];
+  const painLabels = painPoints.map((p) => PAIN_LABELS[p] ?? p).filter(Boolean);
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 bg-vendoroo-page px-4 py-12 sm:px-6">
 
@@ -335,9 +348,15 @@ export function ResultsView({ id }: { id: string }) {
             <p className="text-sm font-medium text-vendoroo-text">
               {gaps.length} operational gap{gaps.length !== 1 ? "s" : ""} identified
             </p>
-            <p className="text-xs text-vendoroo-muted">
-              Each gap includes a specific remediation plan from your AI Adoption Advisor
-            </p>
+            {painLabels.length > 0 ? (
+              <p className="text-xs text-vendoroo-muted">
+                Prioritized by your focus areas: {painLabels.join(" · ")}
+              </p>
+            ) : (
+              <p className="text-xs text-vendoroo-muted">
+                Each gap includes a specific remediation plan from your AI Adoption Advisor
+              </p>
+            )}
           </div>
         </div>
       )}

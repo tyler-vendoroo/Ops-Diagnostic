@@ -26,11 +26,19 @@ settings = Settings()
 
 # ── Domain constants (migrated from config/settings.py) ──────────────────────
 
-REQUIRED_TRADES = [
-    "plumbing", "electrical", "hvac", "appliance repair",
-    "general handyman", "locksmith", "roofing", "painting",
-    "flooring", "pest control", "landscaping", "cleaning",
+CORE_TRADES = [
+    "plumbing", "electrical", "rooter", "appliance repair",
+    "handyperson", "hvac", "roofing", "pest control",
 ]
+
+SPECIALTY_TRADES = [
+    "painting", "flooring", "landscaping", "pool/spa",
+    "locksmith", "cleaning/turnover",
+]
+
+ALL_TRADES = CORE_TRADES + SPECIALTY_TRADES
+
+REQUIRED_TRADES = CORE_TRADES
 
 DEFAULT_CATEGORY_WEIGHTS = {
     "policy_completeness": 0.125,

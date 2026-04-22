@@ -37,20 +37,26 @@ const PMS_OPTIONS = [
   "Other",
 ] as const;
 
-const TRADES: { id: string; label: string }[] = [
+const CORE_TRADES: { id: string; label: string }[] = [
   { id: "plumbing", label: "Plumbing" },
   { id: "electrical", label: "Electrical" },
-  { id: "hvac", label: "HVAC" },
+  { id: "rooter", label: "Rooter" },
   { id: "appliance_repair", label: "Appliance Repair" },
-  { id: "landscaping", label: "Landscaping" },
-  { id: "pest_control", label: "Pest Control" },
+  { id: "handyperson", label: "Handyperson" },
+  { id: "hvac", label: "HVAC" },
   { id: "roofing", label: "Roofing" },
+  { id: "pest_control", label: "Pest Control" },
+];
+
+const SPECIALTY_TRADES: { id: string; label: string }[] = [
   { id: "painting", label: "Painting" },
   { id: "flooring", label: "Flooring" },
-  { id: "general_handyman", label: "General Handyman" },
+  { id: "landscaping", label: "Landscaping" },
   { id: "pool_spa", label: "Pool/Spa" },
   { id: "locksmith", label: "Locksmith" },
+  { id: "cleaning_turnover", label: "Cleaning/Turnover" },
 ];
+
 
 const RESPONSE_TIME_OPTIONS = [
   { value: "under_1hr", label: "Under 1 hour" },
@@ -451,6 +457,8 @@ export function SurveyFlow() {
     }
   }
 
+  const coreCount = trades.filter((t) => CORE_TRADES.some((ct) => ct.id === t)).length;
+
   const inputClass =
     "border-vendoroo-border bg-vendoroo-surface text-vendoroo-text placeholder:text-vendoroo-muted";
 
@@ -604,49 +612,80 @@ export function SurveyFlow() {
                 className={inputClass}
               />
             </div>
-            <div className="space-y-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <Label>Trades covered</Label>
-                <span className={[
-                  "text-xs font-semibold tabular-nums transition-colors",
-                  trades.length >= 12 ? "text-[#34ba49]" : trades.length >= 8 ? "text-vendoroo-main" : "text-vendoroo-muted",
-                ].join(" ")}>
-                  {trades.length} of 12 required trades
-                </span>
+            <div className="space-y-5">
+              {/* Core trades — Vendoroo's 8 required trades */}
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label>Core trades</Label>
+                  <span className={[
+                    "text-xs font-semibold tabular-nums transition-colors",
+                    coreCount >= 8 ? "text-[#34ba49]" : coreCount >= 5 ? "text-vendoroo-main" : "text-vendoroo-muted",
+                  ].join(" ")}>
+                    {coreCount} of 8 core trades
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {CORE_TRADES.map((t) => {
+                    const selected = trades.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleTrade(t.id)}
+                        className={[
+                          "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors",
+                          selected
+                            ? "border-vendoroo-main bg-vendoroo-light text-vendoroo-text ring-1 ring-vendoroo-main/30"
+                            : "border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/40",
+                        ].join(" ")}
+                      >
+                        <span className={[
+                          "size-3 shrink-0 rounded-full border-2 transition-colors",
+                          selected ? "border-vendoroo-main bg-vendoroo-main" : "border-vendoroo-muted/50",
+                        ].join(" ")} />
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {coreCount === 8 && (
+                  <p className="text-xs font-medium text-[#34ba49]">
+                    Full coverage across all core trades
+                  </p>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {TRADES.map((t) => {
-                  const selected = trades.includes(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => toggleTrade(t.id)}
-                      className={[
-                        "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-all duration-150",
-                        selected
-                          ? "border-vendoroo-main bg-vendoroo-tint/30 font-medium text-vendoroo-main-dark"
-                          : "border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50",
-                      ].join(" ")}
-                    >
-                      <span className={[
-                        "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] transition-all duration-150",
-                        selected
-                          ? "bg-vendoroo-main text-white"
-                          : "bg-vendoroo-border text-vendoroo-muted",
-                      ].join(" ")}>
-                        {selected ? "✓" : ""}
-                      </span>
-                      {t.label}
-                    </button>
-                  );
-                })}
+
+              {/* Specialty trades — portfolio-dependent */}
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label>Specialty trades</Label>
+                  <span className="text-xs text-vendoroo-muted">Optional · portfolio-dependent</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {SPECIALTY_TRADES.map((t) => {
+                    const selected = trades.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleTrade(t.id)}
+                        className={[
+                          "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors",
+                          selected
+                            ? "border-vendoroo-main bg-vendoroo-light text-vendoroo-text ring-1 ring-vendoroo-main/30"
+                            : "border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/40",
+                        ].join(" ")}
+                      >
+                        <span className={[
+                          "size-3 shrink-0 rounded-full border-2 transition-colors",
+                          selected ? "border-vendoroo-main bg-vendoroo-main" : "border-vendoroo-muted/50",
+                        ].join(" ")} />
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              {trades.length === 12 && (
-                <p className="text-xs font-medium text-[#34ba49]">
-                  Full coverage across all required trades
-                </p>
-              )}
             </div>
           </section>
         ) : null}

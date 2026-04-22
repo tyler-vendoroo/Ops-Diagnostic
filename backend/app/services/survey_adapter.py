@@ -10,10 +10,36 @@ from app.models.analysis import (
     DocumentSection,
     DocumentFinding,
 )
-from app.config import REQUIRED_TRADES
+from app.config import REQUIRED_TRADES, ALL_TRADES
 
 
 # ── Lookup tables ────────────────────────────────────────
+
+_TRADE_NORMALIZE: dict[str, str] = {
+    # Frontend IDs → canonical backend names
+    "plumbing": "plumbing",
+    "electrical": "electrical",
+    "rooter": "rooter",
+    "appliance_repair": "appliance repair",
+    "handyperson": "handyperson",
+    "hvac": "hvac",
+    "roofing": "roofing",
+    "pest_control": "pest control",
+    "painting": "painting",
+    "flooring": "flooring",
+    "landscaping": "landscaping",
+    "pool_spa": "pool/spa",
+    "locksmith": "locksmith",
+    "cleaning_turnover": "cleaning/turnover",
+    # Legacy / alternate spellings
+    "general_handyman": "handyperson",
+    "general handyman": "handyperson",
+    "appliance repair": "appliance repair",
+    "pest control": "pest control",
+    "pool/spa": "pool/spa",
+    "cleaning/turnover": "cleaning/turnover",
+    "cleaning": "cleaning/turnover",
+}
 
 _RESPONSE_TIME_MAP: dict[str, float] = {
     "under_1hr": 0.5,
@@ -82,7 +108,7 @@ class SurveyAdapter:
         # Vendor / trade coverage pulled from the survey
         vendor_count = survey.vendor_count or 0
         trades_covered = survey.trades_covered or []
-        covered_set = {t.lower().strip().replace("_", " ") for t in trades_covered}
+        covered_set = {_TRADE_NORMALIZE.get(t.lower(), t.lower().replace("_", " ")) for t in trades_covered}
         missing_trades = [t for t in REQUIRED_TRADES if t not in covered_set]
 
         return WorkOrderMetrics(
@@ -94,9 +120,9 @@ class SurveyAdapter:
             after_hours_pct=after_hours_pct,
             after_hours_time_available=(survey.after_hours_method not in ("none", None)),
             unique_vendors=vendor_count,
-            covered_trades=trades_covered,
+            covered_trades=list(covered_set),
             missing_trades=missing_trades,
-            trades_covered_count=len(trades_covered),
+            trades_covered_count=len(covered_set),
             trades_required_count=len(REQUIRED_TRADES),
             # Reasonable assumptions to keep scalability scorer happy
             months_spanned=6.0,
@@ -110,13 +136,13 @@ class SurveyAdapter:
     ) -> VendorMetrics:
         """Build a VendorMetrics object from survey answers."""
         trades_covered = survey.trades_covered or []
-        covered_set = {t.lower().strip().replace("_", " ") for t in trades_covered}
+        covered_set = {_TRADE_NORMALIZE.get(t.lower(), t.lower().replace("_", " ")) for t in trades_covered}
         missing = [t for t in REQUIRED_TRADES if t not in covered_set]
 
         return VendorMetrics(
             total_vendors=survey.vendor_count or 0,
-            unique_trades=len(trades_covered),
-            trades_covered=trades_covered,
+            unique_trades=len(covered_set),
+            trades_covered=list(covered_set),
             trades_missing=missing,
             # We have no backup-vendor data from the survey
             trades_with_backup=0,

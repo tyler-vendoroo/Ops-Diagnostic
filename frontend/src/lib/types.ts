@@ -167,6 +167,8 @@ export interface DiagnosticSummary {
   staff_label: string;
   primary_goal: string;
   operational_model: string;
+  pms_platform?: string;
+  pain_points?: string[];
 }
 
 export interface DiagnosticResult {
