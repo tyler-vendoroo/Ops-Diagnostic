@@ -5,6 +5,17 @@ import Link from "next/link";
 import { ChevronDown, ChevronRight, Download, ExternalLink, FileText, Search } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const TOKEN_KEY = "vendoroo_internal_token";
+
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { "X-Internal-Token": token } : {};
+}
 
 interface DiagnosticSummary {
   id: string;
@@ -189,7 +200,10 @@ export default function InternalDashboard() {
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-    fetch(`${API}/api/v1/internal/check`, { credentials: "include" })
+    fetch(`${API}/api/v1/internal/check`, {
+      credentials: "include",
+      headers: authHeaders(),
+    })
       .then((r) => setAuthed(r.ok))
       .catch(() => setAuthed(false));
   }, []);
@@ -199,7 +213,10 @@ export default function InternalDashboard() {
     try {
       const params = new URLSearchParams({ limit: "50" });
       if (query.trim()) params.set("search", query.trim());
-      const res = await fetch(`${API}/api/v1/leads?${params}`, { credentials: "include" });
+      const res = await fetch(`${API}/api/v1/leads?${params}`, {
+        credentials: "include",
+        headers: authHeaders(),
+      });
       if (res.ok) {
         const data = (await res.json()) as { total: number; leads: LeadRow[] };
         setLeads(data.leads);
@@ -233,6 +250,8 @@ export default function InternalDashboard() {
       body: JSON.stringify({ password }),
     });
     if (res.ok) {
+      const data = (await res.json()) as { ok: boolean; token: string };
+      localStorage.setItem(TOKEN_KEY, data.token);
       setAuthed(true);
       setPassword("");
     } else {

@@ -13,13 +13,16 @@ _RAW_PASSWORD = os.getenv("INTERNAL_DASHBOARD_PASSWORD", "vendoroo2026")
 _PASSWORD_HASH = hashlib.sha256(_RAW_PASSWORD.encode()).hexdigest()
 _TOKEN_SECRET = os.getenv("INTERNAL_TOKEN_SECRET", secrets.token_hex(32))
 
+_TOKEN_HEADER = "X-Internal-Token"
+
 
 def _make_token() -> str:
     return hashlib.sha256(f"{_PASSWORD_HASH}:{_TOKEN_SECRET}".encode()).hexdigest()
 
 
 def verify_internal_token(request: Request) -> bool:
-    token = request.cookies.get("vendoroo_internal_token")
+    """Accept token from header (cross-origin fetch) or cookie (same-origin)."""
+    token = request.headers.get(_TOKEN_HEADER) or request.cookies.get("vendoroo_internal_token")
     if not token or token != _make_token():
         raise HTTPException(status_code=401, detail="Unauthorized")
     return True
@@ -33,15 +36,17 @@ class LoginRequest(BaseModel):
 async def internal_login(body: LoginRequest, response: Response):
     if hashlib.sha256(body.password.encode()).hexdigest() != _PASSWORD_HASH:
         raise HTTPException(status_code=401, detail="Wrong password")
+    token = _make_token()
     response.set_cookie(
         key="vendoroo_internal_token",
-        value=_make_token(),
+        value=token,
         httponly=True,
         secure=False,
         samesite="lax",
         max_age=60 * 60 * 24 * 7,
     )
-    return {"ok": True}
+    # Return the token so the frontend can store it for cross-origin header use
+    return {"ok": True, "token": token}
 
 
 @router.post("/logout")
