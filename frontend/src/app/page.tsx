@@ -302,13 +302,13 @@ export default function Home() {
             aria-hidden
           />
 
-          <div className="relative mx-auto max-w-4xl px-4 pb-10 pt-14 text-center sm:px-6 sm:pb-14 sm:pt-20">
+          <div className="relative mx-auto max-w-4xl px-4 pb-6 pt-12 text-center sm:px-6 sm:pb-8 sm:pt-16">
             <div className="inline-flex items-center gap-2 rounded-full border border-vendoroo-border bg-vendoroo-surface/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-vendoroo-main-dark shadow-sm backdrop-blur-sm">
               <span aria-hidden>🩺</span>
               <span>NARPM Broker-Owner 2026 · Complimentary Diagnostic</span>
             </div>
 
-            <h1 className="mt-8 text-balance font-normal leading-[1.05] tracking-[-0.05em] text-vendoroo-text">
+            <h1 className="mt-6 text-balance font-normal leading-[1.05] tracking-[-0.05em] text-vendoroo-text sm:mt-8">
               <span className="block text-[2rem] sm:text-5xl md:text-[3.25rem]">
                 Every operation has a score.
               </span>
@@ -317,13 +317,13 @@ export default function Home() {
               </span>
             </h1>
 
-            <p className="mx-auto mt-8 max-w-2xl text-pretty text-base leading-relaxed text-vendoroo-muted sm:text-lg">
+            <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-vendoroo-muted sm:mt-8 sm:text-lg">
               5 steps. Under two minutes. We&apos;ll show you how your operation
               compares to property managers already running AI-powered
               maintenance.
             </p>
 
-            <div className="mt-10 flex flex-col items-center">
+            <div className="mt-8 flex flex-col items-center sm:mt-10">
               <Link
                 href="/diagnostic"
                 className={cn(
@@ -347,20 +347,34 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Social proof — single strip, no cards */}
-          <div className="border-y border-vendoroo-border/80 bg-vendoroo-light/90 py-4">
-            <p className="mx-auto max-w-5xl px-4 text-center text-xs font-medium leading-relaxed text-vendoroo-smoke sm:text-sm">
-              <span>12,000+ work orders analyzed</span>
-              <span className="mx-2 text-vendoroo-border sm:mx-3" aria-hidden>
-                ·
-              </span>
-              <span>200+ portfolios scored</span>
-              <span className="mx-2 text-vendoroo-border sm:mx-3" aria-hidden>
-                ·
-              </span>
-              <span>Avg. score: 54/100</span>
-            </p>
-          </div>
+          {/* How it works — directly under hero for above-the-fold scan */}
+          <section className="border-t border-vendoroo-border bg-vendoroo-page py-8 sm:py-10">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6">
+              <h2 className="text-center text-2xl font-normal tracking-[-0.04em] text-vendoroo-text sm:text-3xl">
+                How it works
+              </h2>
+              <div className="mt-8 grid gap-8 md:grid-cols-3 md:gap-8">
+                {howSteps.map(({ n, title, body, icon: Icon }) => (
+                  <div key={title} className="text-center md:text-left">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-vendoroo-main">
+                      {n}
+                    </p>
+                    <div className="mt-3 flex justify-center md:justify-start">
+                      <span className="inline-flex size-11 items-center justify-center rounded-full bg-vendoroo-tint/60 text-vendoroo-main-dark ring-1 ring-vendoroo-main/15">
+                        <Icon className="size-5" strokeWidth={1.75} aria-hidden />
+                      </span>
+                    </div>
+                    <h3 className="mt-3 text-lg font-semibold tracking-tight text-vendoroo-text">
+                      {title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-vendoroo-muted">
+                      {body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
           <div className="border-b border-vendoroo-main/15 bg-vendoroo-tint/15 py-3">
             <p className="mx-auto max-w-5xl px-4 text-center text-xs font-medium text-vendoroo-main-dark sm:text-sm">
@@ -373,35 +387,6 @@ export default function Home() {
                 Complete your diagnostic to find out →
               </Link>
             </p>
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section className="border-b border-vendoroo-border bg-vendoroo-page py-12 sm:py-16">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="text-center text-2xl font-normal tracking-[-0.04em] text-vendoroo-text sm:text-3xl">
-              How it works
-            </h2>
-            <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
-              {howSteps.map(({ n, title, body, icon: Icon }) => (
-                <div key={title} className="text-center md:text-left">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-vendoroo-main">
-                    {n}
-                  </p>
-                  <div className="mt-4 flex justify-center md:justify-start">
-                    <span className="inline-flex size-11 items-center justify-center rounded-full bg-vendoroo-tint/60 text-vendoroo-main-dark ring-1 ring-vendoroo-main/15">
-                      <Icon className="size-5" strokeWidth={1.75} aria-hidden />
-                    </span>
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold tracking-tight text-vendoroo-text">
-                    {title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-vendoroo-muted">
-                    {body}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
