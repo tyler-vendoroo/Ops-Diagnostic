@@ -12,8 +12,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, ArrowRight, Download, FileText } from "lucide-react";
 
-const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
-
 const tierCopy: Record<DiagnosticTier, { label: string; line: string }> = {
   engage: {
     label: "Engage",
@@ -45,33 +43,36 @@ function clampScore(n: number) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function scoreColor(score: number) {
-  if (score >= 70) return "text-vendoroo-success";
-  if (score >= 50) return "text-amber-600";
-  return "text-rose-600";
-}
-
 function ringColor(score: number) {
   if (score >= 70) return "#34ba49";
   if (score >= 50) return "#fdbb00";
   return "#f43f5e";
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const size = 100;
+function ScoreRingDark({ score, color }: { score: number; color: string }) {
+  const size = 110;
   const stroke = 8;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const offset = c - (score / 100) * c;
-  const strokeColor = ringColor(score);
 
   return (
-    <div className="relative flex flex-col items-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e1e3e4" strokeWidth={stroke} />
+    <div className="relative">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
         <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={strokeColor}
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="#333"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
           strokeWidth={stroke}
           strokeDasharray={c}
           strokeDashoffset={offset}
@@ -79,43 +80,9 @@ function ScoreRing({ score }: { score: number }) {
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-semibold tabular-nums text-vendoroo-text">{score}</span>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-3xl font-semibold tabular-nums text-white">{score}</span>
       </div>
-      <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-vendoroo-muted">
-        Current
-      </span>
-    </div>
-  );
-}
-
-function ProjectedRing({ score }: { score: number }) {
-  const size = 100;
-  const stroke = 8;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (score / 100) * c;
-
-  return (
-    <div className="relative flex flex-col items-center">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e1e3e4" strokeWidth={stroke} />
-        <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="#039cac"
-          strokeWidth={stroke}
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-semibold tabular-nums text-vendoroo-main">{score}</span>
-      </div>
-      <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-vendoroo-main">
-        With Vendoroo
-      </span>
     </div>
   );
 }
@@ -155,13 +122,6 @@ function CategoryBar({ name, score, tier, tierCss }: {
 export function ResultsView({ id }: { id: string }) {
   const [data, setData] = React.useState<DiagnosticStatusResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [fromQuick, setFromQuick] = React.useState(false);
-
-  React.useEffect(() => {
-    if (typeof sessionStorage !== "undefined") {
-      setFromQuick(sessionStorage.getItem(RESULTS_SOURCE_KEY) === "quick");
-    }
-  }, []);
 
   const load = React.useCallback(async () => {
     try {
@@ -269,37 +229,43 @@ export function ResultsView({ id }: { id: string }) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 bg-vendoroo-page px-4 py-12 sm:px-6">
 
-      {/* ── Score header ── */}
-      <header className="flex flex-col items-center gap-6 text-center">
-        <div className="flex items-center gap-4">
-          <ScoreRing score={score} />
-          <span className="text-xl text-vendoroo-muted">→</span>
-          <ProjectedRing score={projectedScore} />
-        </div>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-vendoroo-muted">
-            Operations score
-          </p>
-          <p className="mt-1">
-            <span className={`text-4xl font-semibold tabular-nums ${scoreColor(score)}`}>
-              {score}
+      {/* ── Before → After hero (the golden nugget) ── */}
+      <div className="overflow-hidden rounded-2xl bg-[#222] px-6 py-10 text-center shadow-lg sm:px-10">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+          Operations readiness
+        </p>
+
+        <div className="mt-6 flex items-center justify-center gap-6 sm:gap-10">
+          <div className="flex flex-col items-center">
+            <ScoreRingDark score={score} color={ringColor(score)} />
+            <span className="mt-2 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+              Today
             </span>
-            <span className="mx-2 text-lg text-vendoroo-muted">→</span>
-            <span className="text-4xl font-semibold tabular-nums text-vendoroo-main">
-              {projectedScore}
+          </div>
+
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl text-neutral-600" aria-hidden>
+              →
             </span>
-            <span className="text-lg text-vendoroo-muted"> /100</span>
-          </p>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <ScoreRingDark score={projectedScore} color="#039cac" />
+            <span className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-[#FDBB00]">
+              With Vendoroo
+            </span>
+          </div>
         </div>
-        <div className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-3 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
+
+        <div className="mt-8">
+          <span className="inline-block rounded-full bg-vendoroo-main px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white">
             {tierInfo.label}
           </span>
-          <p className="mt-1 text-sm leading-relaxed text-vendoroo-smoke">
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-neutral-400">
             {tierInfo.line}
           </p>
         </div>
-      </header>
+      </div>
 
       {/* ── Areas that need attention (worst 3 categories) ── */}
       {worstCategories.length > 0 && (
@@ -365,25 +331,25 @@ export function ResultsView({ id }: { id: string }) {
         </div>
       )}
 
-      {/* ── Primary CTAs ── */}
+      {/* ── CTAs ── */}
       <div className="flex flex-col gap-3 border-t border-vendoroo-border pt-8">
-        <a
-          href={reportHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            buttonVariants({
-              className:
-                "inline-flex gap-2 rounded-full px-8 py-5 text-sm font-medium uppercase tracking-[-0.02em]",
-            })
-          )}
-        >
-          <FileText className="size-4" />
-          View full report
-        </a>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          {showPdf && (
+        {/* Full diagnostic results: show report + PDF links */}
+        {showPdf && (
+          <>
+            <a
+              href={reportHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({
+                  className:
+                    "inline-flex gap-2 rounded-full px-8 py-5 text-sm font-medium uppercase tracking-[-0.02em]",
+                })
+              )}
+            >
+              <FileText className="size-4" />
+              View full report
+            </a>
             <a
               href={pdfHref}
               target="_blank"
@@ -392,38 +358,45 @@ export function ResultsView({ id }: { id: string }) {
                 buttonVariants({
                   variant: "outline",
                   className:
-                    "inline-flex flex-1 gap-2 rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
+                    "inline-flex gap-2 rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
                 })
               )}
             >
               <Download className="size-4" />
               Download PDF
             </a>
-          )}
-          <a
-            href="https://vendoroo.ai/contact"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              buttonVariants({
-                variant: "outline",
-                className:
-                  "inline-flex flex-1 rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
-              })
-            )}
-          >
-            Book a call
-          </a>
-        </div>
+          </>
+        )}
 
-        {fromQuick && (
+        {/* Always show Book a call */}
+        <a
+          href="https://vendoroo.ai/contact"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            buttonVariants({
+              variant: showPdf ? "outline" : "default",
+              className: cn(
+                "inline-flex rounded-full px-8 text-sm font-medium uppercase tracking-[-0.02em]",
+                showPdf
+                  ? "border-vendoroo-border py-4 text-vendoroo-text hover:bg-vendoroo-light"
+                  : "py-5"
+              ),
+            })
+          )}
+        >
+          Book a call
+        </a>
+
+        {/* Quick path only: upsell to full diagnostic */}
+        {!showPdf && (
           <Link
             href="/diagnostic/full"
             className={cn(
               buttonVariants({
-                variant: "secondary",
+                variant: "outline",
                 className:
-                  "inline-flex gap-2 rounded-full bg-vendoroo-light px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-border/60",
+                  "inline-flex gap-2 rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
               })
             )}
           >

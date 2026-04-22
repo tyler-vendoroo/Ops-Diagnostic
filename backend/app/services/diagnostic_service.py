@@ -189,20 +189,11 @@ class DiagnosticService:
                 exc,
             )
 
-        # ── Step 5: PDF Generation ───────────────────────────────────────────
+        # ── Step 5: No PDF on quick path ────────────────────────────────────
+        # Quick diagnostic produces a web preview only.
+        # PDF is generated only in the full diagnostic path.
         pdf_bytes: bytes | None = None
         html_report: str | None = None
-        try:
-            pdf_bytes, html_report = await self._generate_pdf(
-                survey, client_info, category_scores, overall_score,
-                tier, key_findings, gaps, wo_metrics,
-            )
-        except Exception as exc:
-            logger.warning(
-                "PDF generation failed for diagnostic %s — continuing without PDF. Error: %s",
-                diagnostic_id,
-                exc,
-            )
 
         # ── Step 6: Persist to DB ────────────────────────────────────────────
         key_findings_serialized = [f.model_dump() for f in key_findings]

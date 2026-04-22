@@ -154,22 +154,12 @@ def _generate_pdf_playwright(html: str) -> bytes:
     return asyncio.run(_run())
 
 
-def _generate_pdf_reportlab(report_data: ReportData) -> bytes:
-    """Generate PDF using ReportLab (pure Python, no browser needed).
-
-    This is the preferred method for Streamlit Cloud and any environment
-    without Chrome/Chromium. Uses the ReportLab canvas API directly for
-    precise page layout matching the branded design.
-    """
-    import io
-    from app.report.pdf_generator import generate_report_to_bytes
-    return generate_report_to_bytes(report_data)
-
-
 def generate_pdf(report_data: ReportData) -> bytes:
-    """Generate a branded PDF report.
+    """Generate a branded PDF from the HTML template.
 
-    Priority: HTML renderer (dynamic) > ReportLab fallback.
+    Requires Playwright or Chrome/Chromium. Raises RuntimeError if neither
+    is available. The ReportLab fallback has been removed — it produced
+    hardcoded sample data unfit for real prospects.
     """
     mismatches = validate_report_consistency(report_data)
     if mismatches:
@@ -178,20 +168,20 @@ def generate_pdf(report_data: ReportData) -> bytes:
 
     html = render_html(report_data)
 
-    # Try Playwright (local dev)
     try:
         return _generate_pdf_playwright(html)
-    except Exception:
-        pass
+    except Exception as playwright_exc:
+        playwright_error = str(playwright_exc)
 
-    # Fall back to subprocess Chrome/Chromium
     try:
         return _generate_pdf_subprocess(html)
-    except Exception:
-        pass
+    except Exception as chrome_exc:
+        chrome_error = str(chrome_exc)
 
-    # Last resort fallback if browser renderers are unavailable.
-    return _generate_pdf_reportlab(report_data)
+    raise RuntimeError(
+        f"PDF generation requires Playwright or Chrome/Chromium. "
+        f"Playwright: {playwright_error}. Chrome: {chrome_error}"
+    )
 
 
 def generate_html_preview(report_data: ReportData) -> str:
