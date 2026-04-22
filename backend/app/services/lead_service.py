@@ -25,8 +25,14 @@ class LeadService:
             )
             existing = result.scalar_one_or_none()
             if existing is not None:
+                # Update mutable fields that may have changed since first submission
+                if lead.phone:
+                    existing.phone = lead.phone
+                if lead.trial_interest:
+                    existing.trial_interest = lead.trial_interest
+                await session.commit()
                 logger.info(
-                    "Lead already exists for email %s — returning existing id %s",
+                    "Lead already exists for email %s — updated and returning id %s",
                     lead.email,
                     existing.id,
                 )
@@ -56,6 +62,20 @@ class LeadService:
                 select(db_models.Lead).where(db_models.Lead.id == lead_id)
             )
             return result.scalar_one_or_none()
+
+    async def update_door_count(self, lead_id: str, door_count: int) -> None:
+        """Set door_count on an existing lead."""
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(db_models.Lead).where(db_models.Lead.id == lead_id)
+            )
+            record = result.scalar_one_or_none()
+            if record is None:
+                logger.warning("update_door_count: lead %s not found", lead_id)
+                return
+            record.door_count = door_count
+            await session.commit()
+            logger.info("Updated lead %s door_count to %d", lead_id, door_count)
 
     async def update_pms_platform(self, lead_id: str, pms_platform: str) -> None:
         """Set pms_platform on an existing lead (overwrites if already set)."""

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, JSON, Text, LargeBinary, ForeignKey
+from sqlalchemy import String, DateTime, JSON, Text, LargeBinary, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
@@ -19,6 +19,7 @@ class Lead(Base):
     pms_platform: Mapped[str | None] = mapped_column(String, nullable=True)
     terms_accepted: Mapped[bool] = mapped_column(default=False)
     trial_interest: Mapped[bool] = mapped_column(default=False)
+    door_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     diagnostics: Mapped[list["Diagnostic"]] = relationship(back_populates="lead")

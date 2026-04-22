@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { updateLeadDoorCount } from "@/lib/api";
 import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
@@ -265,6 +266,9 @@ function FullDiagnosticContent() {
     }
 
     const lead = readLocalStorage<StoredLead>(LEAD_KEY);
+    if (lead?.lead_id) {
+      void updateLeadDoorCount(lead.lead_id, doors);
+    }
 
     const resolvedPms = pmsPlatform === "Other" ? pmsOther.trim() || "Other" : pmsPlatform || "Other";
 

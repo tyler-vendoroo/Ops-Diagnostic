@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import type { ClientInfo, LeadCapture, SurveyResponse } from "@/lib/types";
-import { runQuickDiagnostic } from "@/lib/api";
+import { runQuickDiagnostic, updateLeadDoorCount } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -80,12 +80,14 @@ const PAIN_OPTIONS: { id: string; label: string }[] = [
   { id: "reporting_visibility", label: "Reporting/visibility" },
 ];
 
-function readLead(): LeadCapture | null {
+type StoredLead = LeadCapture & { lead_id?: string };
+
+function readLead(): StoredLead | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem(LEAD_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as LeadCapture;
+    return JSON.parse(raw) as StoredLead;
   } catch {
     return null;
   }
@@ -186,7 +188,7 @@ export function SurveyFlow() {
   const router = useRouter();
   const [step, setStep] = React.useState(1);
   const [animating, setAnimating] = React.useState(false);
-  const [lead, setLead] = React.useState<LeadCapture | null>(null);
+  const [lead, setLead] = React.useState<StoredLead | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
@@ -322,6 +324,10 @@ export function SurveyFlow() {
           "For smaller portfolios, book a call with our team to discuss your operation."
         );
         return;
+      }
+      const l = lead ?? readLead();
+      if (l?.lead_id) {
+        void updateLeadDoorCount(l.lead_id, doors);
       }
     }
     if (step === 2 && !validateStep2()) return;

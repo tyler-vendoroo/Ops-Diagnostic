@@ -57,3 +57,13 @@ export async function createLead(
     body: JSON.stringify(payload),
   });
 }
+
+export async function updateLeadDoorCount(
+  leadId: string,
+  doorCount: number
+): Promise<void> {
+  await request<{ ok: boolean }>(`/leads/${leadId}/door-count`, {
+    method: "PATCH",
+    body: JSON.stringify({ door_count: doorCount }),
+  });
+}
