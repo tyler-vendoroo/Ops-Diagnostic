@@ -206,6 +206,7 @@ export interface CreateLeadResponse {
 export interface DiagnosticStatusResponse {
   id?: string;
   diagnostic_id?: string;
+  diagnostic_type?: "quick" | "full";
   status: DiagnosticStatus;
   error?: string | null;
   overall_score?: number;

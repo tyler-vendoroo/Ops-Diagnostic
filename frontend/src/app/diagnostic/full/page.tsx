@@ -8,7 +8,7 @@ import { DiagnosticProgress } from "@/components/diagnostic/DiagnosticProgress";
 import { RequireLeadGate } from "@/components/diagnostic/RequireLeadGate";
 
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
-const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
+const CLIENT_INFO_KEY = "vendoroo_diagnostic_client_info";
 
 const PMS_OPTIONS = [
   "AppFolio",
@@ -40,7 +40,8 @@ interface StoredLead {
   terms_accepted?: boolean;
 }
 
-interface StoredResults {
+interface StoredClientInfo {
+  company_name?: string;
   door_count?: number | string;
   property_count?: number | string;
   pms_platform?: string;
@@ -213,33 +214,28 @@ function FullDiagnosticContent() {
   // ── Pre-fill from localStorage ─────────────────────────────────────────────
   React.useEffect(() => {
     const lead = readLocalStorage<StoredLead>(LEAD_KEY);
-    const results = readLocalStorage<StoredResults>(RESULTS_SOURCE_KEY);
+    const saved = readLocalStorage<StoredClientInfo>(CLIENT_INFO_KEY);
 
     if (lead?.company) setCompanyName(lead.company);
 
-    if (results) {
-      if (results.door_count != null) setDoorCount(String(results.door_count));
-      if (results.property_count != null) setPropertyCount(String(results.property_count));
-      if (results.pms_platform) setPmsPlatform(results.pms_platform);
-      if (results.operational_model === "va" || results.operational_model === "tech") {
-        setOperationalModel(results.operational_model);
+    if (saved) {
+      if (saved.company_name) setCompanyName(saved.company_name);
+      if (saved.door_count != null) setDoorCount(String(saved.door_count));
+      if (saved.property_count != null) setPropertyCount(String(saved.property_count));
+      if (saved.pms_platform) setPmsPlatform(saved.pms_platform);
+      if (saved.operational_model === "va" || saved.operational_model === "tech") {
+        setOperationalModel(saved.operational_model);
       }
-      if (results.staff_count != null) setStaffCount(String(results.staff_count));
+      if (saved.staff_count != null) setStaffCount(String(saved.staff_count));
       if (
-        results.primary_goal === "scale" ||
-        results.primary_goal === "optimize" ||
-        results.primary_goal === "elevate"
+        saved.primary_goal === "scale" ||
+        saved.primary_goal === "optimize" ||
+        saved.primary_goal === "elevate"
       ) {
-        setPrimaryGoal(results.primary_goal);
+        setPrimaryGoal(saved.primary_goal);
       }
     }
-
-    // If we have enough pre-filled data, skip step 1
-    const hasData =
-      (lead?.company || results?.door_count) &&
-      results?.pms_platform &&
-      results?.operational_model;
-    if (hasData) setStep(2);
+    // Always show step 1 so the user can verify pre-filled data before uploading
   }, []);
 
   // ── Status message cycling ─────────────────────────────────────────────────

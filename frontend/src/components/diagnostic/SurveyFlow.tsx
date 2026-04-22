@@ -21,7 +21,7 @@ import {
 import { DiagnosticProgress } from "@/components/diagnostic/DiagnosticProgress";
 
 const LEAD_KEY = "vendoroo_ops_diagnostic_lead";
-const RESULTS_SOURCE_KEY = "vendoroo_diagnostic_results_source";
+const CLIENT_INFO_KEY = "vendoroo_diagnostic_client_info";
 
 const PMS_OPTIONS = [
   "AppFolio",
@@ -405,14 +405,25 @@ export function SurveyFlow() {
     setLoading(true);
     setFormError(null);
     try {
-      if (typeof sessionStorage !== "undefined") {
-        sessionStorage.setItem(RESULTS_SOURCE_KEY, "quick");
-      }
       const result = await runQuickDiagnostic({
         lead: l,
         survey,
         client_info: clientInfo,
       });
+
+      // Store client info so the full diagnostic can pre-fill from it
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(CLIENT_INFO_KEY, JSON.stringify({
+          company_name: clientInfo.company_name,
+          door_count: clientInfo.door_count,
+          property_count: clientInfo.property_count,
+          pms_platform: clientInfo.pms_platform,
+          operational_model: clientInfo.operational_model,
+          staff_count: clientInfo.staff_count,
+          primary_goal: clientInfo.primary_goal,
+        }));
+      }
+
       router.push(`/diagnostic/results/${result.diagnostic_id}`);
     } catch (e) {
       setFormError(

@@ -218,7 +218,8 @@ export function ResultsView({ id }: { id: string }) {
   const findings = data.key_findings ?? [];
   const gaps = data.gaps ?? [];
   const categoryScores = data.summary?.category_scores ?? [];
-  const showPdf = Boolean(data.pdf_url);
+  const isQuick = data.diagnostic_type === "quick";
+  const isFullComplete = !isQuick && Boolean(data.pdf_url);
   const pdfHref = getDiagnosticPdfUrl(id);
   const reportHref = getDiagnosticReportUrl(id);
 
@@ -333,8 +334,8 @@ export function ResultsView({ id }: { id: string }) {
 
       {/* ── CTAs ── */}
       <div className="flex flex-col gap-3 border-t border-vendoroo-border pt-8">
-        {/* Full diagnostic results: show report + PDF links */}
-        {showPdf && (
+        {/* Full diagnostic: show report + PDF links */}
+        {isFullComplete && (
           <>
             <a
               href={reportHref}
@@ -368,17 +369,17 @@ export function ResultsView({ id }: { id: string }) {
           </>
         )}
 
-        {/* Always show Book a call */}
+        {/* Always: Book a call */}
         <a
           href="https://vendoroo.ai/contact"
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
             buttonVariants({
-              variant: showPdf ? "outline" : "default",
+              variant: isFullComplete ? "outline" : "default",
               className: cn(
                 "inline-flex rounded-full px-8 text-sm font-medium uppercase tracking-[-0.02em]",
-                showPdf
+                isFullComplete
                   ? "border-vendoroo-border py-4 text-vendoroo-text hover:bg-vendoroo-light"
                   : "py-5"
               ),
@@ -389,7 +390,7 @@ export function ResultsView({ id }: { id: string }) {
         </a>
 
         {/* Quick path only: upsell to full diagnostic */}
-        {!showPdf && (
+        {isQuick && (
           <Link
             href="/diagnostic/full"
             className={cn(
