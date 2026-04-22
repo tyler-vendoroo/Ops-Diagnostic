@@ -87,6 +87,12 @@ export interface SurveyResponse {
 
 // ─── Diagnostic ───────────────────────────────────────────────────────────────
 
+export interface DiagnosticInsight {
+  icon: string;
+  title: string;
+  detail: string;
+}
+
 export type DiagnosticTier = "engage" | "direct" | "command";
 export type DiagnosticStatus = "pending" | "processing" | "complete" | "failed";
 
@@ -218,5 +224,32 @@ export interface DiagnosticStatusResponse {
   key_findings?: KeyFinding[];
   gaps?: GapFinding[];
   pdf_url?: string;
-  summary?: DiagnosticSummary;
+  summary?: {
+    // Quick-only
+    insights?: DiagnosticInsight[];
+    vendor_count?: number;
+    trades_covered?: number;
+    trades_required?: number;
+    // Both paths
+    category_scores?: CategoryScoreEntry[];
+    company_name?: string;
+    door_count?: number;
+    staff_count?: number;
+    staff_label?: string;
+    primary_goal?: string;
+    operational_model?: string;
+    pms_platform?: string;
+    pain_points?: string[];
+    // Full-only
+    projected_score?: number;
+    impact_rows?: ImpactRow[];
+    cost_estimates?: CostEstimates;
+    staffing?: StaffingData;
+    paths?: {
+      scale: PathData;
+      optimize: PathData;
+      elevate: PathData;
+    };
+    [key: string]: unknown;
+  };
 }

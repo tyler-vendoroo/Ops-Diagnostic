@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 
 import type {
+  DiagnosticInsight,
   DiagnosticStatusResponse,
   DiagnosticTier,
 } from "@/lib/types";
@@ -119,6 +120,153 @@ function CategoryBar({ name, score, tier, tierCss }: {
   );
 }
 
+const INSIGHT_ICONS: Record<string, string> = {
+  scale: "📊",
+  clock: "⏱",
+  vendors: "🔧",
+  moon: "🌙",
+  alert: "⚠️",
+  dollar: "💰",
+  target: "🎯",
+};
+
+function QuickResults({
+  data,
+  score,
+}: {
+  data: DiagnosticStatusResponse;
+  score: number;
+}) {
+  const insights: DiagnosticInsight[] = data.summary?.insights ?? [];
+  const categoryScores = data.summary?.category_scores ?? [];
+  const doorCount = data.summary?.door_count ?? 0;
+  const staffCount = data.summary?.staff_count ?? 0;
+  const staffLabel = data.summary?.staff_label ?? "staff";
+  const vendorCount = data.summary?.vendor_count ?? 0;
+  const tradesCovered = data.summary?.trades_covered ?? 0;
+  const tradesRequired = data.summary?.trades_required ?? 8;
+
+  return (
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 bg-vendoroo-page px-4 py-12 sm:px-6">
+
+      {/* ── Score ring — current only, no projection ── */}
+      <div className="overflow-hidden rounded-2xl bg-[#222] px-6 py-10 text-center shadow-lg sm:px-10">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
+          Operations snapshot
+        </p>
+        <div className="mt-6 flex justify-center">
+          <ScoreRingDark score={score} color={ringColor(score)} />
+        </div>
+        <p className="mx-auto mt-6 max-w-sm text-sm leading-relaxed text-neutral-400">
+          Based on {doorCount} doors, {staffCount} {staffLabel}, and {vendorCount} vendors
+          across {tradesCovered} of {tradesRequired} core trades.
+        </p>
+      </div>
+
+      {/* ── Free trial banner ── */}
+      <div className="rounded-xl border border-vendoroo-main/20 bg-vendoroo-tint/10 px-5 py-4 text-center">
+        <p className="text-sm font-semibold text-vendoroo-main-dark">
+          You qualify for a 90-day free trial
+        </p>
+        <p className="mt-1 text-xs text-vendoroo-muted">
+          Complete your full diagnostic or book a call to get started.
+        </p>
+      </div>
+
+      {/* ── Insights ── */}
+      {insights.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-vendoroo-main">
+            What we see in your operation
+          </h2>
+          <div className="mt-4 flex flex-col gap-4">
+            {insights.map((insight, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-4 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 shrink-0 text-lg" aria-hidden>
+                    {INSIGHT_ICONS[insight.icon] ?? "📋"}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-vendoroo-text">
+                      {insight.title}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-vendoroo-muted">
+                      {insight.detail}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Categories we can actually score ── */}
+      {categoryScores.length > 0 && (
+        <section>
+          <h2 className="text-sm font-medium text-vendoroo-text">
+            Categories scored from your survey
+          </h2>
+          <div className="mt-3 space-y-2.5">
+            {categoryScores.map((cat) => (
+              <CategoryBar
+                key={cat.key}
+                name={cat.name}
+                score={cat.score}
+                tier={cat.tier}
+                tierCss={cat.tier_css}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Full diagnostic upsell ── */}
+      <div className="rounded-xl bg-vendoroo-light px-5 py-5">
+        <p className="text-sm font-medium text-vendoroo-text">Want the full picture?</p>
+        <p className="mt-1 text-sm leading-relaxed text-vendoroo-muted">
+          Upload your work order history and policy documents. We&apos;ll analyze your
+          actual data — response times, vendor performance, completion rates, policy gaps —
+          and deliver a comprehensive report with specific recommendations.
+        </p>
+      </div>
+
+      {/* ── CTAs ── */}
+      <div className="flex flex-col gap-3 border-t border-vendoroo-border pt-8">
+        <Link
+          href="/diagnostic/full"
+          className={cn(
+            buttonVariants({
+              className:
+                "inline-flex gap-2 rounded-full px-8 py-5 text-sm font-medium uppercase tracking-[-0.02em]",
+            })
+          )}
+        >
+          Get your full data-driven analysis
+          <ArrowRight className="size-4" />
+        </Link>
+        <a
+          href="https://vendoroo.ai/contact"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            buttonVariants({
+              variant: "outline",
+              className:
+                "inline-flex rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
+            })
+          )}
+        >
+          Book a call
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function ResultsView({ id }: { id: string }) {
   const [data, setData] = React.useState<DiagnosticStatusResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -212,14 +360,18 @@ export function ResultsView({ id }: { id: string }) {
 
   // ── Derived data ──
   const score = scoreFromDiagnostic(data);
+  // Quick path gets its own focused rendering
+  if (data.diagnostic_type === "quick") {
+    return <QuickResults data={data} score={score} />;
+  }
+
   const projectedScore = clampScore(data.summary?.projected_score ?? score);
   const tier: DiagnosticTier = data.tier ?? "engage";
   const tierInfo = tierCopy[tier];
   const findings = data.key_findings ?? [];
   const gaps = data.gaps ?? [];
   const categoryScores = data.summary?.category_scores ?? [];
-  const isQuick = data.diagnostic_type === "quick";
-  const isFullComplete = !isQuick && Boolean(data.pdf_url);
+  const isFullComplete = Boolean(data.pdf_url);
   const pdfHref = getDiagnosticPdfUrl(id);
   const reportHref = getDiagnosticReportUrl(id);
 
@@ -418,22 +570,6 @@ export function ResultsView({ id }: { id: string }) {
           Book a call
         </a>
 
-        {/* Quick path only: upsell to full diagnostic */}
-        {isQuick && (
-          <Link
-            href="/diagnostic/full"
-            className={cn(
-              buttonVariants({
-                variant: "outline",
-                className:
-                  "inline-flex gap-2 rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
-              })
-            )}
-          >
-            Get a full data-driven analysis
-            <ArrowRight className="size-4" />
-          </Link>
-        )}
       </div>
 
       {/* ── What's in the full report ── */}

@@ -141,60 +141,211 @@ class DiagnosticService:
             },
         )
 
-        # ── Step 4b: Build summary payload ───────────────────────────────────
+        # ── Step 4b: Build quick-specific insight summary ────────────────────
+        # Quick diagnostic only shows categories we can actually score from survey
+        # data. No projected score, no tier, no pricing — just real observations.
         summary: dict | None = None
         try:
-            from app.models.analysis import PortfolioMetrics as _PortfolioMetrics
-            _portfolio_metrics = self._adapter.build_portfolio_metrics(survey, client_info)
-            _impact_rows = generate_impact_projections(wo_metrics, client_info, tier)
-            _staffing = generate_staffing_projection(client_info, _portfolio_metrics)
-            _costs = calculate_cost_estimates(client_info.door_count, tier)
-            _projected_score = calculate_projected_score(overall_score, gap_titles)
-            _goal_data = get_goal_card_data(
-                client_info.operational_model,
-                client_info.staff_count,
-                client_info.door_count,
-                client_info.primary_goal or "scale",
-            )
+            from app.config.benchmarks import STAFFING_BENCHMARKS
+
             _model = client_info.operational_model
-            _staff_label = {
-                "va": "coordinators",
-                "tech": "technicians",
-                "pod": "pods",
-            }.get(_model, "staff")
-            _staffing_dict = (
-                _staffing.model_dump()
-                if hasattr(_staffing, "model_dump")
-                else dict(_staffing)
-            )
+            _staff_label_s = {"va": "coordinator", "tech": "technician", "pod": "pod"}.get(_model, "staff member")
+            _staff_label_p = {"va": "coordinators", "tech": "technicians", "pod": "pods"}.get(_model, "staff")
+            _doors_per = round(client_info.door_count / max(1, client_info.staff_count))
+            _bench = STAFFING_BENCHMARKS.get(_model, STAFFING_BENCHMARKS["va"])
+            _benchmark_per = _bench.get("current_benchmark", 175)
+
+            QUICK_SCOREABLE = {
+                "vendor_coverage", "response_efficiency",
+                "after_hours_readiness", "emergency_protocols", "scalability_potential",
+            }
+            quick_categories = [
+                {
+                    "name": cat.name,
+                    "key": cat.key,
+                    "score": cat.score,
+                    "tier": cat.tier,
+                    "tier_css": cat.tier_css,
+                }
+                for cat in category_scores
+                if cat.key in QUICK_SCOREABLE
+            ]
+
+            insights = []
+
+            # Staffing ratio insight
+            if _doors_per > _benchmark_per * 1.2:
+                insights.append({
+                    "icon": "scale",
+                    "title": "Your team is stretched thin",
+                    "detail": (
+                        f"At {_doors_per} doors per {_staff_label_s}, you're above the industry benchmark "
+                        f"of {_benchmark_per}. That means more things slip through the cracks — missed "
+                        f"follow-ups, slow responses, reactive instead of proactive. AI coordination absorbs "
+                        f"the dispatch workload so your team isn't buried in logistics."
+                    ),
+                })
+            elif _doors_per < _benchmark_per * 0.7:
+                insights.append({
+                    "icon": "scale",
+                    "title": "Capacity to grow without adding headcount",
+                    "detail": (
+                        f"At {_doors_per} doors per {_staff_label_s}, your team has room to take on more doors. "
+                        f"AI coordination lets each {_staff_label_s} manage {_benchmark_per}+ doors without "
+                        f"sacrificing response quality — that's growth without a new hire."
+                    ),
+                })
+            else:
+                insights.append({
+                    "icon": "scale",
+                    "title": f"{_doors_per} doors per {_staff_label_s}",
+                    "detail": (
+                        f"You're right at the industry benchmark of {_benchmark_per}. AI coordination holds "
+                        f"this ratio steady as you grow — so adding 100 doors doesn't mean adding another "
+                        f"{_staff_label_s}."
+                    ),
+                })
+
+            # Response time insight
+            _avg_hrs = wo_metrics.avg_first_response_hours
+            if _avg_hrs and _avg_hrs > 4:
+                insights.append({
+                    "icon": "clock",
+                    "title": f"{_avg_hrs}-hour average first response",
+                    "detail": (
+                        "Vendoroo clients average under 10 minutes from request to vendor contacted. "
+                        "Faster first response means fewer resident follow-ups, fewer owner complaints, "
+                        "and higher retention."
+                    ),
+                })
+            elif _avg_hrs and _avg_hrs > 1:
+                insights.append({
+                    "icon": "clock",
+                    "title": f"{_avg_hrs}-hour average first response",
+                    "detail": (
+                        "Solid, but AI coordination gets this under 10 minutes. The difference shows up "
+                        "in resident satisfaction surveys and owner retention — they notice when things move fast."
+                    ),
+                })
+
+            # Trade coverage insight
+            _core_covered = wo_metrics.trades_covered_count or 0
+            _core_required = wo_metrics.trades_required_count or 8
+            if wo_metrics.missing_trades:
+                _missing_str = ", ".join(t.title() for t in wo_metrics.missing_trades[:4])
+                insights.append({
+                    "icon": "vendors",
+                    "title": f"No vendor coverage for {_missing_str}",
+                    "detail": (
+                        f"You have {wo_metrics.unique_vendors} vendors across {_core_covered} of {_core_required} "
+                        f"core trades. When a {wo_metrics.missing_trades[0].replace('_', ' ')} issue comes in, "
+                        f"your team has to scramble to find someone — that delays resolution and frustrates residents."
+                    ),
+                })
+            elif wo_metrics.unique_vendors and wo_metrics.unique_vendors > 0:
+                insights.append({
+                    "icon": "vendors",
+                    "title": f"{wo_metrics.unique_vendors} vendors across all core trades",
+                    "detail": (
+                        f"Full coverage across Vendoroo's {_core_required} core trades. AI coordination routes "
+                        "each job to the best-fit vendor based on trade, location, availability, and past "
+                        "performance — no manual matchmaking."
+                    ),
+                })
+
+            # After-hours insight
+            _after_method = survey.after_hours_method or "none"
+            if _after_method in ("voicemail_only", "none"):
+                insights.append({
+                    "icon": "moon",
+                    "title": "After-hours requests wait until morning",
+                    "detail": (
+                        "Residents with a midnight water heater issue hit voicemail. That's a bad experience "
+                        "and a liability risk. Vendoroo's Rooceptionist answers 24/7 — triaging urgency, "
+                        "walking residents through troubleshooting, and only escalating true emergencies to you."
+                    ),
+                })
+            elif _after_method == "answering_service":
+                insights.append({
+                    "icon": "moon",
+                    "title": "Your answering service answers — but can't act",
+                    "detail": (
+                        "They take the message, but they can't determine if it's urgent, troubleshoot with "
+                        "the resident, or contact a vendor. AI triage does all three — resolving routine issues "
+                        "overnight and escalating real emergencies immediately."
+                    ),
+                })
+            elif _after_method == "on_call_rotation":
+                insights.append({
+                    "icon": "moon",
+                    "title": "On-call rotation for after-hours",
+                    "detail": (
+                        "Your team takes turns being on call, which works until it doesn't — burnout, missed "
+                        "calls, inconsistent triage decisions. AI handles the first line of after-hours response "
+                        "so on-call staff only get woken up for true emergencies."
+                    ),
+                })
+
+            # Emergency protocol insight
+            if not doc_analysis.has_emergency_protocols:
+                insights.append({
+                    "icon": "alert",
+                    "title": "No written emergency protocols",
+                    "detail": (
+                        "Without documented criteria, what counts as an emergency depends on who answers the "
+                        "phone. That's how you end up with a plumber dispatched at 2am for a dripping faucet — "
+                        "or a burst pipe that waits until Monday."
+                    ),
+                })
+
+            # NTE insight
+            if not doc_analysis.nte_threshold:
+                insights.append({
+                    "icon": "dollar",
+                    "title": "No not-to-exceed limits defined",
+                    "detail": (
+                        "Without NTEs, you find out what a job costs after it's done. Defined limits let AI "
+                        "auto-approve routine work under threshold and flag anything above — so you're only "
+                        "reviewing the exceptions, not every invoice."
+                    ),
+                })
+            elif doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
+                insights.append({
+                    "icon": "dollar",
+                    "title": f"Flat {doc_analysis.nte_threshold} NTE across all trades",
+                    "detail": (
+                        "A faucet repair and an HVAC compressor replacement hit the same approval threshold. "
+                        "Tiered NTEs by trade and urgency let routine work flow through automatically while "
+                        "high-cost jobs get the review they deserve."
+                    ),
+                })
+
+            # SLA insight
+            if not doc_analysis.has_defined_slas:
+                insights.append({
+                    "icon": "target",
+                    "title": "No vendor accountability framework",
+                    "detail": (
+                        "Without defined expectations, you don't know a vendor is slow until a resident "
+                        "complains. AI tracks vendor response and completion times automatically — surfacing "
+                        "patterns before they become problems."
+                    ),
+                })
+
             summary = {
-                "category_scores": [
-                    {
-                        "name": cat.name,
-                        "key": cat.key,
-                        "score": cat.score,
-                        "tier": cat.tier,
-                        "tier_css": cat.tier_css,
-                    }
-                    for cat in category_scores
-                ],
-                "projected_score": _projected_score,
-                "impact_rows": [row.model_dump() for row in _impact_rows],
-                "cost_estimates": _costs,
-                "staffing": _staffing_dict,
-                "paths": {
-                    "scale": _goal_data["scale_data"],
-                    "optimize": _goal_data["optimize_data"],
-                    "elevate": _goal_data["elevate_data"],
-                },
+                "insights": insights[:6],
+                "category_scores": quick_categories,
                 "company_name": client_info.company_name,
                 "door_count": client_info.door_count,
                 "staff_count": client_info.staff_count,
-                "staff_label": _staff_label,
+                "staff_label": _staff_label_p,
                 "primary_goal": client_info.primary_goal or "scale",
                 "operational_model": _model,
-                "pms_platform": client_info.pms_platform or "",
+                "vendor_count": wo_metrics.unique_vendors,
+                "trades_covered": _core_covered,
+                "trades_required": _core_required,
                 "pain_points": list(survey.pain_points or []),
+                "pms_platform": client_info.pms_platform or "",
             }
         except Exception as exc:
             logger.warning(
@@ -219,7 +370,7 @@ class DiagnosticService:
                 lead_id=lead_id,
                 scores=scores_dict,
                 overall_score=overall_score,
-                tier=tier,
+                tier=None,  # No tier on quick path — not enough data to recommend pricing
                 pdf_bytes=pdf_bytes,
                 html_report=html_report,
                 key_findings=key_findings_serialized,
