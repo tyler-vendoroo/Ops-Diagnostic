@@ -20,6 +20,16 @@ def _clamp(value: float, low: float = 0, high: float = 100) -> int:
     return int(max(low, min(high, round(value))))
 
 
+def _nte_is_real_value(nte_threshold) -> bool:
+    """Check if nte_threshold is a real dollar value, not 'Not defined' or similar."""
+    if not nte_threshold or not isinstance(nte_threshold, str):
+        return False
+    lower = nte_threshold.strip().lower()
+    if lower in ("not defined", "none", "n/a", "not applicable", "no", "unknown", ""):
+        return False
+    return any(c.isdigit() for c in nte_threshold)
+
+
 def _tier(score: int) -> str:
     """Return tier label for a score."""
     if score >= 70:
@@ -460,8 +470,12 @@ def generate_key_findings(
             ))
 
     # ── 3. Vendor Coverage ──
-    covered = wo_metrics.trades_covered_count
+    covered = wo_metrics.trades_covered_count or 0
     required = wo_metrics.trades_required_count or len(CORE_TRADES)
+    # Clamp: core covered can't exceed required; specialty are extras
+    core_covered = min(covered, required)
+    specialty_extra = max(0, covered - required)
+
     if wo_metrics.missing_trades:
         missing_str = ", ".join(wo_metrics.missing_trades[:4])
         missing_count = len(wo_metrics.missing_trades)
@@ -469,21 +483,25 @@ def generate_key_findings(
             title="Vendor Coverage Gaps",
             description=(
                 f"You have {wo_metrics.unique_vendors} vendors covering "
-                f"{covered} of {required} required trades. "
+                f"{core_covered} of {required} core trades. "
                 f"Missing coverage in {missing_str} "
                 f"{'creates a single point' if missing_count == 1 else 'creates single points'} "
                 f"of failure during peak demand or vendor unavailability."
             ),
             color="var(--red)" if missing_count >= 3 else "var(--amber)",
         ))
-    elif wo_metrics.unique_vendors > 0 and covered >= required:
+    elif wo_metrics.unique_vendors > 0 and core_covered >= required:
+        extra_note = (
+            f" plus {specialty_extra} specialty trade{'s' if specialty_extra != 1 else ''}"
+            if specialty_extra > 0 else ""
+        )
         findings.append(KeyFinding(
             title="Strong Vendor Coverage",
             description=(
                 f"You have {wo_metrics.unique_vendors} vendors covering all "
-                f"{required} required trades. AI coordination maximizes this network "
-                f"by routing each job to the best-fit vendor based on trade, "
-                f"availability, and past performance."
+                f"{required} core trades{extra_note}. AI coordination maximizes this "
+                f"network by routing each job to the best-fit vendor based on trade, "
+                f"location, availability, and past performance."
             ),
             color="var(--green)",
         ))
@@ -527,8 +545,8 @@ def generate_key_findings(
             color="var(--red)",
         ))
 
-    # ── 6. NTE Governance ──
-    if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
+    # ── 6. NTE / Maintenance Limit ──
+    if _nte_is_real_value(doc_analysis.nte_threshold) and not doc_analysis.nte_is_tiered:
         findings.append(KeyFinding(
             title="Flat Maintenance Limit (NTE)",
             description=(
@@ -539,7 +557,7 @@ def generate_key_findings(
             ),
             color="var(--amber)",
         ))
-    elif not doc_analysis.nte_threshold:
+    elif not _nte_is_real_value(doc_analysis.nte_threshold):
         findings.append(KeyFinding(
             title="No Maintenance Limits Defined",
             description=(
@@ -551,56 +569,90 @@ def generate_key_findings(
         ))
 
     # ── 7. Documentation ──
-    has_both_docs = (
-        doc_analysis.pma and doc_analysis.pma.status != "Not Provided"
-        and doc_analysis.lease and doc_analysis.lease.status != "Not Provided"
+    pma_quality = getattr(doc_analysis, 'pma_quality_score', None)
+    lease_quality = getattr(doc_analysis, 'lease_quality_score', None)
+
+    pma_good = (
+        doc_analysis.pma
+        and doc_analysis.pma.status not in ("Not Provided", "Needs Improvement", "Not Documented")
+        and (pma_quality is None or pma_quality >= 4)
     )
-    if has_both_docs:
+    lease_good = (
+        doc_analysis.lease
+        and doc_analysis.lease.status not in ("Not Provided", "Needs Improvement", "Not Documented")
+        and (lease_quality is None or lease_quality >= 4)
+    )
+
+    if pma_good and lease_good:
         findings.append(KeyFinding(
             title="Strong Documentation Base",
             description=(
-                "Your PMA and lease templates are well-structured with clear maintenance "
-                "responsibility language. This gives Vendoroo a strong starting point for "
-                "Maintenance Book configuration with minimal policy clarification needed."
+                "Your PMA and lease have been reviewed and contain clear maintenance "
+                "responsibility language. This gives Vendoroo a strong starting point "
+                "for configuration with minimal policy clarification during onboarding."
             ),
             color="var(--green)",
         ))
-    # For quick diagnostic: no docs is the default state, not a finding.
-    # Only flag documentation gaps in the full path where docs were uploaded and found lacking.
+    elif pma_good and not lease_good:
+        status_note = (
+            "was not provided" if not doc_analysis.lease or doc_analysis.lease.status == "Not Provided"
+            else "needs clarification"
+        )
+        findings.append(KeyFinding(
+            title="PMA Reviewed Successfully",
+            description=(
+                f"Your PMA has been reviewed and contains clear maintenance guidelines. "
+                f"Lease agreement {status_note} — your Advisor will work with you to "
+                f"clarify lease-specific maintenance responsibilities during onboarding."
+            ),
+            color="var(--green)",
+        ))
+    elif lease_good and not pma_good:
+        status_note = (
+            "was not provided" if not doc_analysis.pma or doc_analysis.pma.status == "Not Provided"
+            else "needs clarification"
+        )
+        findings.append(KeyFinding(
+            title="Lease Reviewed Successfully",
+            description=(
+                f"Your lease has been reviewed with clear maintenance responsibility language. "
+                f"PMA {status_note} — your Advisor will document vendor authority, NTE rules, "
+                f"and approval workflows during onboarding."
+            ),
+            color="var(--green)",
+        ))
+    # Neither good: no documentation finding — absence is reflected in the category score
 
     # ── 8. Scalability ──
-    if client_info.door_count < scale_doors:
-        growth_pct = round((scale_doors - client_info.door_count) / client_info.door_count * 100)
+    if doors_per and doors_per > benchmark_per * 1.15:
         findings.append(KeyFinding(
-            title="Scale Opportunity",
+            title="Team Is Stretched Thin",
             description=(
-                f"With {staff_count} {staff_word} managing {client_info.door_count} doors "
-                f"({int(doors_per)} doors/{staff_label_s}), AI coordination could extend "
-                f"your current team to {scale_doors}+ doors — a {growth_pct}% increase "
-                f"without adding headcount."
+                f"At {int(doors_per)} doors per {staff_label_s}, your team is above the "
+                f"industry benchmark of {benchmark_per}. That pressure shows up in response "
+                f"times and completion rates. AI coordination absorbs the dispatch and "
+                f"follow-up workload so your team can focus on relationships and exceptions."
+            ),
+            color="var(--amber)",
+        ))
+    elif doors_per and doors_per < benchmark_per * 0.85:
+        findings.append(KeyFinding(
+            title="Capacity to Grow",
+            description=(
+                f"At {int(doors_per)} doors per {staff_label_s}, you have room to grow "
+                f"your portfolio without adding headcount. AI coordination helps you scale "
+                f"into that capacity while maintaining service quality."
             ),
             color="var(--blue)",
         ))
-    elif staff_count > optimize_staff and optimize_staff < staff_count:
-        fte_savings = staff_count - optimize_staff
+    elif doors_per:
         findings.append(KeyFinding(
-            title="Staffing Optimization",
+            title="Healthy Staffing Ratio",
             description=(
-                f"With {staff_count} {staff_word} managing {client_info.door_count} doors "
-                f"({int(doors_per)} doors/{staff_label_s}), AI coordination could support "
-                f"the same portfolio with {optimize_staff} {staff_label_s if optimize_staff == 1 else staff_label_p}, "
-                f"freeing {fte_savings} FTE{'s' if fte_savings != 1 else ''} for growth or redeployment."
-            ),
-            color="var(--blue)",
-        ))
-    else:
-        findings.append(KeyFinding(
-            title="High Operational Efficiency",
-            description=(
-                f"At {int(doors_per)} doors/{staff_label_s}, you are already operating "
-                f"above the industry benchmark of {benchmark_per}. AI coordination "
-                f"protects this efficiency as you grow — maintaining response times and "
-                f"consistency that would otherwise degrade with added volume."
+                f"At {int(doors_per)} doors per {staff_label_s}, you're tracking with the "
+                f"industry benchmark of {benchmark_per}. AI coordination protects this "
+                f"efficiency as you grow — maintaining quality that would otherwise "
+                f"degrade with added volume."
             ),
             color="var(--green)",
         ))
@@ -621,19 +673,31 @@ def generate_key_findings(
     # ── 10. Property Concentration ──
     if client_info.property_count and client_info.property_count > 0:
         dpp = client_info.door_count / client_info.property_count
-        if dpp >= 10:
+        if client_info.property_count == 1 and client_info.door_count >= 50:
+            findings.append(KeyFinding(
+                title="Single-Asset Portfolio",
+                description=(
+                    f"Your entire {client_info.door_count}-door portfolio is in a single "
+                    f"property. Your revenue is tied to one ownership relationship. "
+                    f"AI coordination helps deliver measurably better service — faster "
+                    f"response times, transparent reporting, and consistent quality — "
+                    f"to protect that relationship."
+                ),
+                color="var(--blue)",
+            ))
+        elif client_info.property_count <= 3 and dpp > 50:
             findings.append(KeyFinding(
                 title="Concentrated Portfolio",
                 description=(
-                    f"Your portfolio averages {round(dpp)} doors per property "
-                    f"({client_info.door_count} doors across {client_info.property_count} "
-                    f"{'property' if client_info.property_count == 1 else 'properties'}). "
-                    f"At this concentration, a single building event — HVAC failure, "
-                    f"water intrusion, pest issue — can generate many concurrent work orders. "
-                    f"Vendor capacity and triage speed matter more at higher ratios."
+                    f"Your {client_info.door_count} doors are spread across just "
+                    f"{client_info.property_count} properties ({round(dpp)} doors/property). "
+                    f"Losing one ownership relationship would significantly impact revenue. "
+                    f"AI coordination helps deliver measurably better service to protect "
+                    f"those relationships."
                 ),
-                color="var(--amber)" if dpp < 50 else "var(--red)",
+                color="var(--blue)",
             ))
+        # 4+ properties or dpp <= 50 = normal spread, no finding needed
 
     return findings
 
@@ -702,7 +766,7 @@ def generate_gaps(
     if score_map.get("vendor_coverage", 0) < 70:
         sev, is_high = _severity(score_map["vendor_coverage"])
         covered = wo_metrics.trades_covered_count
-        required = wo_metrics.trades_required_count or 12
+        required = wo_metrics.trades_required_count or len(CORE_TRADES)
         vendor_count = wo_metrics.unique_vendors
 
         if wo_metrics.missing_trades:
@@ -742,9 +806,9 @@ def generate_gaps(
                 f"of under 10 minutes. "
             )
             if hrs > 12:
-                detail += "Most requests wait until the next business day before a vendor is contacted."
+                detail += "Most resident requests wait until the next business day for acknowledgment."
             elif hrs > 4:
-                detail += "Requests submitted in the afternoon often roll to the next morning."
+                detail += "Afternoon requests often aren't acknowledged until the next morning."
         else:
             detail = (
                 "Response time could not be measured from the available data. "
@@ -762,7 +826,7 @@ def generate_gaps(
         ))
 
     # ── NTE Governance ──
-    if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
+    if _nte_is_real_value(doc_analysis.nte_threshold) and not doc_analysis.nte_is_tiered:
         gaps.append(GapFinding(
             title="Maintenance Limit (NTE) Governance",
             severity="Medium Priority",
@@ -878,31 +942,27 @@ def generate_gaps(
             ),
         ))
 
-    # ── Property Concentration ──
+    # ── Revenue Concentration ──
     if client_info.property_count and client_info.property_count > 0:
         dpp = client_info.door_count / client_info.property_count
-        if dpp > 30:
-            is_high = dpp > 100
+        if client_info.property_count <= 3 and dpp > 50:
+            is_single = client_info.property_count == 1
             gaps.append(GapFinding(
-                title="Property Concentration Risk",
-                severity="High Priority" if is_high else "Medium Priority",
-                severity_color="var(--red)" if is_high else "var(--amber)",
-                severity_bg="var(--red-light)" if is_high else "var(--amber-light)",
-                severity_border="var(--red)" if is_high else "var(--amber)",
+                title="Revenue Concentration",
+                severity="Medium Priority",
+                severity_color="var(--amber)",
+                severity_bg="var(--amber-light)",
+                severity_border="var(--amber)",
                 detail=(
-                    f"{round(dpp)} doors per property on average "
-                    f"({client_info.door_count} doors across "
-                    f"{client_info.property_count} "
-                    f"{'property' if client_info.property_count == 1 else 'properties'}). "
-                    f"A single building event — water intrusion, HVAC failure, pest — "
-                    f"can trigger concurrent requests across many units. Standard vendor "
-                    f"agreements rarely account for this volume at one location."
+                    f"{client_info.door_count} doors across "
+                    f"{'a single property' if is_single else f'just {client_info.property_count} properties'} "
+                    f"({round(dpp)} doors/property). Losing one ownership relationship would "
+                    f"significantly impact your revenue."
                 ),
                 recommendation=(
-                    "Your Advisor reviews your vendor agreements for capacity clauses and "
-                    "configures triage rules that handle concurrent building-wide events — "
-                    "batching related requests, routing to high-capacity vendors, and "
-                    "escalating automatically when volume spikes from a single property."
+                    "AI coordination helps protect key owner relationships by delivering "
+                    "measurably faster response times, transparent reporting, and consistent "
+                    "service quality — the metrics owners care about at renewal time."
                 ),
             ))
 
@@ -1183,21 +1243,23 @@ def recommend_tier(goal, category_scores, gaps, client_info=None):
 # ── Projected Score Calculator ───────────────────────────
 
 _GAP_POINT_MAP = {
-    "response_time": 6,
-    "Response Time SLAs": 6,
-    "vendor_coverage": 4,
-    "Vendor Coverage": 4,
-    "emergency_protocol": 5,
-    "Emergency Protocol": 5,
-    "nte_governance": 3,
-    "NTE Governance": 3,
-    "Maintenance Limit (NTE) Governance": 3,
-    "after_hours": 5,
-    "After Hours Operations": 5,
-    "policy_documentation": 2,
-    "Policy Documentation": 2,
+    "Emergency Protocol": 9,
+    "Vendor Coverage": 7,
+    "Response Time SLAs": 10,
+    "Maintenance Limit (NTE) Governance": 5,
+    "After Hours Operations": 9,
+    "Policy Documentation": 3,
     "Open Work Order Backlog": 4,
+    "Revenue Concentration": 2,
+    # Legacy keys
+    "NTE Governance": 5,
     "Property Concentration Risk": 2,
+    "response_time": 10,
+    "vendor_coverage": 7,
+    "emergency_protocol": 9,
+    "nte_governance": 5,
+    "after_hours": 9,
+    "policy_documentation": 3,
 }
 
 

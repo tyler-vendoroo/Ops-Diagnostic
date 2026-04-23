@@ -25,6 +25,7 @@ from app.analysis.scoring_engine import (
     recommend_tier,
     generate_impact_projections,
     generate_staffing_projection,
+    _nte_is_real_value,
 )
 from app.db.database import AsyncSessionLocal
 from app.db import models as db_models
@@ -331,7 +332,7 @@ class DiagnosticService:
                 })
 
             # NTE insight
-            if not doc_analysis.nte_threshold:
+            if not _nte_is_real_value(doc_analysis.nte_threshold):
                 insights.append({
                     "icon": "dollar",
                     "title": "No maintenance limits (NTEs) defined",
@@ -341,7 +342,7 @@ class DiagnosticService:
                         "reviewing the exceptions, not every invoice."
                     ),
                 })
-            elif doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
+            elif _nte_is_real_value(doc_analysis.nte_threshold) and not doc_analysis.nte_is_tiered:
                 insights.append({
                     "icon": "dollar",
                     "title": f"Flat {doc_analysis.nte_threshold} maintenance limit across all trades",
