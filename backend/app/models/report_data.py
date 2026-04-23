@@ -87,10 +87,10 @@ class ReportData(BaseModel):
     """
 
     # ── Dual Score System ──
-    projected_score: int = 0
-    projected_score_dashoffset: float = 314.16
-    projected_score_color: str = "#FDBB00"
-    current_score_color: str = "#EF4444"
+    projected_score: int = 93
+    projected_score_dashoffset: float = 22.0
+    projected_score_color: str = "#039cac"  # Teal — always teal for projected
+    current_score_color: str = "#FDBB00"    # Set dynamically via _ring_color()
 
     # ── Goal ──
     primary_goal: str = "scale"

@@ -36,6 +36,15 @@ from app.config.benchmarks import STAFF_COST_BENCHMARKS
 logger = logging.getLogger(__name__)
 
 
+def _ring_color(score: int) -> str:
+    """Score ring color — matches frontend ringColor() exactly."""
+    if score >= 70:
+        return "#34ba49"   # green
+    elif score >= 50:
+        return "#FDBB00"   # yellow
+    return "#EF4444"       # red
+
+
 @dataclass
 class DiagnosticResult:
     """Output of a completed quick diagnostic run."""
@@ -922,8 +931,10 @@ class DiagnosticService:
                 operational_model_display=ci.operational_model_display or ci.operational_model,
                 overall_score=overall_score,
                 score_ring_dashoffset=score_dashoffset,
+                current_score_color=_ring_color(overall_score),
                 projected_score=projected_score_full,
                 projected_score_dashoffset=ReportData.calculate_dashoffset(projected_score_full),
+                projected_score_color="#039cac",
                 monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders or 0)),
                 avg_response_time=(
                     f"{wo_metrics.avg_first_response_hours} hrs"

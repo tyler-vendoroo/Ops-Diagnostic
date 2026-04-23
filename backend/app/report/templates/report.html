@@ -310,14 +310,14 @@
         <div class="score-ring" style="width: 120px; height: 120px;">
           <svg viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="50" fill="none" stroke="#2A2A2A" stroke-width="8"/>
-            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--yellow)" stroke-width="8"
+            <circle cx="60" cy="60" r="50" fill="none" stroke="{{ r.projected_score_color }}" stroke-width="8"
               stroke-dasharray="314.16" stroke-dashoffset="{{ r.projected_score_dashoffset }}" stroke-linecap="round"/>
           </svg>
           <div class="score-label" style="color: white;">
             <div class="num" style="font-size: 26pt;">{{ r.projected_score }}</div>
           </div>
         </div>
-        <div style="font-size: 7pt; color: var(--yellow); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px;">With Vendoroo</div>
+        <div style="font-size: 7pt; color: {{ r.projected_score_color }}; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 6px;">With Vendoroo</div>
       </div>
     </div>
 
@@ -386,14 +386,14 @@
         <div class="score-ring" style="width: 76px; height: 76px;">
           <svg viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="50" fill="none" stroke="#333" stroke-width="8"/>
-            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--yellow)" stroke-width="8"
+            <circle cx="60" cy="60" r="50" fill="none" stroke="{{ r.projected_score_color }}" stroke-width="8"
               stroke-dasharray="314.16" stroke-dashoffset="{{ r.projected_score_dashoffset }}" stroke-linecap="round"/>
           </svg>
           <div class="score-label" style="color: white;">
             <div class="num" style="font-size: 18pt;">{{ r.projected_score }}</div>
           </div>
         </div>
-        <div style="font-size: 7pt; color: var(--yellow); margin-top: 4px;">WITH VENDOROO</div>
+        <div style="font-size: 7pt; color: {{ r.projected_score_color }}; margin-top: 4px;">WITH VENDOROO</div>
       </div>
       <!-- Text -->
       <div style="flex: 1;">

@@ -1135,31 +1135,35 @@ class TestTierRecommendation:
 class TestProjectedScoreFullPath:
     """Tests for projected score on full diagnostic path."""
 
-    def test_projected_never_above_90(self):
+    def test_projected_is_93_for_low_scorer(self):
+        """Projected should be 93 (Vendoroo onboarded constant) for any PM below 93."""
         r = run_full_pipeline(
             wo_overrides={"avg_first_response_hours": 24.0, "open_wo_rate_pct": 40.0},
             doc_overrides={"has_emergency": False},
         )
-        assert r["projected"] <= 90, \
-            f"Projected score {r['projected']} exceeds cap of 90"
+        assert r["projected"] == 93, \
+            f"Projected score {r['projected']} should be 93 (Vendoroo onboarded constant)"
 
     def test_projected_never_below_current(self):
         r = run_full_pipeline()
         assert r["projected"] >= r["overall"], \
             f"Projected {r['projected']} < current {r['overall']}"
 
-    def test_max_25_point_jump(self):
+    def test_projected_cap_for_high_scorer(self):
+        """PM at or above 93 gets projected = min(95, current + 2)."""
         r = run_full_pipeline(
             wo_overrides={
-                "avg_first_response_hours": 24.0, "open_wo_rate_pct": 40.0,
-                "covered_trades": ["plumbing"], "trades_covered_count": 1,
-                "trades_required_count": 8,
+                "avg_first_response_hours": 0.1, "open_wo_rate_pct": 2.0,
+                "covered_trades": ["plumbing", "electrical", "hvac", "appliance_repair",
+                                   "handyperson", "rooter", "pest_control", "roofing"],
+                "trades_covered_count": 8, "trades_required_count": 8,
             },
-            doc_overrides={"has_emergency": False, "has_slas": False},
+            doc_overrides={"has_emergency": True, "has_slas": True},
         )
-        jump = r["projected"] - r["overall"]
-        assert jump <= 25, \
-            f"Score jump of {jump} ({r['overall']} → {r['projected']}) exceeds max of 25"
+        assert r["projected"] >= r["overall"], \
+            f"Projected {r['projected']} should be >= current {r['overall']}"
+        assert r["projected"] <= 95, \
+            f"Projected score {r['projected']} exceeds hard cap of 95"
 
 
 # ── TestCrossConsistency ───────────────────────────────────────

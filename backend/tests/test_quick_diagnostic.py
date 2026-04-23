@@ -372,8 +372,8 @@ class TestOverallScore:
 class TestProjectedScore:
     """Verify projected score caps and diminishing returns."""
 
-    def test_projected_never_above_90(self):
-        """Projected score should never exceed 90."""
+    def test_projected_is_93_for_low_scorer(self):
+        """Projected score should be 93 (Vendoroo onboarded state) for any PM below 93."""
         r = run_pipeline(survey_overrides={
             "trades_covered": ["plumbing"],
             "vendor_count": 2,
@@ -383,8 +383,8 @@ class TestProjectedScore:
             "estimated_response_time": "next_day",
             "after_hours_method": "none",
         })
-        assert r["projected"] <= 90, \
-            f"Projected score {r['projected']} exceeds cap of 90"
+        assert r["projected"] == 93, \
+            f"Projected score {r['projected']} should be 93 (Vendoroo onboarded constant)"
 
     def test_projected_never_below_current(self):
         """Projected should never be lower than current."""
@@ -392,20 +392,25 @@ class TestProjectedScore:
         assert r["projected"] >= r["overall"], \
             f"Projected {r['projected']} < current {r['overall']}"
 
-    def test_max_25_point_jump(self):
-        """Projected should never jump more than 25 points."""
+    def test_projected_cap_for_high_scorer(self):
+        """PM already at or above 93 gets projected = min(95, current + 2)."""
+        # High scorer: all trades covered, protocols defined, fast response
         r = run_pipeline(survey_overrides={
-            "trades_covered": ["plumbing"],
-            "vendor_count": 2,
-            "has_written_emergency_protocols": "no",
-            "has_defined_ntes": "no",
-            "has_defined_slas": "no",
-            "estimated_response_time": "next_day",
-            "after_hours_method": "none",
+            "trades_covered": ["plumbing", "electrical", "hvac", "appliance_repair",
+                               "handyperson", "rooter", "pest_control", "roofing"],
+            "vendor_count": 12,
+            "has_written_emergency_protocols": "yes",
+            "has_defined_ntes": "yes",
+            "ntes_are_tiered": True,
+            "has_defined_slas": "yes",
+            "estimated_response_time": "under_1hr",
+            "after_hours_method": "24_7_coverage",
         })
-        jump = r["projected"] - r["overall"]
-        assert jump <= 25, \
-            f"Score jump of {jump} ({r['overall']} → {r['projected']}) exceeds max of 25"
+        # If below 93, still gets 93; if above 93, gets current + 2 capped at 95
+        assert r["projected"] >= r["overall"], \
+            f"Projected {r['projected']} should be >= current {r['overall']}"
+        assert r["projected"] <= 95, \
+            f"Projected score {r['projected']} exceeds hard cap of 95"
 
 
 # ── Findings Tests ─────────────────────────────────────────────
