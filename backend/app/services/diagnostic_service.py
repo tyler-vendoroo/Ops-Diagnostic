@@ -305,7 +305,7 @@ class DiagnosticService:
             if not doc_analysis.nte_threshold:
                 insights.append({
                     "icon": "dollar",
-                    "title": "No not-to-exceed limits defined",
+                    "title": "No maintenance limits (NTEs) defined",
                     "detail": (
                         "Without NTEs, you find out what a job costs after it's done. Defined limits let AI "
                         "auto-approve routine work under threshold and flag anything above — so you're only "
@@ -315,7 +315,7 @@ class DiagnosticService:
             elif doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
                 insights.append({
                     "icon": "dollar",
-                    "title": f"Flat {doc_analysis.nte_threshold} NTE across all trades",
+                    "title": f"Flat {doc_analysis.nte_threshold} maintenance limit across all trades",
                     "detail": (
                         "A faucet repair and an HVAC compressor replacement hit the same approval threshold. "
                         "Tiered NTEs by trade and urgency let routine work flow through automatically while "

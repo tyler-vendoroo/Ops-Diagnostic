@@ -528,23 +528,22 @@ def generate_key_findings(
     # ── 6. NTE Governance ──
     if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
         findings.append(KeyFinding(
-            title="Flat NTE Structure",
+            title="Flat Maintenance Limit (NTE)",
             description=(
-                f"Your {doc_analysis.nte_threshold} NTE threshold applies uniformly "
+                f"Your {doc_analysis.nte_threshold} maintenance limit (NTE) applies uniformly "
                 f"across all work types. A $200 faucet repair and a $200 HVAC diagnostic "
-                f"face the same approval rules. Tiered NTEs by trade and urgency let AI "
+                f"face the same approval rules. Tiered limits by trade and urgency let AI "
                 f"auto-approve routine work while flagging exceptions."
             ),
             color="var(--amber)",
         ))
     elif not doc_analysis.nte_threshold:
         findings.append(KeyFinding(
-            title="No Defined NTE Thresholds",
+            title="No Maintenance Limits Defined",
             description=(
-                "Without not-to-exceed thresholds, every vendor invoice is either "
-                "approved on trust or manually reviewed. Defined NTEs let AI enforce "
-                "spending limits automatically — approving routine work instantly "
-                "and escalating only the exceptions."
+                "Without defined maintenance limits (NTEs), you find out what a job costs "
+                "after it's done. Defined limits let AI auto-approve routine work under "
+                "threshold and flag anything above — so you're only reviewing the exceptions."
             ),
             color="var(--red)",
         ))
@@ -763,19 +762,16 @@ def generate_gaps(
     # ── NTE Governance ──
     if doc_analysis.nte_threshold and not doc_analysis.nte_is_tiered:
         gaps.append(GapFinding(
-            title="NTE Governance",
+            title="Maintenance Limit (NTE) Governance",
             severity="Medium Priority",
             severity_color="var(--amber)",
             severity_bg="var(--amber-light)",
             severity_border="var(--amber)",
-            detail=(
-                f"Single {doc_analysis.nte_threshold} NTE threshold across all work types. "
-                f"No differentiation by trade, property, or urgency."
-            ),
+            detail=f"Single {doc_analysis.nte_threshold} maintenance limit across all work types. No differentiation by trade, property, or urgency.",
             recommendation=(
-                "Your Advisor guides you on structuring tiered NTEs, including per-property "
-                "configurations. Your AI teammate then enforces these rules automatically "
-                "on every work order."
+                "Your Advisor guides you on structuring tiered maintenance limits — "
+                "different thresholds by trade, property type, and urgency. Your AI teammate "
+                "then enforces these automatically on every work order."
             ),
         ))
 
@@ -1193,6 +1189,7 @@ _GAP_POINT_MAP = {
     "Emergency Protocol": 5,
     "nte_governance": 3,
     "NTE Governance": 3,
+    "Maintenance Limit (NTE) Governance": 3,
     "after_hours": 5,
     "After Hours Operations": 5,
     "policy_documentation": 2,

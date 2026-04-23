@@ -38,7 +38,8 @@ _GAP_TIER_MAP = {
     "Emergency Protocol":     {"engage": "dash", "direct": "check", "command": "check", "note": ""},
     "Vendor Coverage":        {"engage": "dash", "direct": "check", "command": "check", "note": ""},
     "Response Time SLAs":     {"engage": "check", "direct": "check", "command": "check", "note": ""},
-    "NTE Governance":         {"engage": "dash", "direct": "check", "command": "check", "note": ""},
+    "NTE Governance":                     {"engage": "dash", "direct": "check", "command": "check", "note": ""},
+    "Maintenance Limit (NTE) Governance": {"engage": "dash", "direct": "check", "command": "check", "note": ""},
     "After Hours Operations": {"engage": "check", "direct": "check", "command": "check", "note": "+RescueRoo"},
     "Policy Documentation":   {"engage": "dash", "direct": "check", "command": "check", "note": ""},
 }

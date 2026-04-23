@@ -150,11 +150,13 @@ function AnalyzingIndicator() {
 
 function PolicyRadio({
   label,
+  helper,
   value,
   onChange,
   name,
 }: {
   label: string;
+  helper?: string;
   value: "yes" | "no" | "unsure" | "";
   onChange: (v: "yes" | "no" | "unsure") => void;
   name: string;
@@ -167,7 +169,12 @@ function PolicyRadio({
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-medium text-vendoroo-text">{label}</span>
+        {helper && (
+          <span className="text-xs leading-relaxed text-vendoroo-muted">{helper}</span>
+        )}
+      </div>
       <div className="flex gap-2">
         {options.map((opt) => (
           <button
@@ -705,12 +712,14 @@ export function SurveyFlow() {
             </div>
             <PolicyRadio
               label="Written emergency protocols?"
+              helper="Documented rules for what counts as an emergency and how it gets handled after hours."
               value={writtenEmergency}
               onChange={setWrittenEmergency}
               name="emergency"
             />
             <PolicyRadio
               label="Defined not-to-exceed (NTE) limits?"
+              helper="Also called a maintenance limit — the max a vendor can spend on a repair without your approval."
               value={definedNtes}
               onChange={setDefinedNtes}
               name="nte"
@@ -729,6 +738,7 @@ export function SurveyFlow() {
             ) : null}
             <PolicyRadio
               label="Defined SLAs with vendors?"
+              helper="Written response time or completion time expectations for your vendors."
               value={definedSlas}
               onChange={setDefinedSlas}
               name="sla"
