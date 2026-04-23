@@ -224,6 +224,21 @@ function QuickResults({
         </section>
       )}
 
+      {/* ── Hidden category explanation ── */}
+      <div className="rounded-lg border border-vendoroo-border/60 bg-vendoroo-light/50 px-4 py-3">
+        <p className="text-xs leading-relaxed text-vendoroo-muted">
+          Your overall score includes 3 additional categories —{" "}
+          <span className="font-medium text-vendoroo-smoke">Documentation Quality</span>,{" "}
+          <span className="font-medium text-vendoroo-smoke">Policy Completeness</span>, and{" "}
+          <span className="font-medium text-vendoroo-smoke">Operational Consistency</span>{" "}
+          — that require your actual documents and work order data to score accurately.{" "}
+          <Link href="/diagnostic/full" className="font-medium text-vendoroo-main hover:underline">
+            Upload your files
+          </Link>{" "}
+          to get the full picture.
+        </p>
+      </div>
+
       {/* ── Full diagnostic upsell ── */}
       <div className="rounded-xl bg-vendoroo-light px-5 py-5">
         <p className="text-sm font-medium text-vendoroo-text">Want the full picture?</p>
