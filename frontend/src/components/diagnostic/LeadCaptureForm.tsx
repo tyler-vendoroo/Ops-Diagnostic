@@ -140,9 +140,9 @@ export function LeadCaptureForm({
           htmlFor="trial-interest"
           className="block min-w-0 flex-1 cursor-pointer text-left text-sm font-normal leading-relaxed text-vendoroo-smoke"
         >
-          I&apos;m interested in a{" "}
-          <span className="font-semibold text-vendoroo-main">90-day free trial</span>{" "}
-          of Vendoroo AI maintenance coordination.
+          I&apos;m interested in{" "}
+          <span className="font-semibold text-vendoroo-main">90 days free</span>{" "}
+          with Vendoroo AI maintenance coordination.
         </Label>
       </div>
       <div className="flex items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-light p-4">

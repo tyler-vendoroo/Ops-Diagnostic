@@ -166,7 +166,7 @@ function QuickResults({
       {/* ── Free trial banner ── */}
       <div className="rounded-xl border border-vendoroo-main/20 bg-vendoroo-tint/10 px-5 py-4 text-center">
         <p className="text-sm font-semibold text-vendoroo-main-dark">
-          You qualify for a 90-day free trial
+          You qualify for 90 days free
         </p>
         <p className="mt-1 text-xs text-vendoroo-muted">
           Complete your full diagnostic or book a call to get started.
@@ -451,7 +451,7 @@ export function ResultsView({ id }: { id: string }) {
       {/* ── Free trial qualifying banner ── */}
       <div className="rounded-xl border border-vendoroo-main/20 bg-vendoroo-tint/10 px-5 py-4 text-center">
         <p className="text-sm font-semibold text-vendoroo-main-dark">
-          You qualify for a 90-day free trial
+          You qualify for 90 days free
         </p>
         <p className="mt-1 text-xs text-vendoroo-muted">
           Complete your full diagnostic or book a call to get started.

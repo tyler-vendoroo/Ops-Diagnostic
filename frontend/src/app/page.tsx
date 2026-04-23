@@ -98,8 +98,8 @@ export default function Home() {
 
           <div className="border-t border-vendoroo-border/80 bg-vendoroo-tint/15 py-2 sm:py-2.5">
             <p className="mx-auto max-w-3xl px-4 text-center text-xs font-medium leading-snug text-vendoroo-main-dark sm:text-sm">
-              Qualifying companies at NARPM Broker-Owner eligible for a 90-day
-              free trial.{" "}
+              Qualifying companies at NARPM Broker-Owner are eligible for 90 days
+              free.{" "}
               <Link
                 href="/diagnostic"
                 className="font-semibold underline underline-offset-2 hover:text-vendoroo-main"
