@@ -1007,6 +1007,35 @@ class DiagnosticService:
                 "has_lease": lease_result is not None,
                 "has_pma": pma_result is not None,
                 "has_vendor_directory": vendor_directory_data is not None,
+                "wo_metrics": {
+                    "total_work_orders": wo_metrics.total_work_orders,
+                    "maintenance_wos": wo_metrics.maintenance_wos,
+                    "monthly_avg": wo_metrics.monthly_avg_work_orders,
+                    "avg_first_response_hours": wo_metrics.avg_first_response_hours,
+                    "median_completion_days": wo_metrics.median_completion_days,
+                    "open_wo_rate_pct": wo_metrics.open_wo_rate_pct,
+                    "open_wo_count": wo_metrics.open_wo_count,
+                    "unique_vendors": wo_metrics.unique_vendors,
+                    "trades_covered_count": wo_metrics.trades_covered_count,
+                    "trades_required_count": wo_metrics.trades_required_count,
+                    "covered_trades": wo_metrics.covered_trades,
+                    "missing_trades": wo_metrics.missing_trades,
+                    "after_hours_pct": wo_metrics.after_hours_pct,
+                    "months_spanned": wo_metrics.months_spanned,
+                    "date_range_start_short": wo_metrics.date_range_start_short,
+                    "date_range_end_short": wo_metrics.date_range_end_short,
+                },
+                "benchmark_rows": [
+                    {
+                        "metric": row.metric,
+                        "current_value": row.current_value,
+                        "current_css": row.current_css,
+                        "vendoroo_avg": row.vendoroo_avg,
+                        "top_performers": row.top_performers,
+                    }
+                    for row in benchmark_rows
+                ],
+                "repeat_units": wo_metrics_dict.get("repeat_units", {}),
                 "current_cost_per_door": round(
                     (ci.annual_cost_per_staff or STAFF_COST_BENCHMARKS.get(ci.operational_model, STAFF_COST_BENCHMARKS["va"])["annual_loaded_cost"])
                     * ci.staff_count / 12 / max(1, ci.door_count), 2

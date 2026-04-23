@@ -254,6 +254,39 @@ export interface DiagnosticStatusResponse {
       optimize: PathData;
       elevate: PathData;
     };
+    wo_metrics?: {
+      total_work_orders?: number;
+      maintenance_wos?: number;
+      monthly_avg?: number;
+      avg_first_response_hours?: number;
+      median_completion_days?: number;
+      open_wo_rate_pct?: number;
+      open_wo_count?: number;
+      unique_vendors?: number;
+      trades_covered_count?: number;
+      trades_required_count?: number;
+      covered_trades?: string[];
+      missing_trades?: string[];
+      after_hours_pct?: number;
+      months_spanned?: number;
+      date_range_start_short?: string;
+      date_range_end_short?: string;
+    };
+    benchmark_rows?: Array<{
+      metric: string;
+      current_value: string;
+      current_css: string;
+      vendoroo_avg: string;
+      top_performers: string;
+    }>;
+    repeat_units?: Record<string, {
+      wo_count: number;
+      primary_trades?: string[];
+      total_cost?: number;
+      span_days?: number;
+      first_wo?: string;
+      last_wo?: string;
+    }>;
     [key: string]: unknown;
   };
 }

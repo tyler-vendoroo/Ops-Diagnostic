@@ -8,10 +8,9 @@ import type {
   DiagnosticStatusResponse,
   DiagnosticTier,
 } from "@/lib/types";
-import { getDiagnostic, getDiagnosticPdfUrl, getDiagnosticReportUrl } from "@/lib/api";
+import { getDiagnostic } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, ArrowRight, Download, FileText } from "lucide-react";
 
 const tierCopy: Record<DiagnosticTier, { label: string; line: string }> = {
   engage: {
@@ -282,6 +281,19 @@ function QuickResults({
   );
 }
 
+function StatCard({ value, label, isBad }: { value: string; label: string; isBad: boolean }) {
+  return (
+    <div className="flex flex-col items-center rounded-xl border border-vendoroo-border bg-vendoroo-surface px-3 py-5 text-center">
+      <span className={`text-xl font-bold tabular-nums ${isBad ? "text-rose-500" : "text-emerald-500"}`}>
+        {value}
+      </span>
+      <span className="mt-1 text-[10px] font-medium uppercase tracking-wider text-vendoroo-muted">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export function ResultsView({ id }: { id: string }) {
   const [data, setData] = React.useState<DiagnosticStatusResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -381,222 +393,272 @@ export function ResultsView({ id }: { id: string }) {
   }
 
   const projectedScore = clampScore(data.summary?.projected_score ?? score);
-  const tier: DiagnosticTier = data.tier ?? "engage";
-  const tierInfo = tierCopy[tier];
-  const findings = data.key_findings ?? [];
   const gaps = data.gaps ?? [];
-  const categoryScores = data.summary?.category_scores ?? [];
-  const isFullComplete = Boolean(data.pdf_url);
-  const pdfHref = getDiagnosticPdfUrl(id);
-  const reportHref = getDiagnosticReportUrl(id);
-
-  const worstCategories = [...categoryScores]
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 3);
-
-  const PAIN_LABELS: Record<string, string> = {
-    vendor_reliability: "vendor reliability",
-    response_times: "response times",
-    cost_control: "cost control",
-    compliance_documentation: "compliance/documentation",
-    scaling_team: "scaling the team",
-    owner_communication: "owner communication",
-    after_hours_coverage: "after-hours coverage",
-    reporting_visibility: "reporting/visibility",
-  };
-  const painPoints = data.summary?.pain_points ?? [];
-  const painLabels = painPoints.map((p) => PAIN_LABELS[p] ?? p).filter(Boolean);
+  const woMetrics = data.summary?.wo_metrics ?? {};
+  const benchmarkRows = data.summary?.benchmark_rows ?? [];
+  const repeatUnitsObj = data.summary?.repeat_units ?? {};
+  const repeatUnits = Object.entries(repeatUnitsObj)
+    .sort(([, a], [, b]) => ((b as { wo_count?: number }).wo_count ?? 0) - ((a as { wo_count?: number }).wo_count ?? 0))
+    .filter(([addr]) => addr && addr !== "Unknown" && addr.trim() !== "");
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 bg-vendoroo-page px-4 py-12 sm:px-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 bg-vendoroo-page px-4 py-12 sm:px-6">
 
-      {/* ── Before → After hero (the golden nugget) ── */}
-      <div className="overflow-hidden rounded-2xl bg-[#222] px-6 py-10 text-center shadow-lg sm:px-10">
+      {/* ── 1. Hero card ── */}
+      <div className="overflow-hidden rounded-2xl bg-[#1a1a2e] px-6 py-10 text-center shadow-xl sm:px-10">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">
-          Operations readiness
+          Operations Analysis
+        </p>
+        <p className="mt-2 text-lg font-semibold text-white">
+          {data.summary?.company_name}
         </p>
 
-        <div className="mt-6 flex items-center justify-center gap-6 sm:gap-10">
+        <div className="mt-8 flex items-center justify-center gap-6 sm:gap-10">
           <div className="flex flex-col items-center">
             <ScoreRingDark score={score} color={ringColor(score)} />
             <span className="mt-2 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
               Today
             </span>
           </div>
-
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl text-neutral-600" aria-hidden>
-              →
-            </span>
-          </div>
-
+          <span className="text-2xl text-neutral-600" aria-hidden>→</span>
           <div className="flex flex-col items-center">
             <ScoreRingDark score={projectedScore} color="#039cac" />
-            <span className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-[#FDBB00]">
+            <span className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-[#039cac]">
               With Vendoroo
             </span>
           </div>
         </div>
 
-        <div className="mt-8">
-          <span className="inline-block rounded-full bg-vendoroo-main px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-white">
-            {tierInfo.label}
-          </span>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-neutral-400">
-            {tierInfo.line}
-          </p>
-        </div>
-      </div>
-
-      {/* ── Free trial qualifying banner ── */}
-      <div className="rounded-xl border border-vendoroo-main/20 bg-vendoroo-tint/10 px-5 py-4 text-center">
-        <p className="text-sm font-semibold text-vendoroo-main-dark">
-          You qualify for 90 days free
-        </p>
-        <p className="mt-1 text-xs text-vendoroo-muted">
-          Complete your full diagnostic or book a call to get started.
+        <p className="mx-auto mt-8 max-w-md text-xs leading-relaxed text-neutral-500">
+          Based on {(woMetrics.total_work_orders ?? 0).toLocaleString()} work orders
+          {woMetrics.months_spanned ? ` across ${Math.round(woMetrics.months_spanned)} months` : ""}
+          {" · "}{data.summary?.door_count ?? 0} doors
+          {" · "}{data.summary?.staff_count ?? 0} {data.summary?.staff_label ?? "staff"}
         </p>
       </div>
 
-      {/* ── Areas that need attention (worst 3 categories) ── */}
-      {worstCategories.length > 0 && (
+      {/* ── 2. Benchmark table ── */}
+      {benchmarkRows.length > 0 && (
         <section>
-          <h2 className="text-sm font-medium text-vendoroo-text">
-            Areas that need attention
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
+            Current Operations Analysis
           </h2>
-          <div className="mt-3 space-y-2.5">
-            {worstCategories.map((cat) => (
-              <CategoryBar
-                key={cat.key}
-                name={cat.name}
-                score={cat.score}
-                tier={cat.tier}
-                tierCss={cat.tier_css}
-              />
+          <p className="mt-1 text-xs text-vendoroo-muted">
+            Your performance compared to similar portfolios using AI maintenance coordination
+          </p>
+          <div className="mt-4 overflow-hidden rounded-xl border border-vendoroo-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#1a1a2e] text-left text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                  <th className="px-4 py-3">Metric</th>
+                  <th className="px-4 py-3">Your Current</th>
+                  <th className="px-4 py-3">Vendoroo Avg.</th>
+                  <th className="px-4 py-3">Top Performers</th>
+                </tr>
+              </thead>
+              <tbody>
+                {benchmarkRows.map((row, i) => (
+                  <tr key={i} className={i % 2 === 0 ? "bg-vendoroo-surface" : "bg-vendoroo-light/30"}>
+                    <td className="px-4 py-3 text-xs font-medium text-vendoroo-smoke">{row.metric}</td>
+                    <td className={`px-4 py-3 text-xs font-semibold ${
+                      row.current_css === "val-bad" ? "text-rose-500" :
+                      row.current_css === "val-good" ? "text-emerald-500" :
+                      "text-vendoroo-text"
+                    }`}>
+                      {row.current_value}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-vendoroo-muted">{row.vendoroo_avg}</td>
+                    <td className="px-4 py-3 text-xs font-medium text-emerald-500">{row.top_performers}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="border-t border-vendoroo-border bg-vendoroo-light/50 px-4 py-2">
+              <p className="text-[10px] italic text-vendoroo-muted">
+                Based on uploaded work order history.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 3. Three headline stat cards ── */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard
+          value={woMetrics.avg_first_response_hours != null
+            ? `${woMetrics.avg_first_response_hours}hr`
+            : "N/A"}
+          label="Avg. First Response"
+          isBad={woMetrics.avg_first_response_hours != null && woMetrics.avg_first_response_hours > 4}
+        />
+        <StatCard
+          value={`${woMetrics.open_wo_rate_pct ?? 0}%`}
+          label="Open WO Rate"
+          isBad={(woMetrics.open_wo_rate_pct ?? 0) > 15}
+        />
+        <StatCard
+          value={`${woMetrics.trades_covered_count ?? 0}/${woMetrics.trades_required_count ?? 8}`}
+          label="Core Trade Coverage"
+          isBad={(woMetrics.trades_covered_count ?? 0) < (woMetrics.trades_required_count ?? 8)}
+        />
+      </div>
+
+      {/* ── 4. Gap cards ── */}
+      {gaps.length > 0 && (
+        <section>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
+            {gaps.length} Operational Gap{gaps.length !== 1 ? "s" : ""} Identified
+          </h2>
+          <div className="mt-4 space-y-3">
+            {gaps.map((gap, i) => (
+              <div key={i} className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`size-2 shrink-0 rounded-full ${
+                      gap.severity === "High Priority" ? "bg-rose-500" : "bg-amber-500"
+                    }`} />
+                    <span className="text-sm font-medium text-vendoroo-text">{gap.title}</span>
+                  </div>
+                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                    gap.severity === "High Priority"
+                      ? "bg-rose-50 text-rose-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}>
+                    {gap.severity}
+                  </span>
+                </div>
+                {gap.detail && (
+                  <p className="mt-2 text-xs leading-relaxed text-vendoroo-muted">
+                    {gap.detail}
+                  </p>
+                )}
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-vendoroo-light/60 px-3 py-2">
+                  <svg className="size-3.5 shrink-0 text-vendoroo-muted" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="text-[11px] text-vendoroo-muted">
+                    Remediation plan available in your full report
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
-          {categoryScores.length > 3 && (
-            <p className="mt-2 text-xs text-vendoroo-muted">
-              + {categoryScores.length - 3} more categories in your full report
-            </p>
-          )}
         </section>
       )}
 
-      {/* ── Findings preview (titles only) ── */}
-      {findings.length > 0 && (
+      {/* ── 5. Staffing insight ── */}
+      {data.summary?.staff_count != null && data.summary?.door_count != null && (
+        <div className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-5">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
+            Staffing Analysis
+          </h3>
+          {(() => {
+            const doorsPerStaff = Math.round((data.summary?.door_count ?? 0) / Math.max(1, data.summary?.staff_count ?? 1));
+            const benchmark = data.summary?.operational_model === "tech" ? 120 : 175;
+            const staffRole = (data.summary?.staff_label ?? "coordinators").slice(0, -1);
+            return (
+              <>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold tabular-nums text-vendoroo-text">
+                    {doorsPerStaff}
+                  </span>
+                  <span className="text-sm text-vendoroo-muted">doors per {staffRole}</span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-vendoroo-muted">
+                  {doorsPerStaff > benchmark * 1.15
+                    ? `Industry benchmark is ${benchmark} doors per ${staffRole}. Your team is managing significantly more — that pressure shows up in response times and open work order rates.`
+                    : doorsPerStaff < benchmark * 0.85
+                    ? `Industry benchmark is ${benchmark} doors per ${staffRole}. You have capacity to grow your portfolio without adding headcount.`
+                    : `You're tracking with the industry benchmark of ${benchmark} doors per ${staffRole}.`}
+                </p>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── 6. Repeat units table (top 3) ── */}
+      {repeatUnits.length > 0 && (
         <section>
-          <h2 className="text-sm font-medium text-vendoroo-text">
-            {findings.length} finding{findings.length !== 1 ? "s" : ""} identified
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
+            Units with Highest WO Volume
           </h2>
-          <ul className="mt-3 space-y-1.5">
-            {findings.map((f, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-vendoroo-smoke">
-                <span className={`size-1.5 shrink-0 rounded-full ${
-                  f.color?.includes("red") ? "bg-rose-500"
-                  : f.color?.includes("amber") ? "bg-amber-500"
-                  : f.color?.includes("green") ? "bg-emerald-500"
-                  : "bg-vendoroo-main"
-                }`} />
-                {f.title}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* ── Gaps stat ── */}
-      {gaps.length > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-4 shadow-sm">
-          <span className="flex size-10 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-            <AlertTriangle className="size-5" />
-          </span>
-          <div>
-            <p className="text-sm font-medium text-vendoroo-text">
-              {gaps.length} operational gap{gaps.length !== 1 ? "s" : ""} identified
-            </p>
-            {painLabels.length > 0 ? (
-              <p className="text-xs text-vendoroo-muted">
-                Prioritized by your focus areas: {painLabels.join(" · ")}
-              </p>
-            ) : (
-              <p className="text-xs text-vendoroo-muted">
-                Each gap includes a specific remediation plan from your AI Adoption Advisor
-              </p>
+          <div className="mt-4 overflow-hidden rounded-xl border border-vendoroo-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#1a1a2e] text-left text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+                  <th className="px-4 py-3 w-16">WOs</th>
+                  <th className="px-4 py-3">Unit Address</th>
+                  <th className="px-4 py-3">Top Trades</th>
+                  <th className="px-4 py-3 w-24">Span</th>
+                </tr>
+              </thead>
+              <tbody>
+                {repeatUnits.slice(0, 3).map(([address, info], i) => (
+                  <tr key={i} className={i % 2 === 0 ? "bg-vendoroo-surface" : "bg-vendoroo-light/30"}>
+                    <td className="px-4 py-3 text-lg font-bold tabular-nums text-rose-500">
+                      {(info as { wo_count?: number }).wo_count}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-vendoroo-smoke">{address}</td>
+                    <td className="px-4 py-3 text-xs text-vendoroo-muted">
+                      {((info as { primary_trades?: string[] }).primary_trades ?? []).join(", ") || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-vendoroo-muted">
+                      {(info as { span_days?: number }).span_days ? `${(info as { span_days?: number }).span_days} days` : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {repeatUnits.length > 3 && (
+              <div className="border-t border-vendoroo-border bg-vendoroo-light/50 px-4 py-2">
+                <p className="text-[10px] text-vendoroo-muted">
+                  + {repeatUnits.length - 3} more units in your full report
+                </p>
+              </div>
             )}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* ── CTAs ── */}
-      <div className="flex flex-col gap-3 border-t border-vendoroo-border pt-8">
-        {/* Full diagnostic: show report + PDF links */}
-        {isFullComplete && (
-          <>
-            <a
-              href={reportHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({
-                  className:
-                    "inline-flex gap-2 rounded-full px-8 py-5 text-sm font-medium uppercase tracking-[-0.02em]",
-                })
-              )}
-            >
-              <FileText className="size-4" />
-              View full report
-            </a>
-            <a
-              href={pdfHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                buttonVariants({
-                  variant: "outline",
-                  className:
-                    "inline-flex gap-2 rounded-full border-vendoroo-border px-8 py-4 text-sm font-medium uppercase tracking-[-0.02em] text-vendoroo-text hover:bg-vendoroo-light",
-                })
-              )}
-            >
-              <Download className="size-4" />
-              Download PDF
-            </a>
-          </>
-        )}
-
-        {/* Always: Book a call */}
+      {/* ── 7. Locked report CTA ── */}
+      <div className="overflow-hidden rounded-2xl border border-vendoroo-border bg-gradient-to-b from-vendoroo-surface to-vendoroo-light p-6 sm:p-8">
+        <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-vendoroo-main/10">
+          <svg className="size-6 text-vendoroo-main" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-vendoroo-text">
+          Your full report is ready
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-vendoroo-muted">
+          We&apos;ve prepared a comprehensive analysis with specific remediation plans for each gap.
+          Book a call and your advisor will walk you through the findings.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {[
+            "Detailed remediation plan for each gap",
+            "Document analysis (lease & PMA review)",
+            "Vendor performance breakdown",
+            "Projected ROI and impact timeline",
+            "Personalized onboarding roadmap",
+          ].map((item, i) => (
+            <li key={i} className="flex items-center gap-2 text-xs text-vendoroo-smoke">
+              <svg className="size-3.5 shrink-0 text-vendoroo-main" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              {item}
+            </li>
+          ))}
+        </ul>
         <a
           href="https://vendoroo.ai/contact"
           target="_blank"
           rel="noopener noreferrer"
-          className={cn(
-            buttonVariants({
-              variant: isFullComplete ? "outline" : "default",
-              className: cn(
-                "inline-flex rounded-full px-8 text-sm font-medium uppercase tracking-[-0.02em]",
-                isFullComplete
-                  ? "border-vendoroo-border py-4 text-vendoroo-text hover:bg-vendoroo-light"
-                  : "py-5"
-              ),
-            })
-          )}
+          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-vendoroo-main px-8 py-4 text-sm font-semibold uppercase tracking-wider text-white shadow-lg transition-colors hover:bg-vendoroo-main/90"
         >
-          Book a call
+          Book a call to access your full report
         </a>
-
-      </div>
-
-      {/* ── What's in the full report ── */}
-      <div className="rounded-xl bg-vendoroo-light px-5 py-4">
-        <p className="text-xs font-medium text-vendoroo-smoke">
-          Your full report includes
-        </p>
-        <p className="mt-1 text-xs leading-relaxed text-vendoroo-muted">
-          8 category scores · benchmark comparisons · impact projections ·
-          gap analysis with remediation plans · tier recommendation ·
-          AI adoption roadmap · downloadable PDF
-        </p>
       </div>
     </div>
   );
