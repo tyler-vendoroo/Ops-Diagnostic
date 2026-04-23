@@ -578,8 +578,8 @@ export function ResultsView({ id }: { id: string }) {
         </div>
       )}
 
-      {/* ── 6. Cost per door comparison ── */}
-      {data.summary?.current_cost_per_door != null && (
+      {/* ── 6. Cost per door comparison — only shown when user entered actual cost ── */}
+      {data.summary?.cost_source === "based on your input" && data.summary?.current_cost_per_door != null && (
         <div className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-5">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
             Coordination Cost Analysis
@@ -591,9 +591,7 @@ export function ResultsView({ id }: { id: string }) {
             <span className="text-sm text-vendoroo-muted">per door / month</span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-vendoroo-muted">
-            {(data.summary.current_cost_per_door as number) > 3.00
-              ? `Your ${data.summary.staff_count ?? ""} ${data.summary.staff_label ?? "staff"} cost ~$${((data.summary.annual_cost_per_staff ?? 0) as number).toLocaleString()}/year each${data.summary.cost_source === "based on your input" ? "" : " (industry estimate)"}, which works out to $${(data.summary.current_cost_per_door as number).toFixed(2)} per door per month. Vendoroo starts at $3/door/month.`
-              : `At $${(data.summary.current_cost_per_door as number).toFixed(2)}/door/month, your coordination costs are efficient. Vendoroo maintains this efficiency as you grow — adding doors without adding staff.`}
+            {`Your ${data.summary.staff_count ?? ""} ${data.summary.staff_label ?? "staff"} cost ~$${((data.summary.annual_cost_per_staff ?? 0) as number).toLocaleString()}/year each, which works out to $${(data.summary.current_cost_per_door as number).toFixed(2)} per door per month. Vendoroo starts at $3/door/month.`}
           </p>
         </div>
       )}
