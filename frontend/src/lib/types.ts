@@ -35,6 +35,7 @@ export interface ClientInfo {
   event_source?: string;
   lead_id?: string;
   data_source?: string;
+  annual_cost_per_staff?: number | null;
 }
 
 // ─── Survey ───────────────────────────────────────────────────────────────────
