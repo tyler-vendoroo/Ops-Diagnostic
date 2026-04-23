@@ -385,9 +385,9 @@ def generate_key_findings(
                 title="Response Time Gap",
                 description=(
                     f"Your average first response of {hrs} hours means most requests wait "
-                    f"until the next business day. Vendoroo's average is under 10 minutes. "
-                    f"This gap compounds after hours, where every evening request adds "
-                    f"8 to 12 hours before a vendor is even contacted."
+                    f"until the next business day for any acknowledgment. Vendoroo's average is "
+                    f"under 10 minutes — residents get an immediate response confirming their "
+                    f"request was received, with troubleshooting steps and an ETA."
                 ),
                 color="var(--red)",
             ))
@@ -396,8 +396,9 @@ def generate_key_findings(
                 title="Response Time Gap",
                 description=(
                     f"Your average first response of {hrs} hours is common for teams "
-                    f"managing dispatch manually. Vendoroo's average is under 10 minutes — "
-                    f"AI triage and auto-dispatch eliminate the queue between request and action."
+                    f"managing intake manually. Vendoroo's average is under 10 minutes — "
+                    f"AI handles the initial resident response, triage, and troubleshooting "
+                    f"before your team even sees the request."
                 ),
                 color="var(--amber)",
             ))
@@ -406,8 +407,9 @@ def generate_key_findings(
                 title="Response Time Opportunity",
                 description=(
                     f"Your average first response of {hrs} hours shows reasonable urgency. "
-                    f"AI coordination can compress this to under 10 minutes by eliminating "
-                    f"the manual triage step between resident request and vendor contact."
+                    f"AI coordination compresses this to under 10 minutes by instantly "
+                    f"acknowledging the resident, running troubleshooting, and beginning "
+                    f"triage — all before a coordinator is involved."
                 ),
                 color="var(--amber)",
             ))
@@ -417,7 +419,7 @@ def generate_key_findings(
                 description=(
                     f"Your average first response of {hrs} hours is already fast. "
                     f"AI coordination maintains this speed 24/7 — including nights, "
-                    f"weekends, and holidays when manual teams typically slow down."
+                    f"weekends, and holidays when manual teams typically can't respond."
                 ),
                 color="var(--green)",
             ))
@@ -459,7 +461,7 @@ def generate_key_findings(
 
     # ── 3. Vendor Coverage ──
     covered = wo_metrics.trades_covered_count
-    required = wo_metrics.trades_required_count or 12
+    required = wo_metrics.trades_required_count or len(CORE_TRADES)
     if wo_metrics.missing_trades:
         missing_str = ", ".join(wo_metrics.missing_trades[:4])
         missing_count = len(wo_metrics.missing_trades)
@@ -1195,6 +1197,7 @@ _GAP_POINT_MAP = {
     "policy_documentation": 2,
     "Policy Documentation": 2,
     "Open Work Order Backlog": 4,
+    "Property Concentration Risk": 2,
 }
 
 

@@ -243,9 +243,9 @@ class DiagnosticService:
                     "icon": "clock",
                     "title": f"{_avg_hrs}-hour average first response",
                     "detail": (
-                        "Vendoroo clients average under 10 minutes from request to vendor contacted. "
-                        "Faster first response means fewer resident follow-ups, fewer owner complaints, "
-                        "and higher retention."
+                        "Vendoroo clients average under 10 minutes from resident request to first acknowledgment. "
+                        "Faster first response means fewer follow-up calls, fewer owner complaints, "
+                        "and higher resident retention."
                     ),
                 })
             elif _avg_hrs and _avg_hrs > 1:
@@ -253,8 +253,8 @@ class DiagnosticService:
                     "icon": "clock",
                     "title": f"{_avg_hrs}-hour average first response",
                     "detail": (
-                        "Solid, but AI coordination gets this under 10 minutes. The difference shows up "
-                        "in resident satisfaction surveys and owner retention — they notice when things move fast."
+                        "Solid, but AI coordination gets this under 10 minutes. Residents get an instant "
+                        "acknowledgment with troubleshooting steps — before a coordinator is even involved."
                     ),
                 })
 

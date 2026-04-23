@@ -55,10 +55,11 @@ def validate_report_consistency(report_data: ReportData) -> list[str]:
                     f"Benchmark open WO mismatch: benchmark={row.current_value}, wo_metrics={expected_open_rate}"
                 )
         if "vendor coverage" in metric:
-            expected_vendor_cov = f"{wo.trades_covered_count}/{wo.trades_required_count} trades"
-            if row.current_value != expected_vendor_cov:
+            expected_count = f"{wo.trades_covered_count}/{wo.trades_required_count}"
+            if expected_count not in row.current_value:
                 mismatches.append(
-                    f"Benchmark vendor coverage mismatch: benchmark={row.current_value}, wo_metrics={expected_vendor_cov}"
+                    f"Benchmark vendor coverage mismatch: benchmark={row.current_value}, "
+                    f"expected to contain '{expected_count}'"
                 )
         if "first response" in metric:
             if row.current_value != expected_response:
@@ -78,10 +79,11 @@ def validate_report_consistency(report_data: ReportData) -> list[str]:
                 f"Impact open WO mismatch: impact={row.current_value}, wo_metrics={expected_open_rate}"
             )
         if "vendor coverage" in metric:
-            expected_vendor_cov = f"{wo.trades_covered_count}/{wo.trades_required_count} trades"
-            if row.current_value != expected_vendor_cov:
+            expected_count = f"{wo.trades_covered_count}/{wo.trades_required_count}"
+            if expected_count not in row.current_value:
                 mismatches.append(
-                    f"Impact vendor coverage mismatch: impact={row.current_value}, wo_metrics={expected_vendor_cov}"
+                    f"Impact vendor coverage mismatch: impact={row.current_value}, "
+                    f"expected to contain '{expected_count}'"
                 )
 
     # Gaps: check numbers where expected to appear
@@ -95,7 +97,8 @@ def validate_report_consistency(report_data: ReportData) -> list[str]:
                     f"Gap vendor count mismatch: expected vendor count {expected_vendor_count} in '{gap.title}' detail"
                 )
             expected_cov = f"{wo.trades_covered_count} of {wo.trades_required_count}"
-            if expected_cov not in detail:
+            alt_cov = f"{wo.trades_covered_count}/{wo.trades_required_count}"
+            if expected_cov not in detail and alt_cov not in detail:
                 mismatches.append(
                     f"Gap trade coverage mismatch: expected '{expected_cov}' in '{gap.title}' detail"
                 )

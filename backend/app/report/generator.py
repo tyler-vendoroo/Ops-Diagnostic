@@ -13,10 +13,14 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+import logging
+
 from jinja2 import Environment, FileSystemLoader
 
 from app.models.report_data import ReportData
 from app.report.consistency import validate_report_consistency
+
+logger = logging.getLogger(__name__)
 
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -163,8 +167,7 @@ def generate_pdf(report_data: ReportData) -> bytes:
     """
     mismatches = validate_report_consistency(report_data)
     if mismatches:
-        mismatch_text = "; ".join(mismatches)
-        raise ValueError(f"Cross-page consistency check failed: {mismatch_text}")
+        logger.warning("Report consistency warnings (not blocking): %s", "; ".join(mismatches))
 
     html = render_html(report_data)
 

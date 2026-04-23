@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from app.utils.date_parsing import auto_parse_dates
+from app.config import CORE_TRADES
 from app.parsers.pms_mappings import (
     PMS_CONFIGS, STATUS_NORMALIZE, TRADE_KEYWORDS,
     EMERGENCY_KEYWORDS, EMERGENCY_PRIORITIES, INSPECTION_KEYWORDS,
@@ -690,8 +691,23 @@ def compute_metrics(std, client_info, config=None):
         display_label = str(unit_wos["unit"].iloc[0]) if len(unit_wos) > 0 else "Unknown"
         if "unit_label" in unit_wos.columns:
             label_vals = unit_wos["unit_label"].dropna()
+            label_vals = label_vals[label_vals.astype(str).str.strip() != ""]
             if len(label_vals) > 0:
-                display_label = label_vals.iloc[0]
+                display_label = str(label_vals.iloc[0])
+
+        # If label is just a bare number or unknown, try to prepend the property name
+        if display_label.strip().isdigit() or display_label in ("Unknown", ""):
+            if "property" in unit_wos.columns:
+                prop_vals = unit_wos["property"].dropna()
+                prop_vals = prop_vals[prop_vals.astype(str).str.strip() != ""]
+                if len(prop_vals) > 0:
+                    prop = str(prop_vals.iloc[0]).strip()
+                    unit_val = display_label if display_label not in ("Unknown", "") else ""
+                    display_label = f"{prop}, Unit {unit_val}" if unit_val else prop
+
+        # Skip groups where we couldn't determine a meaningful label (blank unit data quality issue)
+        if not display_label or display_label.strip() in ("", "Unknown", "nan"):
+            continue
 
         repeat_units[display_label] = {
             "wo_count": int(count),
@@ -844,7 +860,7 @@ def compute_metrics(std, client_info, config=None):
         "covered_trades": covered_trades,
         "missing_trades": missing_trades,
         "trades_covered_count": len(covered_trades),
-        "trades_required_count": len(required_trades_list),
+        "trades_required_count": len(CORE_TRADES),
         "internal_count": internal_count,
         "internal_pct": internal_pct,
         "trade_distribution": trade_distribution,
@@ -1209,7 +1225,7 @@ def _build_validation_summary(file_name, file_format, header_row, metrics, confi
         "",
         f"Trade distribution sum: {metrics.get('trade_distribution_sum', 0.0)}% (must be 100.0%)",
         f"Vendor count: {metrics.get('unique_vendors', 0)}",
-        f"Trade coverage: {metrics.get('trades_covered_count', 0)} of {metrics.get('trades_required_count', 12)}",
+        f"Trade coverage: {metrics.get('trades_covered_count', 0)} of {metrics.get('trades_required_count', len(CORE_TRADES))}",
     ]
     return {
         "file": file_name,
