@@ -64,6 +64,18 @@ TOP_PERFORMERS = {
     },
 }
 
+# Average annual loaded cost per staff member by model
+STAFF_COST_BENCHMARKS = {
+    "va": {
+        "annual_loaded_cost": 22000,   # VA coordinator: salary + benefits + overhead
+        "source": "Industry average for offshore/contract maintenance coordinators",
+    },
+    "tech": {
+        "annual_loaded_cost": 52000,   # In-house tech: salary + benefits + tools + vehicle
+        "source": "Industry average for W2 maintenance technicians (NARPM 2024)",
+    },
+}
+
 # Doors-per-staff benchmarks by model (used for staffing projections)
 STAFFING_BENCHMARKS = {
     "va": {

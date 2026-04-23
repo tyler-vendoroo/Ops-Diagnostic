@@ -83,6 +83,9 @@ export interface SurveyResponse {
   // Goals
   primary_goal?: "scale" | "optimize" | "elevate";
   pain_points: string[];
+
+  // Cost
+  annual_cost_per_staff?: number;
 }
 
 // ─── Diagnostic ───────────────────────────────────────────────────────────────

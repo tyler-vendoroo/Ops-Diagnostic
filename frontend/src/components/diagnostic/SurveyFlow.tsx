@@ -214,6 +214,7 @@ export function SurveyFlow() {
     "va" | "tech" | ""
   >("");
   const [staffCount, setStaffCount] = React.useState("");
+  const [annualCostPerStaff, setAnnualCostPerStaff] = React.useState("");
 
   const [vendorCount, setVendorCount] = React.useState("");
   const [trades, setTrades] = React.useState<string[]>([]);
@@ -410,6 +411,7 @@ export function SurveyFlow() {
         SurveyResponse["primary_goal"]
       >,
       pain_points: painPoints,
+      annual_cost_per_staff: annualCostPerStaff ? Number(annualCostPerStaff) : undefined,
     };
 
     const clientInfo: ClientInfo = {
@@ -429,6 +431,7 @@ export function SurveyFlow() {
       contact_name: l.name,
       contact_email: l.email,
       data_source: "quick_survey",
+      annual_cost_per_staff: annualCostPerStaff ? Number(annualCostPerStaff) : null,
     };
 
     setLoading(true);
@@ -450,6 +453,7 @@ export function SurveyFlow() {
           operational_model: clientInfo.operational_model,
           staff_count: clientInfo.staff_count,
           primary_goal: clientInfo.primary_goal,
+          annual_cost_per_staff: clientInfo.annual_cost_per_staff ?? null,
         }));
       }
 
@@ -592,6 +596,27 @@ export function SurveyFlow() {
                 onChange={(e) => setStaffCount(e.target.value)}
                 className={inputClass}
               />
+            </div>
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="text-sm font-medium text-vendoroo-text" htmlFor="annual-cost">
+                Annual cost per {operationalModel === "tech" ? "technician" : "coordinator"}{" "}
+                <span className="font-normal text-vendoroo-muted">(optional)</span>
+              </label>
+              <span className="text-xs text-vendoroo-muted">
+                Include salary, benefits, and overhead. Used to calculate your cost per door.
+              </span>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-vendoroo-muted">$</span>
+                <input
+                  id="annual-cost"
+                  type="number"
+                  min={0}
+                  value={annualCostPerStaff}
+                  onChange={(e) => setAnnualCostPerStaff(e.target.value)}
+                  className="w-full rounded-xl border border-vendoroo-border bg-vendoroo-surface py-2.5 pl-8 pr-4 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+                  placeholder={operationalModel === "tech" ? "52000" : "22000"}
+                />
+              </div>
             </div>
           </section>
         ) : null}

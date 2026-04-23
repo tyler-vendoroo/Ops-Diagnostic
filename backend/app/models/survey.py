@@ -29,3 +29,6 @@ class SurveyResponse(BaseModel):
     # Goals
     primary_goal: Optional[str] = None  # scale/optimize/elevate
     pain_points: List[str] = []
+
+    # Cost
+    annual_cost_per_staff: Optional[float] = None  # Annual loaded cost per coordinator/tech

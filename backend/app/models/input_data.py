@@ -55,3 +55,4 @@ class ClientInfo(BaseModel):
     event_source: Optional[str] = None
     lead_id: Optional[str] = None
     data_source: Optional[str] = None
+    annual_cost_per_staff: Optional[float] = None  # Annual loaded cost per coordinator/tech

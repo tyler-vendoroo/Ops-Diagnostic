@@ -48,6 +48,7 @@ interface StoredClientInfo {
   operational_model?: string;
   staff_count?: number | string;
   primary_goal?: string;
+  annual_cost_per_staff?: number | string | null;
 }
 
 function readLocalStorage<T>(key: string): T | null {
@@ -195,6 +196,7 @@ function FullDiagnosticContent() {
   const [pmsOther, setPmsOther] = React.useState("");
   const [operationalModel, setOperationalModel] = React.useState<"va" | "tech" | "">("");
   const [staffCount, setStaffCount] = React.useState("");
+  const [annualCostPerStaff, setAnnualCostPerStaff] = React.useState("");
   const [primaryGoal, setPrimaryGoal] = React.useState<"scale" | "optimize" | "elevate" | "">("");
 
   // ── File state ─────────────────────────────────────────────────────────────
@@ -224,6 +226,7 @@ function FullDiagnosticContent() {
         setOperationalModel(saved.operational_model);
       }
       if (saved.staff_count != null) setStaffCount(String(saved.staff_count));
+      if (saved.annual_cost_per_staff != null) setAnnualCostPerStaff(String(saved.annual_cost_per_staff));
       if (
         saved.primary_goal === "scale" ||
         saved.primary_goal === "optimize" ||
@@ -280,6 +283,7 @@ function FullDiagnosticContent() {
       operational_model: operationalModel || "va",
       staff_count: staffCount ? Number(staffCount) : 1,
       primary_goal: primaryGoal || "scale",
+      annual_cost_per_staff: annualCostPerStaff ? Number(annualCostPerStaff) : null,
     };
 
     const formData = new FormData();
@@ -469,6 +473,29 @@ function FullDiagnosticContent() {
               className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-4 py-2.5 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
               placeholder="8"
             />
+          </div>
+
+          {/* Annual cost per staff (optional) */}
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <label className="text-sm font-medium text-vendoroo-text" htmlFor="annual-cost">
+              Annual cost per {operationalModel === "tech" ? "technician" : "coordinator"}{" "}
+              <span className="font-normal text-vendoroo-muted">(optional)</span>
+            </label>
+            <span className="text-xs text-vendoroo-muted">
+              Include salary, benefits, and overhead. Used to calculate your cost per door.
+            </span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-vendoroo-muted">$</span>
+              <input
+                id="annual-cost"
+                type="number"
+                min={0}
+                value={annualCostPerStaff}
+                onChange={(e) => setAnnualCostPerStaff(e.target.value)}
+                className="w-full rounded-xl border border-vendoroo-border bg-vendoroo-surface py-2.5 pl-8 pr-4 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
+                placeholder={operationalModel === "tech" ? "52000" : "22000"}
+              />
+            </div>
           </div>
         </div>
 

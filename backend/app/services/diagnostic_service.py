@@ -30,6 +30,7 @@ from app.db.database import AsyncSessionLocal
 from app.db import models as db_models
 from sqlalchemy import select
 from app.config import CORE_TRADES
+from app.config.benchmarks import STAFF_COST_BENCHMARKS
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +208,34 @@ class DiagnosticService:
                     ),
                 })
 
+            # Cost per door insight
+            _cost_defaults = STAFF_COST_BENCHMARKS.get(_model, STAFF_COST_BENCHMARKS["va"])
+            _annual_cost = client_info.annual_cost_per_staff or _cost_defaults["annual_loaded_cost"]
+            _total_staff_cost = _annual_cost * client_info.staff_count
+            _cost_per_door_monthly = round(_total_staff_cost / 12 / max(1, client_info.door_count), 2)
+            _cost_source = "based on your input" if client_info.annual_cost_per_staff else "industry estimate"
+            _vendoroo_start = 3.00
+            if _cost_per_door_monthly > _vendoroo_start:
+                insights.append({
+                    "icon": "dollar",
+                    "title": f"${_cost_per_door_monthly:.2f}/door/month in coordination costs",
+                    "detail": (
+                        f"Your {client_info.staff_count} {_staff_label_p} cost ~${_annual_cost:,.0f}/year each "
+                        f"({_cost_source}), which works out to ${_cost_per_door_monthly:.2f} per door per month. "
+                        f"Vendoroo starts at $3/door/month — and scales without adding headcount."
+                    ),
+                })
+            else:
+                insights.append({
+                    "icon": "dollar",
+                    "title": f"${_cost_per_door_monthly:.2f}/door/month in coordination costs",
+                    "detail": (
+                        f"At ${_cost_per_door_monthly:.2f}/door/month ({_cost_source}), your coordination "
+                        f"costs are efficient. Vendoroo maintains this efficiency as you grow — "
+                        f"adding doors without adding staff."
+                    ),
+                })
+
             # Response time insight
             _avg_hrs = wo_metrics.avg_first_response_hours
             if _avg_hrs and _avg_hrs > 4:
@@ -349,6 +378,9 @@ class DiagnosticService:
                 "trades_required": _core_required,
                 "pain_points": list(survey.pain_points or []),
                 "pms_platform": client_info.pms_platform or "",
+                "current_cost_per_door": _cost_per_door_monthly,
+                "annual_cost_per_staff": _annual_cost,
+                "cost_source": _cost_source,
             }
         except Exception as exc:
             logger.warning(
@@ -972,6 +1004,11 @@ class DiagnosticService:
                 "has_lease": lease_result is not None,
                 "has_pma": pma_result is not None,
                 "has_vendor_directory": vendor_directory_data is not None,
+                "current_cost_per_door": round(
+                    (ci.annual_cost_per_staff or STAFF_COST_BENCHMARKS.get(ci.operational_model, STAFF_COST_BENCHMARKS["va"])["annual_loaded_cost"])
+                    * ci.staff_count / 12 / max(1, ci.door_count), 2
+                ),
+                "annual_cost_per_staff": ci.annual_cost_per_staff or STAFF_COST_BENCHMARKS.get(ci.operational_model, STAFF_COST_BENCHMARKS["va"])["annual_loaded_cost"],
             }
 
             # ── Step 10: Update existing DB record ────────────────────────────
