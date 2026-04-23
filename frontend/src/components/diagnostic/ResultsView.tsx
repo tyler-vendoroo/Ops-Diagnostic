@@ -11,6 +11,7 @@ import type {
 import { getDiagnostic } from "@/lib/api";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ArrowRight } from "lucide-react";
 
 const tierCopy: Record<DiagnosticTier, { label: string; line: string }> = {
   engage: {
