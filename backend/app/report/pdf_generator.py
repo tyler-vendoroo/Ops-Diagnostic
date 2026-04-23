@@ -1150,7 +1150,7 @@ def draw_projected_impact(c):
         ("First Response Time", "14.2 hrs", "< 10 min", "< 10 min avg.", "99%"),
         ("Work Order Completion", "4.8 days", "3.0 days", "37.5-50% decrease", "37.5%"),
         ("Open WO Rate", "18.3%", "9.8%", "5-9.8%", "46%"),
-        ("After Hours Coverage", "Partial", "Full 24/7", "\u2014", "100%"),
+        ("After-Hours Availability", "Partial", "Full 24/7", "\\u2014", "100%"),
         ("Resolved w/o Vendor", "~8%", "~9.6%", "9.6-15%", "20%"),
         ("Resident Satisfaction", "N/A", "94%", "94-98%+", "\u2014"),
     ]

@@ -1,0 +1,9 @@
+Work Order #,Property,Unit/Space,Assigned To,Work Order Status,Entered Date,Closed Date,Invoice Amount,Short Description,Type
+BM-001,Pine Ridge,Apt 101,Precision Plumbing,Completed,2024-01-10,2024-01-12,310.00,Leaking pipe under sink - repaired,Plumbing
+BM-002,Pine Ridge,Apt 205,Elite HVAC,Completed,2024-01-15,2024-01-18,490.00,Heat pump replacement,HVAC/Heating
+BM-003,Cedar Commons,Unit 103,Bright Electric Co,Completed,2024-01-20,2024-01-21,175.00,Outlet replacement in kitchen,Electrical
+BM-004,Cedar Commons,Unit 301,Precision Plumbing,Open,,2024-01-25,,Water pressure issue,Plumbing
+BM-005,Willow Creek,Apt 102,Home Fix LLC,Completed,2024-01-28,2024-01-29,95.00,Blinds repair and touch-up paint,General Maintenance
+BM-006,Pine Ridge,Apt 304,Elite HVAC,Completed,2024-02-02,2024-02-04,290.00,Duct cleaning and filter change,HVAC/Heating
+BM-007,Willow Creek,Apt 203,Roto Rooter,Completed,2024-02-08,2024-02-09,245.00,Main drain clog cleared,Drain/Rooter
+BM-008,Cedar Commons,Unit 402,Bright Electric Co,Completed,2024-02-12,2024-02-13,315.00,Panel upgrade required,Electrical

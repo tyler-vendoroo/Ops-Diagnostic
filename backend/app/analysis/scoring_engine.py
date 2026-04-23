@@ -1005,7 +1005,7 @@ def generate_impact_projections(
         ah_current = "No after-hours coverage detected"
         ah_is_bad = True
     projections.append(ImpactProjection(
-        metric="After Hours Coverage",
+        metric="After-Hours Availability",
         current_value=ah_current,
         current_is_bad=ah_is_bad,
         projected_value=after_projected,

@@ -1,0 +1,11 @@
+Work Order Number,Property Name,Unit,Vendor Name,Status,Date Opened,Date Closed,Bill Total,Description,Category
+WO-2024-001,Sunset Apartments,101,Southwest Plumbing LLC,Completed,01/15/2024,01/17/2024,285.00,Kitchen faucet leaking - replaced cartridge,Plumbing
+WO-2024-002,Oak Street Rentals,205,Desert Air HVAC Inc,Completed,01/18/2024,01/20/2024,425.00,AC not cooling - refrigerant recharge,HVAC
+WO-2024-003,Sunset Apartments,203,Valley Electric,Completed,01/22/2024,01/23/2024,195.00,Breaker tripping repeatedly - replaced,Electrical
+WO-2024-004,Mesa View,301,Southwest Plumbing LLC,Completed,01/25/2024,01/28/2024,340.00,Water heater failure - replaced unit,Plumbing
+WO-2024-005,Oak Street Rentals,102,AZ Appliance Repair,Completed,02/01/2024,02/03/2024,165.00,Dishwasher not draining,Appliance Repair
+WO-2024-006,Sunset Apartments,304,Valley Electric,Completed,02/05/2024,02/06/2024,210.00,Install GFCI outlets in kitchen and bath,Electrical
+WO-2024-007,Mesa View,104,HandyPro Services,Completed,02/08/2024,02/09/2024,125.00,Patch drywall in bedroom,General Handyman
+WO-2024-008,Oak Street Rentals,303,Desert Air HVAC Inc,Completed,02/12/2024,02/14/2024,380.00,Furnace maintenance and filter replacement,HVAC
+WO-2024-009,Sunset Apartments,201,Southwest Plumbing LLC,Open,,02/15/2024,,Slow drain in bathroom - scheduled,Plumbing
+WO-2024-010,Mesa View,202,Desert Air HVAC Inc,Open,,02/20/2024,,AC making noise - pending diagnosis,HVAC
