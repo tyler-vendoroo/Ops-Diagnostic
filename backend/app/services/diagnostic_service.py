@@ -29,6 +29,7 @@ from app.analysis.scoring_engine import (
 from app.db.database import AsyncSessionLocal
 from app.db import models as db_models
 from sqlalchemy import select
+from app.config import CORE_TRADES
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,6 @@ class DiagnosticService:
         summary: dict | None = None
         try:
             from app.config.benchmarks import STAFFING_BENCHMARKS
-            from app.config import CORE_TRADES as _CORE_TRADES_LIST
 
             _model = client_info.operational_model
             _staff_label_s = {"va": "coordinator", "tech": "technician", "pod": "pod"}.get(_model, "staff member")
@@ -230,10 +230,10 @@ class DiagnosticService:
                 })
 
             # Trade coverage insight — count only core trades, not specialty
-            _core_set = {t.lower() for t in _CORE_TRADES_LIST}
+            _core_set = {t.lower() for t in CORE_TRADES}
             _covered_set = {t.lower() for t in (wo_metrics.covered_trades or [])}
             _core_covered = len(_covered_set & _core_set)
-            _core_required = len(_CORE_TRADES_LIST)  # always 8
+            _core_required = len(CORE_TRADES)  # always 8
             if wo_metrics.missing_trades:
                 _missing_str = ", ".join(t.title() for t in wo_metrics.missing_trades[:4])
                 insights.append({
@@ -503,7 +503,7 @@ class DiagnosticService:
                 covered_trades=wo_metrics_dict.get("covered_trades", []),
                 missing_trades=wo_metrics_dict.get("missing_trades", []),
                 trades_covered_count=wo_metrics_dict.get("trades_covered_count", 0),
-                trades_required_count=wo_metrics_dict.get("trades_required_count", len(_CORE_TRADES_LIST)),
+                trades_required_count=wo_metrics_dict.get("trades_required_count", len(CORE_TRADES)),
                 internal_count=wo_metrics_dict.get("internal_count", 0),
                 internal_pct=wo_metrics_dict.get("internal_pct", 0),
                 trade_distribution=wo_metrics_dict.get("trade_distribution"),
