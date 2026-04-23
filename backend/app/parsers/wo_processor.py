@@ -659,9 +659,20 @@ def compute_metrics(std, client_info, config=None):
     category_covered, category_missing = check_trade_coverage(raw_categories)
     vendor_covered = check_vendor_trade_coverage(maint["vendor"].tolist())
     all_covered = set(category_covered) | vendor_covered
-    required_trades_list = list(TRADE_COVERAGE_MAP.keys())
-    covered_trades = [t for t in required_trades_list if t in all_covered]
-    missing_trades = [t for t in required_trades_list if t not in all_covered]
+    # Separate core vs specialty trade coverage
+    core_trades_lower = [t.lower() for t in CORE_TRADES]
+    specialty_trades_set = set(TRADE_COVERAGE_MAP.keys()) - set(core_trades_lower)
+
+    # Core coverage: only count trades that are in CORE_TRADES
+    covered_core = [t for t in core_trades_lower if t in all_covered]
+    missing_core = [t for t in core_trades_lower if t not in all_covered]
+
+    # Specialty coverage: bonus, never penalized
+    covered_specialty = [t for t in specialty_trades_set if t in all_covered]
+
+    # covered_trades includes both for display; counts are core-only
+    covered_trades = covered_core + covered_specialty
+    missing_trades = missing_core  # Only report missing CORE trades
 
     # Category concentration (>25%)
     concentrated = {k: round(v, 1) for k, v in trade_distribution.items() if v > 25 and k != "Other"}
@@ -859,8 +870,9 @@ def compute_metrics(std, client_info, config=None):
         "dispatched_vendor_names": dispatched_vendor_names,
         "covered_trades": covered_trades,
         "missing_trades": missing_trades,
-        "trades_covered_count": len(covered_trades),
+        "trades_covered_count": len(covered_core),
         "trades_required_count": len(CORE_TRADES),
+        "specialty_trades_covered": covered_specialty,
         "internal_count": internal_count,
         "internal_pct": internal_pct,
         "trade_distribution": trade_distribution,

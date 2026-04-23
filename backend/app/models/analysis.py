@@ -48,6 +48,7 @@ class WorkOrderMetrics(BaseModel):
     vendor_concentration: Optional[dict] = None
     covered_trades: list[str] = Field(default_factory=list)
     missing_trades: list[str] = Field(default_factory=list)
+    specialty_trades_covered: list[str] = Field(default_factory=list)
     trades_covered_count: int = 0
     trades_required_count: int = 12
 

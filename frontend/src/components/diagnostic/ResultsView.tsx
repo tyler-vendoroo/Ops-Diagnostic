@@ -578,7 +578,27 @@ export function ResultsView({ id }: { id: string }) {
         </div>
       )}
 
-      {/* ── 6. Repeat units table (top 3) ── */}
+      {/* ── 6. Cost per door comparison ── */}
+      {data.summary?.current_cost_per_door != null && (
+        <div className="rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-5">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
+            Coordination Cost Analysis
+          </h3>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold tabular-nums text-vendoroo-text">
+              ${(data.summary.current_cost_per_door as number).toFixed(2)}
+            </span>
+            <span className="text-sm text-vendoroo-muted">per door / month</span>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-vendoroo-muted">
+            {(data.summary.current_cost_per_door as number) > 3.00
+              ? `Your ${data.summary.staff_count ?? ""} ${data.summary.staff_label ?? "staff"} cost ~$${((data.summary.annual_cost_per_staff ?? 0) as number).toLocaleString()}/year each${data.summary.cost_source === "based on your input" ? "" : " (industry estimate)"}, which works out to $${(data.summary.current_cost_per_door as number).toFixed(2)} per door per month. Vendoroo starts at $3/door/month.`
+              : `At $${(data.summary.current_cost_per_door as number).toFixed(2)}/door/month, your coordination costs are efficient. Vendoroo maintains this efficiency as you grow — adding doors without adding staff.`}
+          </p>
+        </div>
+      )}
+
+      {/* ── 7. Repeat units table (top 3) ── */}
       {repeatUnits.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-vendoroo-main">
@@ -640,9 +660,9 @@ export function ResultsView({ id }: { id: string }) {
           {[
             "Detailed remediation plan for each gap",
             "Document analysis (lease & PMA review)",
-            "Vendor performance breakdown",
-            "Projected ROI and impact timeline",
-            "Personalized onboarding roadmap",
+            "Projected operational impact with Vendoroo",
+            "Work order analysis and trade distribution",
+            "Your recommended path and AI adoption program",
           ].map((item, i) => (
             <li key={i} className="flex items-center gap-2 text-xs text-vendoroo-smoke">
               <svg className="size-3.5 shrink-0 text-vendoroo-main" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

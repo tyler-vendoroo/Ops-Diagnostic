@@ -287,6 +287,9 @@ export interface DiagnosticStatusResponse {
       first_wo?: string;
       last_wo?: string;
     }>;
+    current_cost_per_door?: number;
+    annual_cost_per_staff?: number;
+    cost_source?: string;
     [key: string]: unknown;
   };
 }

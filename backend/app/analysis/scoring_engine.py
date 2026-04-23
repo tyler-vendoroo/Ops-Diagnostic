@@ -491,9 +491,11 @@ def generate_key_findings(
             color="var(--red)" if missing_count >= 3 else "var(--amber)",
         ))
     elif wo_metrics.unique_vendors > 0 and core_covered >= required:
+        specialty = getattr(wo_metrics, 'specialty_trades_covered', []) or []
+        spec_count = len(specialty) if specialty else (specialty_extra if specialty_extra > 0 else 0)
         extra_note = (
-            f" plus {specialty_extra} specialty trade{'s' if specialty_extra != 1 else ''}"
-            if specialty_extra > 0 else ""
+            f" plus {spec_count} specialty trade{'s' if spec_count != 1 else ''}"
+            if spec_count > 0 else ""
         )
         findings.append(KeyFinding(
             title="Strong Vendor Coverage",

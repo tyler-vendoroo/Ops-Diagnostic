@@ -535,6 +535,7 @@ class DiagnosticService:
                 vendor_concentration=wo_metrics_dict.get("vendor_concentration"),
                 covered_trades=wo_metrics_dict.get("covered_trades", []),
                 missing_trades=wo_metrics_dict.get("missing_trades", []),
+                specialty_trades_covered=wo_metrics_dict.get("specialty_trades_covered", []),
                 trades_covered_count=wo_metrics_dict.get("trades_covered_count", 0),
                 trades_required_count=wo_metrics_dict.get("trades_required_count", len(CORE_TRADES)),
                 internal_count=wo_metrics_dict.get("internal_count", 0),
@@ -1042,6 +1043,7 @@ class DiagnosticService:
                     * ci.staff_count / 12 / max(1, ci.door_count), 2
                 ),
                 "annual_cost_per_staff": ci.annual_cost_per_staff or STAFF_COST_BENCHMARKS.get(ci.operational_model, STAFF_COST_BENCHMARKS["va"])["annual_loaded_cost"],
+                "cost_source": "based on your input" if ci.annual_cost_per_staff else "industry estimate",
             }
 
             # ── Step 10: Update existing DB record ────────────────────────────
