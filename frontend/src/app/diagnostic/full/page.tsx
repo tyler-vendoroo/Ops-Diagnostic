@@ -475,6 +475,36 @@ function FullDiagnosticContent() {
             />
           </div>
 
+          {/* Operational model — above annual cost so the cost label matches the selection */}
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <span className="text-sm font-medium text-vendoroo-text">Operational model</span>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(
+                [
+                  { value: "va", label: "VA Coordinators", desc: "Offshore or contract coordinators handle dispatch" },
+                  { value: "tech", label: "In-House Tech Team", desc: "Dedicated internal maintenance staff" },
+                ] as const
+              ).map(({ value, label, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setOperationalModel(value)}
+                  className={[
+                    "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                    operationalModel === value
+                      ? "border-vendoroo-main bg-vendoroo-light ring-1 ring-vendoroo-main/30"
+                      : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
+                  ].join(" ")}
+                >
+                  <div>
+                    <p className="text-sm font-medium text-vendoroo-text">{label}</p>
+                    <p className="mt-0.5 text-xs text-vendoroo-muted">{desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Annual cost per staff (optional) */}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-sm font-medium text-vendoroo-text" htmlFor="annual-cost">
@@ -496,36 +526,6 @@ function FullDiagnosticContent() {
                 placeholder={operationalModel === "tech" ? "52000" : "22000"}
               />
             </div>
-          </div>
-        </div>
-
-        {/* Operational model */}
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-vendoroo-text">Operational model</span>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(
-              [
-                { value: "va", label: "VA Coordinators", desc: "Offshore or contract coordinators handle dispatch" },
-                { value: "tech", label: "In-House Tech Team", desc: "Dedicated internal maintenance staff" },
-              ] as const
-            ).map(({ value, label, desc }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setOperationalModel(value)}
-                className={[
-                  "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-colors",
-                  operationalModel === value
-                    ? "border-vendoroo-main bg-vendoroo-light ring-1 ring-vendoroo-main/30"
-                    : "border-vendoroo-border bg-vendoroo-surface hover:border-vendoroo-muted/40",
-                ].join(" ")}
-              >
-                <div>
-                  <p className="text-sm font-medium text-vendoroo-text">{label}</p>
-                  <p className="mt-0.5 text-xs text-vendoroo-muted">{desc}</p>
-                </div>
-              </button>
-            ))}
           </div>
         </div>
 

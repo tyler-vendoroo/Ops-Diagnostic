@@ -555,6 +555,16 @@ export function SurveyFlow() {
                 />
               )}
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="staff">Staff count (maintenance &amp; ops)</Label>
+              <Input
+                id="staff"
+                inputMode="numeric"
+                value={staffCount}
+                onChange={(e) => setStaffCount(e.target.value)}
+                className={inputClass}
+              />
+            </div>
             <div className="space-y-3">
               <Label>Operational model</Label>
               <RadioGroup
@@ -586,16 +596,6 @@ export function SurveyFlow() {
                   </span>
                 </label>
               </RadioGroup>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="staff">Staff count (maintenance &amp; ops)</Label>
-              <Input
-                id="staff"
-                inputMode="numeric"
-                value={staffCount}
-                onChange={(e) => setStaffCount(e.target.value)}
-                className={inputClass}
-              />
             </div>
             <div className="flex flex-col gap-1.5 sm:col-span-2">
               <label className="text-sm font-medium text-vendoroo-text" htmlFor="annual-cost">
