@@ -1216,6 +1216,27 @@ def analyze_pma(pma_text: str) -> dict:
 # BUILD DOCUMENT ANALYSIS (combines results into report model)
 # ═══════════════════════════════════════════════════════════════════
 
+def _clean_display_value(value: str) -> str:
+    """Clean raw field values (snake_case, abbreviations) for human-readable display."""
+    if not value:
+        return value
+    cleaned = value.replace("_", " ")
+    if cleaned and cleaned[0].islower():
+        cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned
+
+
+def _interleave_findings(positives: list, negatives: list, max_findings: int) -> list:
+    """Interleave positive and negative findings so negatives aren't crowded out.
+
+    Strategy: show up to 2 negatives first (most actionable), fill rest with positives.
+    If there are fewer than 2 negatives, show all of them and fill with positives.
+    """
+    neg_count = min(len(negatives), max(2, max_findings - len(positives)))
+    pos_count = max_findings - neg_count
+    return negatives[:neg_count] + positives[:pos_count]
+
+
 def build_document_analysis(
     lease_result: Optional[dict] = None,
     pma_result: Optional[dict] = None,
@@ -1231,15 +1252,19 @@ def build_document_analysis(
 
     # ── Lease Section ──
     if lease_result:
-        findings = []
-        for text in lease_result.get("positive_findings", []):
-            findings.append(DocumentFinding(text=text, is_positive=True))
-        for text in lease_result.get("missing_items", []):
-            findings.append(DocumentFinding(
+        positives = [
+            DocumentFinding(text=text, is_positive=True)
+            for text in lease_result.get("positive_findings", [])
+        ]
+        negatives = [
+            DocumentFinding(
                 text=f"Missing: {text}" if not text.lower().startswith("missing") else text,
                 is_positive=False,
                 is_missing=True,
-            ))
+            )
+            for text in lease_result.get("missing_items", [])
+        ]
+        findings = _interleave_findings(positives, negatives, max_findings=6)
 
         quality = lease_result.get("quality_score", 5)
         tier = "ready" if quality >= 7 else ("needs-work" if quality >= 4 else "not-ready")
@@ -1249,7 +1274,7 @@ def build_document_analysis(
             title="Lease Agreement Template",
             status=status,
             status_tier=tier,
-            findings=findings[:4],
+            findings=findings,
         )
         analysis.lease_quality_score = quality
         analysis.lease_policy_assessments = lease_result.get("policy_area_assessments")
@@ -1268,15 +1293,19 @@ def build_document_analysis(
 
     # ── PMA Section ──
     if pma_result:
-        findings = []
-        for text in pma_result.get("positive_findings", []):
-            findings.append(DocumentFinding(text=text, is_positive=True))
-        for text in pma_result.get("missing_items", []):
-            findings.append(DocumentFinding(
+        positives = [
+            DocumentFinding(text=text, is_positive=True)
+            for text in pma_result.get("positive_findings", [])
+        ]
+        negatives = [
+            DocumentFinding(
                 text=f"Missing: {text}" if not text.lower().startswith("missing") else text,
                 is_positive=False,
                 is_missing=True,
-            ))
+            )
+            for text in pma_result.get("missing_items", [])
+        ]
+        findings = _interleave_findings(positives, negatives, max_findings=6)
 
         quality = pma_result.get("quality_score", 5)
         tier = "ready" if quality >= 7 else ("needs-work" if quality >= 4 else "not-ready")
@@ -1286,7 +1315,7 @@ def build_document_analysis(
             title="Property Management Agreement (PMA)",
             status=status,
             status_tier=tier,
-            findings=findings[:4],
+            findings=findings,
         )
         analysis.pma_quality_score = quality
 
@@ -1302,34 +1331,36 @@ def build_document_analysis(
 
         # Emergency protocols section
         if pma_result.get("emergency_authorization"):
-            emergency_findings = []
+            emerg_positives = []
+            emerg_negatives = []
+
             if pma_result.get("emergency_authorization_clear"):
                 emergency_def = pma_result.get("emergency_definition", "conditions threatening life, health, safety")
-                emergency_findings.append(DocumentFinding(
+                emerg_positives.append(DocumentFinding(
                     text=f"Emergency clearly defined: {emergency_def[:100]}",
                     is_positive=True
                 ))
             else:
-                emergency_findings.append(DocumentFinding(text="Emergency authorization present but definition is vague", is_positive=True))
+                emerg_positives.append(DocumentFinding(text="Emergency authorization present but definition is vague", is_positive=True))
 
             emergency_limit = pma_result.get("emergency_spending_limit") or config.get("emergency_nte")
             if emergency_limit and emergency_limit not in ("same_as_standard", "not_defined"):
-                emergency_findings.append(DocumentFinding(
-                    text=f"Emergency spending: {emergency_limit}",
+                emerg_positives.append(DocumentFinding(
+                    text=f"Emergency spending: {_clean_display_value(str(emergency_limit))}",
                     is_positive=True
                 ))
 
             if not pma_result.get("has_defined_slas"):
-                emergency_findings.append(DocumentFinding(text="No response time SLAs defined by urgency level", is_positive=False, is_missing=True))
+                emerg_negatives.append(DocumentFinding(text="No response time SLAs defined by urgency level", is_positive=False, is_missing=True))
             if not pma_result.get("has_escalation_procedures"):
-                emergency_findings.append(DocumentFinding(text="No vendor escalation procedures documented", is_positive=False, is_missing=True))
+                emerg_negatives.append(DocumentFinding(text="No vendor escalation procedures documented", is_positive=False, is_missing=True))
 
             emergency_quality = 4 if pma_result.get("emergency_authorization_clear") else 2
             analysis.emergency_protocols = DocumentSection(
                 title="Emergency Protocols",
                 status="Partially Documented",
                 status_tier="needs-work",
-                findings=emergency_findings[:4],
+                findings=_interleave_findings(emerg_positives, emerg_negatives, max_findings=4),
             )
             analysis.emergency_readiness_score = emergency_quality
         else:
@@ -1345,47 +1376,50 @@ def build_document_analysis(
             )
 
         # Vendor policies section
-        vendor_findings = []
+        vendor_positives = []
+        vendor_negatives = []
         vendor_auth = config.get("vendor_selection_authority") or pma_result.get("vendor_selection_authority")
         if vendor_auth:
-            vendor_findings.append(DocumentFinding(
-                text=f"Vendor selection: {vendor_auth[:80]}",
+            vendor_positives.append(DocumentFinding(
+                text=f"Vendor selection: {_clean_display_value(vendor_auth[:80])}",
                 is_positive=True
             ))
         if pma_result.get("vendor_insurance_requirements"):
-            vendor_findings.append(DocumentFinding(text="Vendor insurance/qualification requirements specified", is_positive=True))
+            vendor_positives.append(DocumentFinding(text="Vendor insurance/qualification requirements specified", is_positive=True))
         if not pma_result.get("has_escalation_procedures"):
-            vendor_findings.append(DocumentFinding(text="No vendor escalation or backup procedures", is_positive=False, is_missing=True))
+            vendor_negatives.append(DocumentFinding(text="No vendor escalation or backup procedures", is_positive=False, is_missing=True))
 
+        vendor_findings = _interleave_findings(vendor_positives, vendor_negatives, max_findings=4)
         analysis.vendor_policies = DocumentSection(
             title="Vendor Management Policies",
             status="Partially Documented" if vendor_findings else "Not Documented",
             status_tier="needs-work" if vendor_findings else "not-ready",
-            findings=vendor_findings[:4],
+            findings=vendor_findings,
         )
 
         # Maintenance SOPs section
-        sop_findings = []
+        sop_positives = []
+        sop_negatives = []
         reserve_amt = config.get("maintenance_reserve_amount") or pma_result.get("maintenance_reserve_amount")
         if pma_result.get("maintenance_reserve_required") and reserve_amt:
-            sop_findings.append(DocumentFinding(
-                text=f"Maintenance reserve required ({reserve_amt})",
+            sop_positives.append(DocumentFinding(
+                text=f"Maintenance reserve required ({_clean_display_value(str(reserve_amt))})",
                 is_positive=True
             ))
         approval_workflow = pma_result.get("owner_approval_workflow")
         if approval_workflow:
-            sop_findings.append(DocumentFinding(
-                text=f"Owner approval workflow: {approval_workflow[:80]}",
+            sop_positives.append(DocumentFinding(
+                text=f"Owner approval workflow: {_clean_display_value(str(approval_workflow)[:80])}",
                 is_positive=True
             ))
-        sop_findings.append(DocumentFinding(text="No standardized troubleshooting steps by issue type", is_positive=False, is_missing=True))
-        sop_findings.append(DocumentFinding(text="No resident communication templates or cadences", is_positive=False, is_missing=True))
+        sop_negatives.append(DocumentFinding(text="No standardized troubleshooting steps by issue type", is_positive=False, is_missing=True))
+        sop_negatives.append(DocumentFinding(text="No resident communication templates or cadences", is_positive=False, is_missing=True))
 
         analysis.maintenance_sops = DocumentSection(
             title="Maintenance SOPs",
             status="Partially Documented",
             status_tier="needs-work",
-            findings=sop_findings[:4],
+            findings=_interleave_findings(sop_positives, sop_negatives, max_findings=4),
         )
 
     else:
