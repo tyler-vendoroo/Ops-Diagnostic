@@ -25,6 +25,13 @@ def build_interpretation_prompt(metrics: dict, client_info: dict) -> tuple[str, 
 
 Write in a tone that is informative and constructive, not alarmist. Frame findings as opportunities, not failures. The audience is a property management company evaluating Vendoroo for AI maintenance coordination.
 
+IMPORTANT CONTEXT — read carefully before interpreting metrics:
+- "First response time" is the time from a RESIDENT submitting a work order to receiving their first acknowledgment. It is NOT about when a vendor gets dispatched. Frame it as resident experience and communication speed.
+- "Concentrated trades" (>25% of volume in one trade) is an operational pattern, not a risk. High HVAC volume in summer is normal seasonality. Do NOT frame trade concentration as a failure — explain what drives it and what it means operationally.
+- "Concentrated portfolio" (few owners with many doors, or high top-vendor %) is a BUSINESS/REVENUE risk — losing one owner or vendor means losing significant revenue or coverage. Do NOT frame this as a maintenance or work order risk.
+- "Open WO rate" is the percentage of all work orders that remain unresolved. High rates indicate backlogs or data export timing. Do not conflate with poor performance unless the rate is clearly anomalous.
+- Do NOT conflate maintenance metrics with business strategy metrics. Keep each finding to its correct domain.
+
 RULES:
 - Reference specific numbers from the metrics (not vague statements)
 - Generate exactly 4-6 key findings
