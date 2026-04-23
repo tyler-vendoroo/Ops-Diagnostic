@@ -503,7 +503,7 @@ class DiagnosticService:
                 covered_trades=wo_metrics_dict.get("covered_trades", []),
                 missing_trades=wo_metrics_dict.get("missing_trades", []),
                 trades_covered_count=wo_metrics_dict.get("trades_covered_count", 0),
-                trades_required_count=wo_metrics_dict.get("trades_required_count", 12),
+                trades_required_count=wo_metrics_dict.get("trades_required_count", len(_CORE_TRADES_LIST)),
                 internal_count=wo_metrics_dict.get("internal_count", 0),
                 internal_pct=wo_metrics_dict.get("internal_pct", 0),
                 trade_distribution=wo_metrics_dict.get("trade_distribution"),
@@ -676,7 +676,10 @@ class DiagnosticService:
                     current_css=(
                         "val-bad"
                         if wo_metrics.avg_first_response_hours
-                        and wo_metrics.avg_first_response_hours > 1
+                        and wo_metrics.avg_first_response_hours > 4
+                        else "val-good"
+                        if wo_metrics.avg_first_response_hours
+                        and wo_metrics.avg_first_response_hours <= 1
                         else "val-neutral"
                     ),
                     vendoroo_avg="< 10 min",
@@ -710,39 +713,115 @@ class DiagnosticService:
                 BenchmarkRow(
                     metric="Vendor Coverage",
                     current_value=(
-                        f"{wo_metrics.trades_covered_count}/{wo_metrics.trades_required_count} trades"
+                        f"{wo_metrics.trades_covered_count}/{wo_metrics.trades_required_count} core trades"
                     ),
                     current_css=(
-                        "val-bad" if wo_metrics.trades_covered_count < 8 else "val-good"
+                        "val-bad" if wo_metrics.trades_covered_count < wo_metrics.trades_required_count else "val-good"
                     ),
-                    vendoroo_avg="12/12 trades",
-                    top_performers="12/12 trades",
+                    vendoroo_avg=f"{wo_metrics.trades_required_count}/{wo_metrics.trades_required_count} core trades",
+                    top_performers=f"{wo_metrics.trades_required_count}/{wo_metrics.trades_required_count} + specialty",
                 ),
                 BenchmarkRow(
                     metric="After-Hours Coverage",
                     current_value=(
-                        f"{wo_metrics.after_hours_pct}%"
+                        f"{wo_metrics.after_hours_pct}% of WOs after-hours"
                         if wo_metrics.after_hours_time_available
-                        else "N/A"
+                        else "Not measured"
                     ),
-                    current_css=(
-                        "val-bad" if wo_metrics.after_hours_pct > 20 else "val-neutral"
-                    ),
-                    vendoroo_avg="24/7 coverage",
-                    top_performers="24/7 coverage",
+                    current_css="val-neutral",
+                    vendoroo_avg="24/7 AI triage + troubleshooting",
+                    top_performers="24/7 AI triage + emergency dispatch",
                 ),
             ]
 
             # ── Step 9: Generate PDF ──────────────────────────────────────────
             from datetime import date
-            from app.models.report_data import ReportData
+            from app.models.report_data import ReportData, TierCard, GapTierRow
             from app.report.generator import generate_pdf, render_html
+            from app.report.builder import _GAP_TIER_MAP
 
             staffing = generate_staffing_projection(ci, portfolio_metrics)
             impact_rows = generate_impact_projections(wo_metrics, ci, tier)
             score_dashoffset = ReportData.calculate_dashoffset(overall_score)
             report_date = date.today().strftime("%B %Y")
             tier_display = tier.capitalize()
+
+            # Mask pricing for event-sourced diagnostics (Fix 10)
+            _is_event = bool(getattr(ci, "event_source", None))
+            _price_unit = "Contact your advisor" if _is_event else "/ unit / month"
+
+            tier_cards = [
+                TierCard(
+                    name="Engage",
+                    subtitle="AI-Powered Communication Desk",
+                    price="—" if _is_event else "$3",
+                    price_unit=_price_unit,
+                    roos="Dedicated AI team",
+                    features=[
+                        "AI-powered resident communication",
+                        "Work order intake & triage",
+                        "Vendor dispatch coordination",
+                        "24/7 AI response (business hours human oversight)",
+                    ],
+                    new_features=[],
+                    is_recommended=(tier == "engage"),
+                ),
+                TierCard(
+                    name="Direct",
+                    subtitle="Full Maintenance Operations Layer",
+                    price="—" if _is_event else "$6",
+                    price_unit=_price_unit,
+                    roos="Expanded AI team",
+                    features=[
+                        "Everything in Engage",
+                        "NTE governance & vendor authorization",
+                        "After-hours triage & escalation",
+                        "Vendor performance tracking",
+                    ],
+                    new_features=[
+                        "Emergency protocol management",
+                        "Owner approval workflows",
+                    ],
+                    is_recommended=(tier == "direct"),
+                ),
+                TierCard(
+                    name="Command",
+                    subtitle="Strategic Operations Command Center",
+                    price="—" if _is_event else "$8.50",
+                    price_unit=_price_unit,
+                    roos="Full command team",
+                    features=[
+                        "Everything in Direct",
+                        "Full portfolio oversight",
+                        "Predictive maintenance coordination",
+                        "Owner communication & reporting",
+                    ],
+                    new_features=[
+                        "Custom SLA configuration",
+                        "Dedicated success manager",
+                    ],
+                    is_recommended=(tier == "command"),
+                ),
+            ]
+
+            # Only show gap-tier rows for gaps this prospect actually has (Fix 12)
+            _actual_gap_titles = {
+                g.title if hasattr(g, "title") else g.get("title", "")
+                for g in gaps
+            }
+            gap_tier_rows = [
+                GapTierRow(
+                    gap_name=gap_name,
+                    engage=mapping["engage"],
+                    direct=mapping["direct"],
+                    command=mapping["command"],
+                    command_note=mapping["note"],
+                )
+                for gap_name, mapping in _GAP_TIER_MAP.items()
+                if gap_name in _actual_gap_titles
+            ]
+
+            aaa_value_amount = "Complimentary"  # Fix 9
 
             weak_areas = [cat.name.lower() for cat in category_scores if cat.tier == "Not Ready"]
             strong_areas = [cat.name.lower() for cat in category_scores if cat.tier == "Ready"]
@@ -838,6 +917,9 @@ class DiagnosticService:
                 impact_rows=impact_rows,
                 staffing=staffing,
                 completed_items=[],
+                tier_cards=tier_cards,
+                gap_tier_rows=gap_tier_rows,
+                aaa_value_amount=aaa_value_amount,
                 footer_text=(
                     f"Vendoroo Operations Analysis \u2022 {ci.company_name} \u2022 {report_date}"
                 ),

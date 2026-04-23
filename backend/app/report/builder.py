@@ -46,9 +46,9 @@ _GAP_TIER_MAP = {
 # ── AAA value by tier ────────────────────────────────────────────────────────
 
 _AAA_VALUE_MAP = {
-    "engage": "$2,000",
-    "direct": "$2,500",
-    "command": "$3,500",
+    "engage": "Complimentary",
+    "direct": "Complimentary",
+    "command": "Complimentary",
 }
 
 # ── Tier price map (mirrors scoring_engine) ──────────────────────────────────
@@ -311,13 +311,16 @@ def build_report_data(
 
     # ── Tier cards ────────────────────────────────────────────────────────────
 
+    _is_event = bool(getattr(client_info, "event_source", None))
+    _price_unit = "Contact your advisor" if _is_event else "/ unit / month"
+
     tier_cards = [
         TierCard(
             name="Engage",
             subtitle="AI-Powered Communication Desk",
-            price="$3",
-            price_unit="/ unit / month",
-            roos="3 dedicated ROOs",
+            price="—" if _is_event else "$3",
+            price_unit=_price_unit,
+            roos="Dedicated AI team",
             features=[
                 "AI-powered resident communication",
                 "Work order intake & triage",
@@ -330,9 +333,9 @@ def build_report_data(
         TierCard(
             name="Direct",
             subtitle="Full Maintenance Operations Layer",
-            price="$6",
-            price_unit="/ unit / month",
-            roos="5 dedicated ROOs",
+            price="—" if _is_event else "$6",
+            price_unit=_price_unit,
+            roos="Expanded AI team",
             features=[
                 "Everything in Engage",
                 "NTE governance & vendor authorization",
@@ -348,9 +351,9 @@ def build_report_data(
         TierCard(
             name="Command",
             subtitle="Strategic Operations Command Center",
-            price="$8.50",
-            price_unit="/ unit / month",
-            roos="Dedicated command team",
+            price="—" if _is_event else "$8.50",
+            price_unit=_price_unit,
+            roos="Full command team",
             features=[
                 "Everything in Direct",
                 "Full portfolio oversight",
@@ -365,8 +368,12 @@ def build_report_data(
         ),
     ]
 
-    # ── Gap tier rows ─────────────────────────────────────────────────────────
+    # ── Gap tier rows — only include gaps the prospect actually has ────────────
 
+    actual_gap_titles = {
+        g.title if hasattr(g, "title") else g.get("title", "")
+        for g in gaps
+    }
     gap_tier_rows = [
         GapTierRow(
             gap_name=gap_name,
@@ -376,6 +383,7 @@ def build_report_data(
             command_note=mapping["note"],
         )
         for gap_name, mapping in _GAP_TIER_MAP.items()
+        if gap_name in actual_gap_titles
     ]
 
     # ── Outcome stats ─────────────────────────────────────────────────────────

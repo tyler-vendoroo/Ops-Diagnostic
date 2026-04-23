@@ -936,9 +936,10 @@ def generate_impact_projections(
     def _project_completion_time(current_days):
         if current_days is None:
             return None, None
+        benchmark_days = benchmarks.get("avg_completion_days", 3.0)
         reduced = current_days * 0.625
-        floored = max(7.0, reduced)
-        projected = min(current_days, floored)
+        projected = max(benchmark_days, reduced)  # don't project below Vendoroo benchmark
+        projected = min(current_days, projected)  # never project worse than current
         return round(projected, 1), _format_improvement(current_days, projected)
 
     def _project_open_wo_rate(current_pct):
@@ -994,9 +995,19 @@ def generate_impact_projections(
 
     # After Hours Coverage (RescueRoo nuance)
     after_projected, after_note, after_improvement = _project_after_hours()
+    if wo_metrics.after_hours_time_available and wo_metrics.after_hours_pct:
+        ah_current = f"{wo_metrics.after_hours_pct}% after-hours volume"
+        ah_is_bad = False
+    elif wo_metrics.after_hours_time_available:
+        ah_current = "No after-hours data available"
+        ah_is_bad = True
+    else:
+        ah_current = "No after-hours coverage detected"
+        ah_is_bad = True
     projections.append(ImpactProjection(
         metric="After Hours Coverage",
-        current_value="Partial",
+        current_value=ah_current,
+        current_is_bad=ah_is_bad,
         projected_value=after_projected,
         benchmark_range="AI triage benchmark",
         improvement=after_improvement,
@@ -1005,25 +1016,27 @@ def generate_impact_projections(
 
     # Vendor Coverage
     current_trades = wo_metrics.trades_covered_count
-    required_trades = wo_metrics.trades_required_count or 12
+    required_trades = wo_metrics.trades_required_count or len(CORE_TRADES)
     current_coverage_pct = round(current_trades / required_trades * 100) if required_trades else 0
     projections.append(ImpactProjection(
         metric="Vendor Coverage",
-        current_value=f"{current_trades}/{required_trades} trades",
+        current_value=f"{current_trades}/{required_trades} core trades",
         current_is_bad=current_coverage_pct < 80,
-        projected_value=f"{required_trades}/{required_trades} trades" if current_trades < required_trades else f"{current_trades}/{required_trades} trades",
-        benchmark_range="100% of required trades",
+        projected_value=f"{required_trades}/{required_trades} core trades" if current_trades < required_trades else f"{current_trades}/{required_trades} core trades",
+        benchmark_range="100% of core trades",
         improvement=f"{100 - current_coverage_pct}%" if current_coverage_pct < 100 else "Already meeting benchmark",
     ))
 
-    # Resident Satisfaction
+    # Resident Satisfaction (use industry average as baseline — we don't collect this directly)
+    _industry_baseline = 72
     projections.append(ImpactProjection(
         metric="Resident Satisfaction",
-        current_value="N/A",
-        current_is_bad=True,
+        current_value=f"Industry avg: {_industry_baseline}%",
+        current_is_bad=False,
         projected_value=f"{benchmarks['resident_satisfaction_pct']}%",
         benchmark_range=f"{benchmarks['resident_satisfaction_pct']} - {top['resident_satisfaction_pct']}%+",
-        improvement="N/A",
+        improvement=f"+{benchmarks['resident_satisfaction_pct'] - _industry_baseline}%",
+        note="Based on industry average baseline of 72% (NARPM 2024 survey).",
     ))
 
     return projections

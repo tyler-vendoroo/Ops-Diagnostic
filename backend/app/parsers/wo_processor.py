@@ -617,7 +617,22 @@ def compute_metrics(std, client_info, config=None):
 
     # ── Vendor Analysis (Fix 3: count from filtered maintenance set) ──
     external = maint[maint["vendor"].notna()]
-    unique_vendors = external["vendor"].nunique()
+
+    def _normalize_vendor_name(name: str) -> str:
+        if not name or not isinstance(name, str):
+            return ""
+        n = name.strip().lower()
+        for suffix in [" llc", " inc", " inc.", " corp", " corp.", " co", " co.",
+                       " ltd", " ltd.", " company", " services", " service",
+                       " & sons", " and sons", " group", " enterprises"]:
+            if n.endswith(suffix):
+                n = n[:-len(suffix)].strip()
+        return n.rstrip(".,;")
+
+    _vendor_series = external["vendor"].dropna().astype(str)
+    _normalized = _vendor_series.apply(_normalize_vendor_name)
+    _normalized = _normalized[_normalized != ""]
+    unique_vendors = _normalized.nunique()
     dispatched_vendor_names = sorted(
         external["vendor"].dropna().astype(str).str.strip().unique().tolist()
     )
