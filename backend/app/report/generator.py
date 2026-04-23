@@ -138,13 +138,13 @@ def _generate_pdf_subprocess(html: str) -> bytes:
 
 
 def _generate_pdf_playwright(html: str) -> bytes:
-    """Generate PDF using Playwright (preferred for local dev)."""
+    """Generate PDF using Playwright."""
     import asyncio
     from playwright.async_api import async_playwright
 
     async def _run():
         async with async_playwright() as p:
-            browser = await p.chromium.launch()
+            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
             page = await browser.new_page()
             await page.set_content(html, wait_until="networkidle")
             pdf_bytes = await page.pdf(
