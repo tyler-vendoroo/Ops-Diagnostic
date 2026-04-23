@@ -910,6 +910,8 @@ class DiagnosticService:
             key_findings_serialized = [f.model_dump() for f in key_findings]
             gaps_serialized = [g.model_dump() for g in gaps]
 
+            projected_score_full = calculate_projected_score(overall_score, gap_titles)
+
             report_data = ReportData(
                 company_name=ci.company_name,
                 door_count=ci.door_count,
@@ -918,6 +920,8 @@ class DiagnosticService:
                 operational_model_display=ci.operational_model_display or ci.operational_model,
                 overall_score=overall_score,
                 score_ring_dashoffset=score_dashoffset,
+                projected_score=projected_score_full,
+                projected_score_dashoffset=ReportData.calculate_dashoffset(projected_score_full),
                 monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders or 0)),
                 avg_response_time=(
                     f"{wo_metrics.avg_first_response_hours} hrs"
@@ -972,7 +976,6 @@ class DiagnosticService:
 
             # ── Step 9b: Build summary for API/frontend ───────────────────────
             staff_label_map = {"va": "coordinators", "tech": "technicians", "pod": "pods"}
-            projected_score_full = calculate_projected_score(overall_score, gap_titles)
             costs_full = calculate_cost_estimates(ci.door_count, tier)
             impact_rows_summary = generate_impact_projections(wo_metrics, ci, tier)
             staffing_summary = generate_staffing_projection(ci, portfolio_metrics)
