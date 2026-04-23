@@ -111,56 +111,36 @@ def score_vendor_coverage(vendor_metrics: VendorMetrics, wo_metrics: WorkOrderMe
 
 
 def score_response_efficiency(wo_metrics: WorkOrderMetrics, model: str) -> int:
-    """Score based on response and completion times vs benchmarks.
+    """Score based on response and completion times vs benchmarks."""
+    score = 10  # Baseline
 
-    Most PM companies without AI have long response times.
-    Score is generous for completion (most companies do close WOs) but
-    penalizes slow first response heavily (that's the key AI value prop).
-    """
-    benchmarks = VENDOROO_AVG.get(model, VENDOROO_AVG["va"])
-    score = 20  # Base: they are completing work orders
-
-    # Avg response time (0-30 pts) — graduated scale
+    # First response time (0-50 pts) — primary signal
     if wo_metrics.avg_first_response_hours is not None:
         hrs = wo_metrics.avg_first_response_hours
         if hrs <= 1:
-            score += 30
+            score += 50
         elif hrs <= 4:
-            score += 25
+            score += 40
         elif hrs <= 12:
-            score += 18
+            score += 25
         elif hrs <= 24:
-            score += 12
-        elif hrs <= 48:
-            score += 5
-        # > 48 hrs = 0 additional
+            score += 10
+        # > 24 hrs: 0
 
-    # Avg completion time (0-25 pts) — graduated scale
+    # Completion time (0-40 pts) — secondary signal
     if wo_metrics.median_completion_days is not None:
         days = wo_metrics.median_completion_days
         if days <= 2:
-            score += 25
+            score += 40
         elif days <= 4:
-            score += 20
+            score += 30
         elif days <= 7:
-            score += 15
+            score += 20
         elif days <= 14:
-            score += 8
-        # > 14 days = 0 additional
+            score += 10
+        # > 14 days: 0
 
-    # Open WO rate (0-25 pts) — lower is better
-    # Formula: open WOs / door count × 100 (portfolio health metric)
-    # Vendoroo avg: 9.8%, Top performers: <5%
-    if wo_metrics.open_wo_rate_pct <= 5:
-        score += 25  # Excellent
-    elif wo_metrics.open_wo_rate_pct <= 10:
-        score += 20  # Good (near Vendoroo avg)
-    elif wo_metrics.open_wo_rate_pct <= 15:
-        score += 15  # Acceptable
-    elif wo_metrics.open_wo_rate_pct <= 25:
-        score += 8   # Concerning
-    # >25% = 0 additional points (poor)
-
+    # open_wo_rate captured in operational_consistency, not here
     return _clamp(score)
 
 
@@ -214,31 +194,28 @@ def score_operational_consistency(wo_metrics: WorkOrderMetrics) -> int:
 
 
 def score_after_hours_readiness(wo_metrics: WorkOrderMetrics, doc: DocumentAnalysis) -> int:
-    """Score based on after-hours coverage capability.
+    """Score based on after-hours coverage capability."""
+    score = 5  # Base
 
-    Most PM companies have an answering service or some coverage.
-    Base of 20 reflects that reality.
-    """
-    score = 20  # Base: most have an answering service at minimum
+    # Coverage quality via after_hours_pct (set by survey adapter from method):
+    # 24/7→30%, answering_service→25%, on_call→20%, voicemail→15%, none→10%
+    pct = wo_metrics.after_hours_pct or 0
+    if pct >= 30:
+        score += 55   # 24/7 coverage
+    elif pct >= 25:
+        score += 45   # answering service
+    elif pct >= 20:
+        score += 35   # on-call rotation
+    elif pct >= 15:
+        score += 20   # voicemail only
+    else:
+        score += 10   # none / unknown
 
-    # After-hours WO handling (suggests some coverage exists)
-    if wo_metrics.after_hours_pct > 15:
-        score += 15  # Strong after-hours activity
-    elif wo_metrics.after_hours_pct > 5:
-        score += 10
-    elif wo_metrics.after_hours_pct > 0:
-        score += 5
-
-    # Emergency protocols documented
     if doc.has_emergency_protocols:
         score += 20
     if doc.has_defined_slas:
         score += 15
     if doc.has_escalation_procedures:
-        score += 15
-
-    # Documentation exists
-    if doc.emergency_protocols.status != "Not Documented":
         score += 10
 
     return _clamp(score)
@@ -1143,9 +1120,9 @@ def recommend_tier(goal, category_scores, gaps, client_info=None):
     below_50_count = sum(1 for s in category_scores.values() if s < 50)
     normalized_gaps = {str(g).strip().lower().replace(" ", "_") for g in gaps}
 
-    # Override 1: Everything is bad (5+ of 8 below 50)
+    # Override 1: Everything is bad (5+ of 8 below 50) → start with fundamentals
     if below_50_count >= 5:
-        return "command"
+        return "engage"
 
     # Override 2: 50/50 split (exactly half below 50)
     if below_50_count == 4:
@@ -1184,10 +1161,10 @@ def recommend_tier(goal, category_scores, gaps, client_info=None):
         return "engage"
     elif goal == "optimize":
         if below_50_count >= 4:
-            return "command"
+            return "engage"
         if below_50_count >= 2:
             return "direct"
-        return "engage"
+        return "direct"
 
     return "direct"  # fallback
 
