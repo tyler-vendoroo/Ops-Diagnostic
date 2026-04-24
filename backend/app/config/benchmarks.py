@@ -66,32 +66,48 @@ TOP_PERFORMERS = {
 
 # Average annual loaded cost per staff member by model
 STAFF_COST_BENCHMARKS = {
-    "va": {
-        "annual_loaded_cost": 22000,   # VA coordinator: salary + benefits + overhead
+    "coordinator": {
+        "annual_loaded_cost": 22000,
+        "source": "Industry average for maintenance coordinators",
+    },
+    "va": {  # backward compat alias
+        "annual_loaded_cost": 22000,
         "source": "Industry average for offshore/contract maintenance coordinators",
     },
     "tech": {
         "annual_loaded_cost": 52000,   # In-house tech: salary + benefits + tools + vehicle
         "source": "Industry average for W2 maintenance technicians (NARPM 2024)",
     },
+    "blended": {
+        "annual_loaded_cost": 35000,   # Midpoint between coordinator and tech
+        "source": "Blended estimate: mix of coordinators and in-house technicians",
+    },
 }
 
 # Doors-per-staff benchmarks by model (used for staffing projections)
 STAFFING_BENCHMARKS = {
-    "va": {
-        "current_benchmark": 175,     # Industry average doors/coordinator
-        "vendoroo_benchmark": 350,    # With Vendoroo AI coordination
+    "coordinator": {
+        "current_benchmark": 175,
+        "vendoroo_benchmark": 350,
+    },
+    "va": {  # backward compat alias
+        "current_benchmark": 175,
+        "vendoroo_benchmark": 350,
     },
     "tech": {
         "current_benchmark": 120,
         "vendoroo_benchmark": 250,
     },
+    "blended": {
+        "current_benchmark": 150,
+        "vendoroo_benchmark": 300,
+    },
     "pod": {
-        "current_benchmark": 300,     # Industry average doors/pod
-        "current_ratio": 300,         # Doors per pod currently
-        "vendoroo_benchmark": 550,    # With Vendoroo AI coordination
-        "vendoroo_ratio": 550,        # Doors per pod with Vendoroo
-        "top_performer_ratio": 600,   # Top performers doors/pod
+        "current_benchmark": 300,
+        "current_ratio": 300,
+        "vendoroo_benchmark": 550,
+        "vendoroo_ratio": 550,
+        "top_performer_ratio": 600,
     },
 }
 

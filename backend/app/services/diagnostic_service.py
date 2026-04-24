@@ -161,8 +161,10 @@ class DiagnosticService:
             from app.config.benchmarks import STAFFING_BENCHMARKS
 
             _model = client_info.operational_model
-            _staff_label_s = {"va": "coordinator", "tech": "technician", "pod": "pod"}.get(_model, "staff member")
-            _staff_label_p = {"va": "coordinators", "tech": "technicians", "pod": "pods"}.get(_model, "staff")
+            _LABELS_S = {"coordinator": "coordinator", "va": "coordinator", "tech": "technician", "blended": "staff member", "pod": "pod"}
+            _LABELS_P = {"coordinator": "coordinators", "va": "coordinators", "tech": "technicians", "blended": "staff members", "pod": "pods"}
+            _staff_label_s = _LABELS_S.get(_model, "staff member")
+            _staff_label_p = _LABELS_P.get(_model, "staff")
             _doors_per = int(client_info.door_count / max(1, client_info.staff_count))
             _bench = STAFFING_BENCHMARKS.get(_model, STAFFING_BENCHMARKS["va"])
             _benchmark_per = _bench.get("current_benchmark", 175)
@@ -559,6 +561,7 @@ class DiagnosticService:
                 after_hours_pct=wo_metrics_dict.get("after_hours_pct", 0),
                 after_hours_time_available=wo_metrics_dict.get("after_hours_time_available", True),
                 source_distribution=wo_metrics_dict.get("source_distribution"),
+                maintenance_mix=wo_metrics_dict.get("maintenance_mix"),
                 reactive_pct=wo_metrics_dict.get("reactive_pct"),
                 estimate_heavy_pct=wo_metrics_dict.get("estimate_heavy_pct", 0),
                 unit_turn_count=wo_metrics_dict.get("unit_turn_count", 0),
@@ -989,7 +992,7 @@ class DiagnosticService:
                 )
 
             # ── Step 9b: Build summary for API/frontend ───────────────────────
-            staff_label_map = {"va": "coordinators", "tech": "technicians", "pod": "pods"}
+            staff_label_map = {"coordinator": "coordinators", "va": "coordinators", "tech": "technicians", "blended": "staff members", "pod": "pods"}
             costs_full = calculate_cost_estimates(ci.door_count, tier)
             impact_rows_summary = generate_impact_projections(wo_metrics, ci, tier)
             staffing_summary = generate_staffing_projection(ci, portfolio_metrics)

@@ -122,6 +122,31 @@ STATUS_NORMALIZE = {
 
     # → "open" (paused/held)
     "on hold": "open",
+
+    # Buildium / RentVine / common PMS variants
+    "completed - pending invoice": "completed",
+    "completed - invoice submitted": "completed",
+    "completed no bill": "completed",
+    "inspection complete": "completed",
+    "dispatched 3rd party": "in_progress",
+    "dispatched in-house": "in_progress",
+    "dispatched inspector": "in_progress",
+    "dispatched": "in_progress",
+    "mr in progress": "in_progress",
+    "makeready in progress": "in_progress",
+    "owner approved": "in_progress",
+    "approved": "in_progress",
+    "awaiting parts": "in_progress",
+    "parts ordered": "in_progress",
+    "follow-up required": "in_progress",
+    "inspection scheduled": "in_progress",
+    "mr pending estimate": "open",
+    "mr on hold": "open",
+    "makeready on hold": "open",
+    "pending estimate": "open",
+    "pending scheduling": "open",
+    "pending vendor response": "open",
+    "vendor contacted": "open",
 }
 
 

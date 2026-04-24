@@ -517,10 +517,15 @@
         {% endif %}
       </div>
       <div class="wo-stat-card">
+        {% if r.wo_metrics.maintenance_mix %}
+        <div class="wo-stat-val">{{ r.wo_metrics.maintenance_mix.resident_initiated_pct }}%</div>
+        <div class="wo-stat-label">Resident-initiated</div>
+        {% if r.wo_metrics.maintenance_mix.proactive_pct > 0 %}
+        <div class="wo-stat-note" style="color: var(--green);">{{ r.wo_metrics.maintenance_mix.proactive_pct }}% proactive/scheduled</div>
+        {% endif %}
+        {% else %}
         <div class="wo-stat-val">{{ r.wo_metrics.reactive_pct or 'N/A' }}{% if r.wo_metrics.reactive_pct %}%{% endif %}</div>
-        <div class="wo-stat-label">Reactive maintenance</div>
-        {% if r.wo_metrics.reactive_pct and r.wo_metrics.reactive_pct >= 90 %}
-        <div class="wo-stat-note" style="color: var(--red);">No preventive program detected</div>
+        <div class="wo-stat-label">Resident-initiated</div>
         {% endif %}
       </div>
     </div>
@@ -576,19 +581,37 @@
         {% endif %}
 
         <p style="font-size: 9pt; font-weight: 600; margin-bottom: 8px;">Maintenance Profile</p>
-        {% if r.wo_metrics.reactive_pct is not none %}
+        {% if r.wo_metrics.maintenance_mix %}
+        {% set mix = r.wo_metrics.maintenance_mix %}
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; background: var(--gray-bg); border-radius: 4px; padding: 8px 10px; text-align: center;">
+            <div style="font-size: 14pt; font-weight: 700; color: {{ 'var(--red)' if mix.resident_initiated_pct >= 80 else 'var(--amber)' }};">{{ mix.resident_initiated_pct }}%</div>
+            <div style="font-size: 7pt; color: var(--mid-gray);">Resident-Initiated</div>
+          </div>
+          <div style="flex: 1; background: var(--gray-bg); border-radius: 4px; padding: 8px 10px; text-align: center;">
+            <div style="font-size: 14pt; font-weight: 700; color: var(--green);">{{ mix.proactive_pct }}%</div>
+            <div style="font-size: 7pt; color: var(--mid-gray);">Proactive/Scheduled</div>
+          </div>
+          {% if mix.unclassified_pct > 20 %}
+          <div style="flex: 1; background: var(--gray-bg); border-radius: 4px; padding: 8px 10px; text-align: center;">
+            <div style="font-size: 14pt; font-weight: 700; color: var(--mid-gray);">{{ mix.unclassified_pct }}%</div>
+            <div style="font-size: 7pt; color: var(--mid-gray);">Source Not Tracked</div>
+          </div>
+          {% endif %}
+        </div>
+        {% elif r.wo_metrics.reactive_pct is not none %}
         <div style="display: flex; gap: 8px;">
           <div style="flex: 1; background: var(--gray-bg); border-radius: 4px; padding: 8px 10px; text-align: center;">
             <div style="font-size: 14pt; font-weight: 700; color: {{ 'var(--red)' if r.wo_metrics.reactive_pct >= 80 else 'var(--amber)' }};">{{ r.wo_metrics.reactive_pct }}%</div>
-            <div style="font-size: 7pt; color: var(--mid-gray);">Reactive</div>
+            <div style="font-size: 7pt; color: var(--mid-gray);">Resident-Initiated</div>
           </div>
           <div style="flex: 1; background: var(--gray-bg); border-radius: 4px; padding: 8px 10px; text-align: center;">
             <div style="font-size: 14pt; font-weight: 700; color: var(--mid-gray);">{{ (100 - r.wo_metrics.reactive_pct)|round(1) }}%</div>
-            <div style="font-size: 7pt; color: var(--mid-gray);">Preventive</div>
+            <div style="font-size: 7pt; color: var(--mid-gray);">Other / Source Unknown</div>
           </div>
         </div>
         {% else %}
-        <p style="font-size: 8pt; color: var(--mid-gray);">Reactive vs. preventive breakdown requires the Source column in your PMS export.</p>
+        <p style="font-size: 8pt; color: var(--mid-gray);">Maintenance profile breakdown requires the Source column in your PMS export.</p>
         {% endif %}
       </div>
     </div>

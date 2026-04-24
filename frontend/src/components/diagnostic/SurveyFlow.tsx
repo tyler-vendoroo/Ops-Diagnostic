@@ -211,7 +211,7 @@ export function SurveyFlow() {
   const [pmsPlatform, setPmsPlatform] = React.useState<string>("");
   const [pmsOther, setPmsOther] = React.useState<string>("");
   const [operationalModel, setOperationalModel] = React.useState<
-    "va" | "tech" | ""
+    "coordinator" | "tech" | "blended" | ""
   >("");
   const [staffCount, setStaffCount] = React.useState("");
   const [annualCostPerStaff, setAnnualCostPerStaff] = React.useState("");
@@ -419,13 +419,15 @@ export function SurveyFlow() {
       door_count: doors,
       property_count: props,
       pms_platform: resolvedPms,
-      operational_model: operationalModel as "va" | "tech",
+      operational_model: operationalModel as "coordinator" | "tech" | "blended",
       operational_model_display:
-        operationalModel === "va"
-          ? "VA Coordinators"
+        operationalModel === "coordinator"
+          ? "Maintenance Coordinators"
           : operationalModel === "tech"
-            ? "In-House Tech Team"
-            : undefined,
+            ? "In-House Technicians"
+            : operationalModel === "blended"
+              ? "Blended Model"
+              : undefined,
       staff_count: staff,
       primary_goal: primaryGoal as NonNullable<ClientInfo["primary_goal"]>,
       contact_name: l.name,
@@ -450,7 +452,7 @@ export function SurveyFlow() {
           door_count: clientInfo.door_count,
           property_count: clientInfo.property_count,
           pms_platform: clientInfo.pms_platform,
-          operational_model: clientInfo.operational_model,
+          operational_model: operationalModel || clientInfo.operational_model,
           staff_count: clientInfo.staff_count,
           primary_goal: clientInfo.primary_goal,
           annual_cost_per_staff: clientInfo.annual_cost_per_staff ?? null,
@@ -569,17 +571,17 @@ export function SurveyFlow() {
               <Label>Operational model</Label>
               <RadioGroup
                 value={operationalModel || undefined}
-                onValueChange={(v) => setOperationalModel(v as "va" | "tech")}
+                onValueChange={(v) => setOperationalModel(v as "coordinator" | "tech" | "blended")}
                 className="grid gap-3"
               >
-                <label className={radioCardClass(operationalModel === "va")}>
-                  <RadioGroupItem value="va" id="om-va" />
+                <label className={radioCardClass(operationalModel === "coordinator")}>
+                  <RadioGroupItem value="coordinator" id="om-coordinator" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">
-                      VA Coordinators
+                      Maintenance Coordinators
                     </span>
                     <span className="text-sm text-vendoroo-muted">
-                      Centralized coordinators triage and dispatch vendor work.
+                      Coordinators triage, dispatch, and manage vendor work orders.
                     </span>
                   </span>
                 </label>
@@ -587,11 +589,21 @@ export function SurveyFlow() {
                   <RadioGroupItem value="tech" id="om-tech" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">
-                      In-House Tech Team
+                      In-House Technicians
                     </span>
                     <span className="text-sm text-vendoroo-muted">
-                      Dedicated technicians handle a share of work orders
-                      internally.
+                      Dedicated technicians handle a share of maintenance work internally.
+                    </span>
+                  </span>
+                </label>
+                <label className={radioCardClass(operationalModel === "blended")}>
+                  <RadioGroupItem value="blended" id="om-blended" />
+                  <span>
+                    <span className="block font-medium text-vendoroo-text">
+                      Blended Model
+                    </span>
+                    <span className="text-sm text-vendoroo-muted">
+                      Mix of coordinators and in-house technicians.
                     </span>
                   </span>
                 </label>
@@ -599,7 +611,7 @@ export function SurveyFlow() {
             </div>
             <div className="flex flex-col gap-1.5 sm:col-span-2">
               <label className="text-sm font-medium text-vendoroo-text" htmlFor="annual-cost">
-                Annual cost per {operationalModel === "tech" ? "technician" : "coordinator"}{" "}
+                Annual cost per {operationalModel === "tech" ? "technician" : operationalModel === "blended" ? "staff member" : "coordinator"}{" "}
                 <span className="font-normal text-vendoroo-muted">(optional)</span>
               </label>
               <span className="text-xs text-vendoroo-muted">
@@ -614,7 +626,7 @@ export function SurveyFlow() {
                   value={annualCostPerStaff}
                   onChange={(e) => setAnnualCostPerStaff(e.target.value)}
                   className="w-full rounded-xl border border-vendoroo-border bg-vendoroo-surface py-2.5 pl-8 pr-4 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                  placeholder={operationalModel === "tech" ? "52000" : "22000"}
+                  placeholder={operationalModel === "tech" ? "52000" : operationalModel === "blended" ? "35000" : "22000"}
                 />
               </div>
             </div>

@@ -194,7 +194,7 @@ function FullDiagnosticContent() {
   const [propertyCount, setPropertyCount] = React.useState("");
   const [pmsPlatform, setPmsPlatform] = React.useState("");
   const [pmsOther, setPmsOther] = React.useState("");
-  const [operationalModel, setOperationalModel] = React.useState<"va" | "tech" | "">("");
+  const [operationalModel, setOperationalModel] = React.useState<"coordinator" | "va" | "tech" | "blended" | "">("");
   const [staffCount, setStaffCount] = React.useState("");
   const [annualCostPerStaff, setAnnualCostPerStaff] = React.useState("");
   const [primaryGoal, setPrimaryGoal] = React.useState<"scale" | "optimize" | "elevate" | "">("");
@@ -222,8 +222,8 @@ function FullDiagnosticContent() {
       if (saved.door_count != null) setDoorCount(String(saved.door_count));
       if (saved.property_count != null) setPropertyCount(String(saved.property_count));
       if (saved.pms_platform) setPmsPlatform(saved.pms_platform);
-      if (saved.operational_model === "va" || saved.operational_model === "tech") {
-        setOperationalModel(saved.operational_model);
+      if (saved.operational_model && ["coordinator", "va", "tech", "blended"].includes(saved.operational_model)) {
+        setOperationalModel(saved.operational_model as "coordinator" | "va" | "tech" | "blended");
       }
       if (saved.staff_count != null) setStaffCount(String(saved.staff_count));
       if (saved.annual_cost_per_staff != null) setAnnualCostPerStaff(String(saved.annual_cost_per_staff));
@@ -280,7 +280,7 @@ function FullDiagnosticContent() {
       door_count: doorCount ? Number(doorCount) : 100,
       property_count: propertyCount ? Number(propertyCount) : 1,
       pms_platform: resolvedPms,
-      operational_model: operationalModel || "va",
+      operational_model: operationalModel || "coordinator",
       staff_count: staffCount ? Number(staffCount) : 1,
       primary_goal: primaryGoal || "scale",
       annual_cost_per_staff: annualCostPerStaff ? Number(annualCostPerStaff) : null,
@@ -478,11 +478,12 @@ function FullDiagnosticContent() {
           {/* Operational model — above annual cost so the cost label matches the selection */}
           <div className="flex flex-col gap-2 sm:col-span-2">
             <span className="text-sm font-medium text-vendoroo-text">Operational model</span>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               {(
                 [
-                  { value: "va", label: "VA Coordinators", desc: "Offshore or contract coordinators handle dispatch" },
-                  { value: "tech", label: "In-House Tech Team", desc: "Dedicated internal maintenance staff" },
+                  { value: "coordinator", label: "Maintenance Coordinators", desc: "Coordinators triage, dispatch, and manage vendor work orders" },
+                  { value: "tech", label: "In-House Technicians", desc: "Dedicated technicians handle a share of maintenance work internally" },
+                  { value: "blended", label: "Blended Model", desc: "Mix of coordinators and in-house technicians" },
                 ] as const
               ).map(({ value, label, desc }) => (
                 <button
@@ -508,7 +509,7 @@ function FullDiagnosticContent() {
           {/* Annual cost per staff (optional) */}
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label className="text-sm font-medium text-vendoroo-text" htmlFor="annual-cost">
-              Annual cost per {operationalModel === "tech" ? "technician" : "coordinator"}{" "}
+              Annual cost per {operationalModel === "tech" ? "technician" : operationalModel === "blended" ? "staff member" : "coordinator"}{" "}
               <span className="font-normal text-vendoroo-muted">(optional)</span>
             </label>
             <span className="text-xs text-vendoroo-muted">
@@ -523,7 +524,7 @@ function FullDiagnosticContent() {
                 value={annualCostPerStaff}
                 onChange={(e) => setAnnualCostPerStaff(e.target.value)}
                 className="w-full rounded-xl border border-vendoroo-border bg-vendoroo-surface py-2.5 pl-8 pr-4 text-sm text-vendoroo-text placeholder:text-vendoroo-muted focus:outline-none focus:ring-2 focus:ring-vendoroo-main/30"
-                placeholder={operationalModel === "tech" ? "52000" : "22000"}
+                placeholder={operationalModel === "tech" ? "52000" : operationalModel === "blended" ? "35000" : "22000"}
               />
             </div>
           </div>

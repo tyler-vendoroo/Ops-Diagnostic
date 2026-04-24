@@ -7,8 +7,11 @@ Three-stage architecture:
 
 Python does the math. AI does the interpretation. AI never sees raw spreadsheet data.
 """
+import logging
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger(__name__)
 from datetime import datetime
 from app.utils.date_parsing import auto_parse_dates
 from app.config import CORE_TRADES
@@ -216,7 +219,19 @@ def normalize_dataframe(df, config, client_info):
         std["amount"] = pd.to_numeric(std["amount"], errors="coerce")
 
     # ── Normalize statuses ──
-    std["status"] = std["raw_status"].astype(str).str.lower().str.strip().map(STATUS_NORMALIZE).fillna("unknown")
+    std["status"] = std["raw_status"].astype(str).str.lower().str.strip().map(STATUS_NORMALIZE)
+    # Catch-all: unmapped non-blank statuses → completed/open based on close_date
+    _raw_non_blank = _safe_str(std["raw_status"]).str.strip().ne("")
+    _unmapped = std["status"].isna() & _raw_non_blank
+    if _unmapped.any():
+        std.loc[_unmapped & std["close_date"].notna(), "status"] = "completed"
+        std.loc[_unmapped & std["close_date"].isna(), "status"] = "open"
+        logger.info(
+            "Auto-resolved %d unmapped statuses via close_date: %s",
+            int(_unmapped.sum()),
+            dict(std.loc[_unmapped, "raw_status"].value_counts().head(5)),
+        )
+    std["status"] = std["status"].fillna("unknown")
     _resolve_unknown_status(std)
 
     # ── Classify source ──
@@ -352,10 +367,13 @@ def _ai_classify_trades(std, unclassified_mask):
     """
     import os
     import json
-    import logging
+
+    unclassified_count = int(unclassified_mask.sum())
+    logger.info("AI trade classification starting for %d unclassified WOs", unclassified_count)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
+        logger.warning("AI trade classification skipped: ANTHROPIC_API_KEY not set")
         return pd.Series(dtype=object, index=std[unclassified_mask].index)
 
     try:
@@ -411,11 +429,15 @@ def _ai_classify_trades(std, unclassified_mask):
         }
 
         result = pairs.map(lambda p: pair_to_trade.get(p))
+        logger.info(
+            "AI trade classification complete: %d unique pairs classified, %d WOs updated",
+            len(pair_to_trade),
+            int(result.notna().sum()),
+        )
         return result
 
     except Exception as exc:
-        import logging as _logging
-        _logging.warning("AI trade classification failed: %s", exc)
+        logger.warning("AI trade classification failed: %s", exc)
         return pd.Series(dtype=object, index=std[unclassified_mask].index)
 
 
@@ -682,9 +704,12 @@ def compute_metrics(std, client_info, config=None):
         data_reliability = "high"
         reliability_warning = None
 
-    # ── Open WO Rate ──
-    open_statuses = ["open", "in_progress"]
-    open_wos = maint[maint["status"].isin(open_statuses)]
+    # ── Open WO Rate (PMS-agnostic: no close date + not cancelled = open) ──
+    _cancelled_kws = ["cancel", "void", "duplicate", "reject", "denied", "withdrawn", "declined"]
+    _raw_lower = _safe_str(maint["raw_status"]).str.lower().str.strip()
+    _is_explicitly_cancelled = _raw_lower.apply(lambda s: any(kw in s for kw in _cancelled_kws))
+    _has_close = maint["close_date"].notna()
+    open_wos = maint[~_has_close & ~_is_explicitly_cancelled]
     open_wo_count = len(open_wos)
     open_wo_rate = round((open_wo_count / door_count) * 100, 1) if door_count > 0 else None
 
@@ -874,12 +899,37 @@ def compute_metrics(std, client_info, config=None):
                     "pct_of_total": round(count / len(maint) * 100, 1),
                 }
 
-    # ── Reactive vs. Preventive Ratio ──
-    if source_all_unavailable:
-        reactive_pct = None  # Can't determine without source data
-    else:
-        reactive_count = len(maint[maint["source"].isin(["resident", "staff_created"])])
-        reactive_pct = round(reactive_count / len(maint) * 100, 1) if len(maint) > 0 else None
+    # ── Maintenance Mix (honest 3-way split) ──
+    _proactive_desc_kws = [
+        "inspection", "annual", "preventive", "preventative", " pm ",
+        "scheduled maintenance", "filter change", "filter replacement",
+        "seasonal", "routine check", "quarterly", "semi-annual",
+        "move-in", "move-out", "walkthrough", "smoke detector",
+        "fire alarm", "safety check",
+    ]
+    _is_recurring_src = maint["source"] == "recurring"
+    _is_proactive_desc = pd.Series(False, index=maint.index)
+    if "description" in maint.columns:
+        _desc_lower = _safe_str(maint["description"]).str.lower()
+        for _kw in _proactive_desc_kws:
+            _is_proactive_desc = _is_proactive_desc | _desc_lower.str.contains(_kw, na=False)
+
+    _proactive_mask = _is_recurring_src | (_is_proactive_desc & (maint["source"] != "resident"))
+    _resident_mask = (maint["source"] == "resident") & ~_proactive_mask
+    _unknown_mask = ~_proactive_mask & ~_resident_mask
+    _total = len(maint)
+
+    maintenance_mix = {
+        "proactive_count": int(_proactive_mask.sum()),
+        "proactive_pct": round(_proactive_mask.sum() / _total * 100, 1) if _total > 0 else 0,
+        "resident_initiated_count": int(_resident_mask.sum()),
+        "resident_initiated_pct": round(_resident_mask.sum() / _total * 100, 1) if _total > 0 else 0,
+        "unclassified_count": int(_unknown_mask.sum()),
+        "unclassified_pct": round(_unknown_mask.sum() / _total * 100, 1) if _total > 0 else 0,
+    }
+
+    # backward compat: reactive_pct = resident-initiated pct
+    reactive_pct = maintenance_mix["resident_initiated_pct"] if _total > 0 else None
 
     # Estimate-heavy detection
     estimate_count = len(maint[_safe_str(maint["raw_status"]).str.lower().str.strip().isin(
@@ -972,6 +1022,7 @@ def compute_metrics(std, client_info, config=None):
         "after_hours_time_available": config.get("_has_time_data", True) if config else True,
         "source_distribution": source_pcts,
         "reactive_pct": reactive_pct,
+        "maintenance_mix": maintenance_mix,
         "estimate_heavy_pct": estimate_pct,
         "unit_turn_count": unit_turn_count,
         "seasonal_data": seasonal_data,
@@ -1195,6 +1246,11 @@ def _normalize_agnostic(df, mapping, client_info):
 
     # Normalize statuses
     std["status"] = auto_normalize_status(std["raw_status"])
+    # Catch-all: unmapped non-blank statuses → completed/open based on close_date
+    _raw_non_blank_a = _safe_str(std["raw_status"]).str.strip().ne("")
+    _unmapped_a = (std["status"] == "unknown") & _raw_non_blank_a & std["close_date"].notna()
+    if _unmapped_a.any():
+        std.loc[_unmapped_a, "status"] = "completed"
     _resolve_unknown_status(std)
 
     # Track missing fields for downstream

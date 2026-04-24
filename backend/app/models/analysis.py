@@ -77,7 +77,9 @@ class WorkOrderMetrics(BaseModel):
     # Source
     source_distribution: Optional[dict] = None
 
-    # Reactive vs Preventive
+    # Maintenance Mix (honest 3-way split: proactive / resident-initiated / unclassified)
+    maintenance_mix: Optional[dict] = None
+    # Reactive vs Preventive (backward compat — equals resident_initiated_pct)
     reactive_pct: Optional[float] = None
     estimate_heavy_pct: float = 0.0
     unit_turn_count: int = 0

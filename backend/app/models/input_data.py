@@ -44,7 +44,7 @@ class ClientInfo(BaseModel):
     door_count: int = 100
     property_count: int = 1
     pms_platform: str = "Other"  # AppFolio, Buildium, RentManager, Other
-    operational_model: str = "va"  # va, tech
+    operational_model: str = "coordinator"  # coordinator, va (compat), tech, blended
     operational_model_display: str = ""  # "VA (Virtual Assistant Coordinators)"
     staff_count: int = 1  # coordinators or techs
     primary_goal: str = "scale"  # "scale", "optimize", "elevate"
