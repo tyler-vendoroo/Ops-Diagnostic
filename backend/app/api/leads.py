@@ -73,6 +73,8 @@ async def list_leads(
                     "trial_interest": lead.trial_interest,
                     "status": lead.status,
                     "created_at": lead.created_at.isoformat() if lead.created_at else None,
+                    "referral_code": lead.referral_code,
+                    "referred_by": lead.referred_by,
                     "reminder_count": lead.reminder_count or 0,
                     "last_reminder_sent_at": lead.last_reminder_sent_at.isoformat() if lead.last_reminder_sent_at else None,
                     "diagnostics": [

@@ -37,6 +37,8 @@ interface LeadRow {
   trial_interest: boolean;
   status: string;
   created_at: string | null;
+  referral_code: string | null;
+  referred_by: string | null;
   reminder_count: number;
   last_reminder_sent_at: string | null;
   diagnostics: DiagnosticSummary[];
@@ -74,8 +76,9 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function LeadRowExpanded({ lead }: { lead: LeadRow }) {
+function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[] }) {
   const [open, setOpen] = React.useState(false);
+  const referralCount = allLeads.filter((l) => l.referred_by === lead.id).length;
 
   return (
     <>
@@ -117,6 +120,11 @@ function LeadRowExpanded({ lead }: { lead: LeadRow }) {
             {lead.reminder_count > 0 && (
               <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                 {lead.reminder_count}/3 reminders
+              </span>
+            )}
+            {referralCount > 0 && (
+              <span className="inline-flex rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-700">
+                {referralCount} referral{referralCount !== 1 ? "s" : ""}
               </span>
             )}
           </div>
@@ -355,7 +363,7 @@ export default function InternalDashboard() {
                 </td>
               </tr>
             ) : (
-              leads.map((lead) => <LeadRowExpanded key={lead.id} lead={lead} />)
+              leads.map((lead) => <LeadRowExpanded key={lead.id} lead={lead} allLeads={leads} />)
             )}
           </tbody>
         </table>

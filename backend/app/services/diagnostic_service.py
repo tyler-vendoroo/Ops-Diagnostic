@@ -374,6 +374,7 @@ class DiagnosticService:
                     ),
                 })
 
+            from app.services.lead_service import _generate_referral_code
             summary = {
                 "insights": insights[:6],
                 "category_scores": quick_categories,
@@ -391,6 +392,7 @@ class DiagnosticService:
                 "current_cost_per_door": _cost_per_door_monthly if client_info.annual_cost_per_staff else None,
                 "annual_cost_per_staff": client_info.annual_cost_per_staff,
                 "cost_source": "based on your input" if client_info.annual_cost_per_staff else None,
+                "referral_code": _generate_referral_code(lead_id) if lead_id else None,
             }
         except Exception as exc:
             logger.warning(

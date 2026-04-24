@@ -1,5 +1,6 @@
 """LeadService: handles lead persistence in the database."""
 
+import hashlib
 import logging
 from sqlalchemy import select
 
@@ -8,6 +9,10 @@ from app.db import models as db_models
 from app.models.lead import LeadCapture
 
 logger = logging.getLogger(__name__)
+
+
+def _generate_referral_code(lead_id: str) -> str:
+    return hashlib.sha256(lead_id.encode()).hexdigest()[:8]
 
 
 class LeadService:
@@ -50,6 +55,20 @@ class LeadService:
                 status="new",
             )
             session.add(record)
+            await session.flush()  # populate record.id before using it
+
+            record.referral_code = _generate_referral_code(record.id)
+
+            if lead.referral_source:
+                ref_result = await session.execute(
+                    select(db_models.Lead).where(
+                        db_models.Lead.referral_code == lead.referral_source
+                    )
+                )
+                referring_lead = ref_result.scalar_one_or_none()
+                if referring_lead:
+                    record.referred_by = referring_lead.id
+
             await session.commit()
             await session.refresh(record)
             logger.info("Created new lead %s for email %s", record.id, record.email)

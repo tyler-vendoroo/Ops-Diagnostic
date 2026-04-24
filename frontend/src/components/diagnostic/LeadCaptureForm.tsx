@@ -32,6 +32,13 @@ export function LeadCaptureForm({
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [referralSource, setReferralSource] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) setReferralSource(ref);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,6 +58,7 @@ export function LeadCaptureForm({
       phone: phone.trim() || undefined,
       terms_accepted: true,
       trial_interest: trialInterest,
+      referral_source: referralSource ?? undefined,
     };
     setLoading(true);
     try {

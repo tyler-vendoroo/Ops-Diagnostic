@@ -130,6 +130,75 @@ const INSIGHT_ICONS: Record<string, string> = {
   target: "🎯",
 };
 
+function ShareButton({
+  score,
+  topFinding,
+  referralCode,
+}: {
+  score: number;
+  topFinding: string;
+  referralCode?: string | null;
+}) {
+  const [copied, setCopied] = React.useState(false);
+  const shareUrl = referralCode
+    ? `https://diagnostic.vendoroo.ai?ref=${referralCode}`
+    : "https://diagnostic.vendoroo.ai";
+  const shareText = `Just ran my property management operation through Vendoroo's AI diagnostic and learned: "${topFinding}." Took 2 minutes. Check yours:`;
+
+  async function handleShare() {
+    const fullText = `${shareText} ${shareUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: fullText, url: shareUrl });
+        return;
+      } catch {
+        // cancelled or unsupported — fall through
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(fullText);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = fullText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  // suppress unused variable warning — score is reserved for future use
+  void score;
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleShare()}
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-vendoroo-border bg-vendoroo-surface px-5 py-3 text-sm font-medium text-vendoroo-smoke transition-colors hover:bg-vendoroo-light"
+    >
+      {copied ? (
+        <>
+          <svg className="size-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Copied to clipboard!
+        </>
+      ) : (
+        <>
+          <svg className="size-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          Share your results
+        </>
+      )}
+    </button>
+  );
+}
+
 function QuickResults({
   data,
   score,
@@ -172,6 +241,13 @@ function QuickResults({
           Complete your full diagnostic or book a call to get started.
         </p>
       </div>
+
+      {/* ── Share button ── */}
+      <ShareButton
+        score={score}
+        topFinding={insights[0]?.title ?? `${score}/100 on operations readiness`}
+        referralCode={data.summary?.referral_code}
+      />
 
       {/* ── Insights ── */}
       {insights.length > 0 && (

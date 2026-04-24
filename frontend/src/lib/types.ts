@@ -15,6 +15,7 @@ export interface LeadCapture {
   event_source?: string;
   terms_accepted: boolean;
   trial_interest?: boolean;
+  referral_source?: string;
 }
 
 // ─── Client Info ─────────────────────────────────────────────────────────────
@@ -208,6 +209,7 @@ export interface CreateLeadRequest {
   phone?: string;
   event_source?: string;
   terms_accepted: boolean;
+  referral_source?: string;
 }
 
 // ─── API Responses ────────────────────────────────────────────────────────────
@@ -291,6 +293,7 @@ export interface DiagnosticStatusResponse {
     current_cost_per_door?: number;
     annual_cost_per_staff?: number;
     cost_source?: string;
+    referral_code?: string | null;
     [key: string]: unknown;
   };
 }

@@ -18,3 +18,4 @@ class LeadCapture(BaseModel):
     pms_platform: Optional[str] = None
     terms_accepted: bool = False
     trial_interest: bool = False
+    referral_source: Optional[str] = None

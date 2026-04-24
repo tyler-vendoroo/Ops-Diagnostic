@@ -20,6 +20,8 @@ class Lead(Base):
     terms_accepted: Mapped[bool] = mapped_column(default=False)
     trial_interest: Mapped[bool] = mapped_column(default=False)
     door_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    referred_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    referral_code: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
     last_reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     reminder_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
