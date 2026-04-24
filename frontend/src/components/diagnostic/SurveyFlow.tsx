@@ -574,7 +574,7 @@ export function SurveyFlow() {
                 onValueChange={(v) => setOperationalModel(v as "coordinator" | "tech" | "blended")}
                 className="grid gap-3"
               >
-                <label className={radioCardClass(operationalModel === "coordinator")}>
+                <div className={radioCardClass(operationalModel === "coordinator")} onClick={(e) => { if (!e.defaultPrevented) setOperationalModel("coordinator"); }}>
                   <RadioGroupItem value="coordinator" id="om-coordinator" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">
@@ -584,8 +584,8 @@ export function SurveyFlow() {
                       Coordinators triage, dispatch, and manage vendor work orders.
                     </span>
                   </span>
-                </label>
-                <label className={radioCardClass(operationalModel === "tech")}>
+                </div>
+                <div className={radioCardClass(operationalModel === "tech")} onClick={(e) => { if (!e.defaultPrevented) setOperationalModel("tech"); }}>
                   <RadioGroupItem value="tech" id="om-tech" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">
@@ -595,8 +595,8 @@ export function SurveyFlow() {
                       Dedicated technicians handle a share of maintenance work internally.
                     </span>
                   </span>
-                </label>
-                <label className={radioCardClass(operationalModel === "blended")}>
+                </div>
+                <div className={radioCardClass(operationalModel === "blended")} onClick={(e) => { if (!e.defaultPrevented) setOperationalModel("blended"); }}>
                   <RadioGroupItem value="blended" id="om-blended" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">
@@ -606,7 +606,7 @@ export function SurveyFlow() {
                       Mix of coordinators and in-house technicians.
                     </span>
                   </span>
-                </label>
+                </div>
               </RadioGroup>
             </div>
             <div className="flex flex-col gap-1.5 sm:col-span-2">
@@ -762,7 +762,7 @@ export function SurveyFlow() {
               name="nte"
             />
             {definedNtes === "yes" ? (
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4">
+              <div className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4" onClick={(e) => { if (!e.defaultPrevented) setNtesTiered((v) => !v); }}>
                 <Checkbox
                   checked={ntesTiered}
                   onCheckedChange={(c) => setNtesTiered(c === true)}
@@ -771,7 +771,7 @@ export function SurveyFlow() {
                 <span className="text-sm text-vendoroo-smoke">
                   NTEs are tiered by trade or cost band (not a single flat cap).
                 </span>
-              </label>
+              </div>
             ) : null}
             <PolicyRadio
               label="Defined SLAs with vendors?"
@@ -839,32 +839,26 @@ export function SurveyFlow() {
                 onValueChange={setAfterHours}
                 className="grid gap-3"
               >
-                <label className={radioCardClass(afterHours === "24_7_coverage")}>
+                <div className={radioCardClass(afterHours === "24_7_coverage")} onClick={(e) => { if (!e.defaultPrevented) setAfterHours("24_7_coverage"); }}>
                   <RadioGroupItem value="24_7_coverage" id="ah-247" />
                   <span className="text-vendoroo-text">24/7 coverage</span>
-                </label>
-                <label
-                  className={radioCardClass(afterHours === "answering_service")}
-                >
+                </div>
+                <div className={radioCardClass(afterHours === "answering_service")} onClick={(e) => { if (!e.defaultPrevented) setAfterHours("answering_service"); }}>
                   <RadioGroupItem value="answering_service" id="ah-ans" />
                   <span className="text-vendoroo-text">Answering service</span>
-                </label>
-                <label
-                  className={radioCardClass(afterHours === "on_call_rotation")}
-                >
+                </div>
+                <div className={radioCardClass(afterHours === "on_call_rotation")} onClick={(e) => { if (!e.defaultPrevented) setAfterHours("on_call_rotation"); }}>
                   <RadioGroupItem value="on_call_rotation" id="ah-oncall" />
                   <span className="text-vendoroo-text">On-call rotation</span>
-                </label>
-                <label
-                  className={radioCardClass(afterHours === "voicemail_only")}
-                >
+                </div>
+                <div className={radioCardClass(afterHours === "voicemail_only")} onClick={(e) => { if (!e.defaultPrevented) setAfterHours("voicemail_only"); }}>
                   <RadioGroupItem value="voicemail_only" id="ah-vm" />
                   <span className="text-vendoroo-text">Voicemail only</span>
-                </label>
-                <label className={radioCardClass(afterHours === "none")}>
+                </div>
+                <div className={radioCardClass(afterHours === "none")} onClick={(e) => { if (!e.defaultPrevented) setAfterHours("none"); }}>
                   <RadioGroupItem value="none" id="ah-none" />
                   <span className="text-vendoroo-text">None</span>
-                </label>
+                </div>
               </RadioGroup>
             </div>
           </section>
@@ -892,7 +886,7 @@ export function SurveyFlow() {
                 }
                 className="grid gap-3"
               >
-                <label className={radioCardClass(primaryGoal === "scale")}>
+                <div className={radioCardClass(primaryGoal === "scale")} onClick={(e) => { if (!e.defaultPrevented) setPrimaryGoal("scale"); }}>
                   <RadioGroupItem value="scale" id="g-scale" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">Scale</span>
@@ -900,8 +894,8 @@ export function SurveyFlow() {
                       Grow portfolio without adding headcount.
                     </span>
                   </span>
-                </label>
-                <label className={radioCardClass(primaryGoal === "optimize")}>
+                </div>
+                <div className={radioCardClass(primaryGoal === "optimize")} onClick={(e) => { if (!e.defaultPrevented) setPrimaryGoal("optimize"); }}>
                   <RadioGroupItem value="optimize" id="g-opt" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">
@@ -911,8 +905,8 @@ export function SurveyFlow() {
                       Reduce costs and tighten response time.
                     </span>
                   </span>
-                </label>
-                <label className={radioCardClass(primaryGoal === "elevate")}>
+                </div>
+                <div className={radioCardClass(primaryGoal === "elevate")} onClick={(e) => { if (!e.defaultPrevented) setPrimaryGoal("elevate"); }}>
                   <RadioGroupItem value="elevate" id="g-el" />
                   <span>
                     <span className="block font-medium text-vendoroo-text">Elevate</span>
@@ -920,7 +914,7 @@ export function SurveyFlow() {
                       Premium service positioning for higher-value properties.
                     </span>
                   </span>
-                </label>
+                </div>
               </RadioGroup>
             </div>
             <div className="space-y-3">
@@ -935,13 +929,14 @@ export function SurveyFlow() {
                   const checked = painPoints.includes(p.id);
                   const disabled = !checked && painPoints.length >= 3;
                   return (
-                    <label
+                    <div
                       key={p.id}
                       className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
                         disabled
                           ? "cursor-not-allowed border-vendoroo-border/50 text-vendoroo-muted"
                           : "cursor-pointer border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50"
                       }`}
+                      onClick={(e) => { if (!e.defaultPrevented && !disabled) togglePain(p.id); }}
                     >
                       <Checkbox
                         checked={checked}
@@ -950,7 +945,7 @@ export function SurveyFlow() {
                         className="border-vendoroo-border"
                       />
                       {p.label}
-                    </label>
+                    </div>
                   );
                 })}
               </div>
