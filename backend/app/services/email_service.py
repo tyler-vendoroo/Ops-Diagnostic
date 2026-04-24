@@ -297,9 +297,21 @@ class EmailService:
                   <td style="padding:6px 0 6px 12px;width:15%;text-align:right;font-size:11px;font-weight:600;color:{tier_color};">{tier_label}</td>
                 </tr>"""
 
+            import urllib.parse
             full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
             results_url = f"{frontend_url}/diagnostic/results/{diagnostic_id}"
             book_call_url = "https://vendoroo.ai/contact"
+
+            share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
+            share_text = (
+                "Just ran my property management operation through Vendoroo's AI diagnostic "
+                "and learned something interesting. Took 2 minutes. Check yours:"
+            )
+            share_text_encoded = urllib.parse.quote(share_text)
+            share_url_encoded = urllib.parse.quote(share_url)
+            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={share_url_encoded}"
+            twitter_url = f"https://twitter.com/intent/tweet?text={share_text_encoded}&url={share_url_encoded}"
+            facebook_url = f"https://www.facebook.com/sharer/sharer.php?u={share_url_encoded}"
 
             html_body = f"""<!DOCTYPE html>
 <html lang="en">
@@ -379,6 +391,30 @@ class EmailService:
             </td>
           </tr>
           <tr>
+            <td style="padding:16px 40px;text-align:center;border-top:1px solid #f1f5f9;">
+              <p style="margin:0 0 12px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Share your results</p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                <tr>
+                  <td style="padding:0 12px;">
+                    <a href="{linkedin_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">LinkedIn</a>
+                  </td>
+                  <td style="padding:0 4px;color:#e2e8f0;">|</td>
+                  <td style="padding:0 12px;">
+                    <a href="{twitter_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">X</a>
+                  </td>
+                  <td style="padding:0 4px;color:#e2e8f0;">|</td>
+                  <td style="padding:0 12px;">
+                    <a href="{facebook_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">Facebook</a>
+                  </td>
+                  <td style="padding:0 4px;color:#e2e8f0;">|</td>
+                  <td style="padding:0 12px;">
+                    <a href="{results_url}?share=true" target="_blank" style="text-decoration:none;color:#94a3b8;font-size:13px;">More options</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
             <td style="background-color:#1a1a2e;padding:20px 40px;text-align:center;">
               <p style="margin:0;color:#475569;font-size:12px;">
                 &copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a>
@@ -421,9 +457,16 @@ class EmailService:
     ) -> None:
         """Touch 1 (48hrs): Your score is waiting — here's what it's missing."""
         try:
+            import urllib.parse
             frontend_url = settings.frontend_url
             full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
             results_url = f"{frontend_url}/diagnostic/results/{diagnostic_id}"
+
+            share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
+            share_url_encoded = urllib.parse.quote(share_url)
+            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={share_url_encoded}"
+            twitter_url = f"https://twitter.com/intent/tweet?url={share_url_encoded}"
+            facebook_url = f"https://www.facebook.com/sharer/sharer.php?u={share_url_encoded}"
 
             html_body = f"""<!DOCTYPE html>
 <html lang="en">
@@ -452,6 +495,18 @@ class EmailService:
           <p style="text-align:center;margin:0;">
             <a href="{results_url}" style="color:#94a3b8;font-size:12px;text-decoration:none;">View your quick results →</a>
           </p>
+        </td></tr>
+        <tr><td style="padding:16px 40px;text-align:center;border-top:1px solid #f1f5f9;">
+          <p style="margin:0 0 12px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Share your results</p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
+            <td style="padding:0 12px;"><a href="{linkedin_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">LinkedIn</a></td>
+            <td style="padding:0 4px;color:#e2e8f0;">|</td>
+            <td style="padding:0 12px;"><a href="{twitter_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">X</a></td>
+            <td style="padding:0 4px;color:#e2e8f0;">|</td>
+            <td style="padding:0 12px;"><a href="{facebook_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">Facebook</a></td>
+            <td style="padding:0 4px;color:#e2e8f0;">|</td>
+            <td style="padding:0 12px;"><a href="{results_url}?share=true" target="_blank" style="text-decoration:none;color:#94a3b8;font-size:13px;">More options</a></td>
+          </tr></table>
         </td></tr>
         <tr><td style="background-color:#1a1a2e;padding:20px 40px;text-align:center;">
           <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
@@ -483,8 +538,15 @@ class EmailService:
     ) -> None:
         """Touch 2 (7 days): One file. 5 minutes. Complete picture."""
         try:
+            import urllib.parse
             frontend_url = settings.frontend_url
             full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
+
+            share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
+            share_url_encoded = urllib.parse.quote(share_url)
+            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={share_url_encoded}"
+            twitter_url = f"https://twitter.com/intent/tweet?url={share_url_encoded}"
+            facebook_url = f"https://www.facebook.com/sharer/sharer.php?u={share_url_encoded}"
 
             html_body = f"""<!DOCTYPE html>
 <html lang="en">
@@ -510,6 +572,16 @@ class EmailService:
               Upload your work orders →
             </a>
           </p>
+        </td></tr>
+        <tr><td style="padding:16px 40px;text-align:center;border-top:1px solid #f1f5f9;">
+          <p style="margin:0 0 12px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Share your results</p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
+            <td style="padding:0 12px;"><a href="{linkedin_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">LinkedIn</a></td>
+            <td style="padding:0 4px;color:#e2e8f0;">|</td>
+            <td style="padding:0 12px;"><a href="{twitter_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">X</a></td>
+            <td style="padding:0 4px;color:#e2e8f0;">|</td>
+            <td style="padding:0 12px;"><a href="{facebook_url}" target="_blank" style="text-decoration:none;color:#039cac;font-size:13px;font-weight:600;">Facebook</a></td>
+          </tr></table>
         </td></tr>
         <tr><td style="background-color:#1a1a2e;padding:20px 40px;text-align:center;">
           <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
