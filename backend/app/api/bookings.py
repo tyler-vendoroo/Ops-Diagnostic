@@ -158,11 +158,32 @@ async def create_booking(req: BookingRequest):
     except Exception as exc:
         logger.warning("Booking confirmation email failed: %s", exc)
 
+    # Include most recent completed diagnostic so the confirmation page can link to it
+    diagnostic_id: str | None = None
+    if req.lead_id:
+        try:
+            async with AsyncSessionLocal() as session:
+                diag_result = await session.execute(
+                    select(db_models.Diagnostic)
+                    .where(
+                        db_models.Diagnostic.lead_id == req.lead_id,
+                        db_models.Diagnostic.status == "complete",
+                    )
+                    .order_by(db_models.Diagnostic.created_at.desc())
+                    .limit(1)
+                )
+                diag = diag_result.scalar_one_or_none()
+                if diag:
+                    diagnostic_id = diag.id
+        except Exception as exc:
+            logger.warning("Could not look up diagnostic for lead %s: %s", req.lead_id, exc)
+
     return {
         "id": booking.id,
         "date": display_date,
         "time": display_time,
         "status": "confirmed",
+        "diagnostic_id": diagnostic_id,
     }
 
 

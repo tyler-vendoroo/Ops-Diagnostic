@@ -144,9 +144,15 @@ def _generate_pdf_playwright(html: str) -> bytes:
 
     async def _run():
         async with async_playwright() as p:
-            browser = await p.chromium.launch(args=["--no-sandbox", "--disable-setuid-sandbox"])
+            browser = await p.chromium.launch(args=[
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+            ])
             page = await browser.new_page()
-            await page.set_content(html, wait_until="networkidle")
+            # domcontentloaded avoids hanging on external resources (e.g. Google Fonts CDN)
+            await page.set_content(html, wait_until="domcontentloaded", timeout=60000)
             pdf_bytes = await page.pdf(
                 format="Letter",
                 print_background=True,

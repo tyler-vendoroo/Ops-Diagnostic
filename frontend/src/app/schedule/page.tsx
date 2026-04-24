@@ -30,7 +30,7 @@ export default function SchedulePage() {
   const [leadId, setLeadId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [fetching, setFetching] = React.useState(true);
-  const [booked, setBooked] = React.useState<{ date: string; time: string } | null>(null);
+  const [booked, setBooked] = React.useState<{ date: string; time: string; diagnosticId: string | null } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -94,9 +94,9 @@ export default function SchedulePage() {
           lead_id: leadId || null,
         }),
       });
-      const data = await res.json() as { date: string; time: string; detail?: string };
+      const data = await res.json() as { date: string; time: string; diagnostic_id?: string | null; detail?: string };
       if (!res.ok) throw new Error(data.detail || "Booking failed");
-      setBooked({ date: data.date, time: data.time });
+      setBooked({ date: data.date, time: data.time, diagnosticId: data.diagnostic_id ?? null });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
     } finally {
@@ -123,6 +123,14 @@ export default function SchedulePage() {
           <p className="mt-6 text-xs text-vendoroo-muted">
             Check your email for confirmation. See you there!
           </p>
+          {booked.diagnosticId && (
+            <a
+              href={`/diagnostic/results/${booked.diagnosticId}`}
+              className="mt-4 inline-block text-sm font-medium text-vendoroo-main hover:underline"
+            >
+              View your diagnostic results →
+            </a>
+          )}
         </div>
       </div>
     );
