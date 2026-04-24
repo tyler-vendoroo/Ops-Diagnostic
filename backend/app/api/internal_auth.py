@@ -58,3 +58,11 @@ async def internal_logout(response: Response):
 @router.get("/check")
 async def check_auth(authed: bool = Depends(verify_internal_token)):
     return {"ok": True}
+
+
+@router.post("/reminders/run")
+async def trigger_reminders(authed: bool = Depends(verify_internal_token)):
+    """Manually trigger the reminder check. Protected by internal auth."""
+    from app.services.reminder_service import run_reminder_check
+    count = await run_reminder_check()
+    return {"sent": count}

@@ -37,6 +37,8 @@ interface LeadRow {
   trial_interest: boolean;
   status: string;
   created_at: string | null;
+  reminder_count: number;
+  last_reminder_sent_at: string | null;
   diagnostics: DiagnosticSummary[];
 }
 
@@ -104,13 +106,20 @@ function LeadRowExpanded({ lead }: { lead: LeadRow }) {
         </td>
         <td className="px-4 py-3 text-sm text-gray-500">{formatDate(lead.created_at)}</td>
         <td className="px-4 py-3">
-          {lead.diagnostics.length > 0 ? (
-            <span className="inline-flex rounded-full bg-vendoroo-tint/30 px-2.5 py-0.5 text-xs font-medium text-vendoroo-main-dark">
-              {lead.diagnostics.length} diagnostic{lead.diagnostics.length !== 1 ? "s" : ""}
-            </span>
-          ) : (
-            <span className="text-xs text-gray-400">None</span>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {lead.diagnostics.length > 0 ? (
+              <span className="inline-flex rounded-full bg-vendoroo-tint/30 px-2.5 py-0.5 text-xs font-medium text-vendoroo-main-dark">
+                {lead.diagnostics.length} diagnostic{lead.diagnostics.length !== 1 ? "s" : ""}
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400">None</span>
+            )}
+            {lead.reminder_count > 0 && (
+              <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                {lead.reminder_count}/3 reminders
+              </span>
+            )}
+          </div>
         </td>
       </tr>
 

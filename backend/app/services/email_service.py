@@ -410,3 +410,173 @@ class EmailService:
             logger.error(
                 "Failed to send quick diagnostic email to %s: %s", lead_email, exc
             )
+
+    async def send_reminder_touch_1(
+        self,
+        lead_email: str,
+        lead_name: str,
+        diagnostic_id: str,
+        overall_score: int,
+        prefill_token: str,
+    ) -> None:
+        """Touch 1 (48hrs): Your score is waiting — here's what it's missing."""
+        try:
+            frontend_url = settings.frontend_url
+            full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
+            results_url = f"{frontend_url}/diagnostic/results/{diagnostic_id}"
+
+            html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <tr><td style="background-color:#1a1a2e;padding:32px 40px;">
+          <p style="margin:0;color:#039cac;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo · AI Diagnostics</p>
+          <h1 style="margin:8px 0 0;color:#ffffff;font-size:20px;font-weight:700;">Your operations score is waiting for the full picture</h1>
+        </td></tr>
+        <tr><td style="padding:32px 40px;">
+          <p style="margin:0 0 16px;color:#334155;font-size:15px;">Hi {lead_name},</p>
+          <p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.6;">
+            You scored <strong style="color:#0F172A;">{overall_score}/100</strong> on your quick diagnostic. But 3 categories — Documentation Quality, Policy Completeness, and Operational Consistency — couldn't be scored accurately without your actual data.
+          </p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+            Upload your work order history and we'll show you the complete picture — real response times, vendor performance, and specific gaps with remediation plans.
+          </p>
+          <p style="text-align:center;margin:0 0 16px;">
+            <a href="{full_url}" style="display:inline-block;background-color:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
+              Complete your full diagnostic →
+            </a>
+          </p>
+          <p style="text-align:center;margin:0;">
+            <a href="{results_url}" style="color:#94a3b8;font-size:12px;text-decoration:none;">View your quick results →</a>
+          </p>
+        </td></tr>
+        <tr><td style="background-color:#1a1a2e;padding:20px 40px;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: resend.Emails.send({
+                    "from": settings.diagnostic_from_email,
+                    "to": [lead_email],
+                    "subject": "Your ops score is waiting — here's what it's missing",
+                    "html": html_body,
+                })
+            )
+            logger.info("Sent reminder touch 1 to %s", lead_email)
+        except Exception as exc:
+            logger.error("Reminder touch 1 failed for %s: %s", lead_email, exc)
+
+    async def send_reminder_touch_2(
+        self,
+        lead_email: str,
+        lead_name: str,
+        diagnostic_id: str,
+        overall_score: int,
+        prefill_token: str,
+    ) -> None:
+        """Touch 2 (7 days): One file. 5 minutes. Complete picture."""
+        try:
+            frontend_url = settings.frontend_url
+            full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
+
+            html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <tr><td style="background-color:#1a1a2e;padding:32px 40px;">
+          <p style="margin:0;color:#039cac;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo · AI Diagnostics</p>
+          <h1 style="margin:8px 0 0;color:#ffffff;font-size:20px;font-weight:700;">One file. Five minutes. The full picture.</h1>
+        </td></tr>
+        <tr><td style="padding:32px 40px;">
+          <p style="margin:0 0 16px;color:#334155;font-size:15px;">Hi {lead_name},</p>
+          <p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.6;">
+            Your quick diagnostic scored <strong style="color:#0F172A;">{overall_score}/100</strong>, but that's an estimate. Your actual work order data tells the real story — response times, vendor performance, completion rates, and gaps that are specific to your operation.
+          </p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+            Export your work order history from your PMS (12 months recommended), upload it, and we'll do the rest. Takes about 5 minutes.
+          </p>
+          <p style="text-align:center;margin:0;">
+            <a href="{full_url}" style="display:inline-block;background-color:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
+              Upload your work orders →
+            </a>
+          </p>
+        </td></tr>
+        <tr><td style="background-color:#1a1a2e;padding:20px 40px;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: resend.Emails.send({
+                    "from": settings.diagnostic_from_email,
+                    "to": [lead_email],
+                    "subject": "One file. Five minutes. Your complete ops analysis.",
+                    "html": html_body,
+                })
+            )
+            logger.info("Sent reminder touch 2 to %s", lead_email)
+        except Exception as exc:
+            logger.error("Reminder touch 2 failed for %s: %s", lead_email, exc)
+
+    async def send_reminder_touch_3(
+        self,
+        lead_email: str,
+        lead_name: str,
+        book_call_url: str = "https://vendoroo.ai/contact",
+    ) -> None:
+        """Touch 3 (14 days): Pivot to a call. No more diagnostic push."""
+        try:
+            html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <tr><td style="background-color:#1a1a2e;padding:32px 40px;">
+          <p style="margin:0;color:#039cac;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo</p>
+          <h1 style="margin:8px 0 0;color:#ffffff;font-size:20px;font-weight:700;">Want us to walk you through your results?</h1>
+        </td></tr>
+        <tr><td style="padding:32px 40px;">
+          <p style="margin:0 0 16px;color:#334155;font-size:15px;">Hi {lead_name},</p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+            We know things get busy. If you'd rather have one of our team walk you through your diagnostic results and answer any questions, we're happy to set up a quick call. No prep needed — we already have your data.
+          </p>
+          <p style="text-align:center;margin:0;">
+            <a href="{book_call_url}" style="display:inline-block;background-color:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
+              Book a 15-minute call
+            </a>
+          </p>
+        </td></tr>
+        <tr><td style="background-color:#1a1a2e;padding:20px 40px;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: resend.Emails.send({
+                    "from": settings.diagnostic_from_email,
+                    "to": [lead_email],
+                    "subject": "Want us to walk you through your results?",
+                    "html": html_body,
+                })
+            )
+            logger.info("Sent reminder touch 3 to %s", lead_email)
+        except Exception as exc:
+            logger.error("Reminder touch 3 failed for %s: %s", lead_email, exc)
