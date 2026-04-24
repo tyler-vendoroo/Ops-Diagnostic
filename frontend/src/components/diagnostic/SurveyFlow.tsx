@@ -570,7 +570,7 @@ export function SurveyFlow() {
             <div className="space-y-3">
               <Label>Operational model</Label>
               <RadioGroup
-                value={operationalModel || undefined}
+                value={operationalModel}
                 onValueChange={(v) => setOperationalModel(v as "coordinator" | "tech" | "blended")}
                 className="grid gap-3"
               >
@@ -762,10 +762,9 @@ export function SurveyFlow() {
               name="nte"
             />
             {definedNtes === "yes" ? (
-              <div className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4" onClick={(e) => { if (!e.defaultPrevented) setNtesTiered((v) => !v); }}>
+              <div className="flex cursor-pointer items-start gap-3 rounded-lg border border-vendoroo-border bg-vendoroo-surface p-4" onClick={() => setNtesTiered((v) => !v)}>
                 <Checkbox
                   checked={ntesTiered}
-                  onCheckedChange={(c) => setNtesTiered(c === true)}
                   className="mt-0.5 border-vendoroo-border"
                 />
                 <span className="text-sm text-vendoroo-smoke">
@@ -803,7 +802,9 @@ export function SurveyFlow() {
                 onValueChange={(v) => setResponseTime(v ?? "")}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
-                  <SelectValue placeholder="Select response window" />
+                  <span className={`flex flex-1 text-left text-sm ${!responseTime ? "text-vendoroo-muted" : ""}`}>
+                    {RESPONSE_TIME_OPTIONS.find((o) => o.value === responseTime)?.label ?? "Select response window"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {RESPONSE_TIME_OPTIONS.map((opt) => (
@@ -821,7 +822,9 @@ export function SurveyFlow() {
                 onValueChange={(v) => setCompletionTime(v ?? "")}
               >
                 <SelectTrigger className={`w-full ${inputClass}`}>
-                  <SelectValue placeholder="Select completion window" />
+                  <span className={`flex flex-1 text-left text-sm ${!completionTime ? "text-vendoroo-muted" : ""}`}>
+                    {COMPLETION_TIME_OPTIONS.find((o) => o.value === completionTime)?.label ?? "Select completion window"}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {COMPLETION_TIME_OPTIONS.map((opt) => (
@@ -835,7 +838,7 @@ export function SurveyFlow() {
             <div className="space-y-3">
               <Label>After-hours coverage method</Label>
               <RadioGroup
-                value={afterHours || undefined}
+                value={afterHours}
                 onValueChange={setAfterHours}
                 className="grid gap-3"
               >
@@ -880,7 +883,7 @@ export function SurveyFlow() {
             <div className="space-y-3">
               <Label>Primary goal</Label>
               <RadioGroup
-                value={primaryGoal || undefined}
+                value={primaryGoal}
                 onValueChange={(v) =>
                   setPrimaryGoal(v as "scale" | "optimize" | "elevate")
                 }
@@ -936,12 +939,11 @@ export function SurveyFlow() {
                           ? "cursor-not-allowed border-vendoroo-border/50 text-vendoroo-muted"
                           : "cursor-pointer border-vendoroo-border bg-vendoroo-surface text-vendoroo-smoke hover:border-vendoroo-muted/50"
                       }`}
-                      onClick={(e) => { if (!e.defaultPrevented && !disabled) togglePain(p.id); }}
+                      onClick={() => { if (!disabled) togglePain(p.id); }}
                     >
                       <Checkbox
                         checked={checked}
                         disabled={disabled}
-                        onCheckedChange={() => togglePain(p.id)}
                         className="border-vendoroo-border"
                       />
                       {p.label}
