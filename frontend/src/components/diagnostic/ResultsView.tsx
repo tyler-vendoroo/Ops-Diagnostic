@@ -410,9 +410,7 @@ function QuickResults({
           <ArrowRight className="size-4" />
         </Link>
         <a
-          href="https://vendoroo.ai/contact"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/schedule"
           className={cn(
             buttonVariants({
               variant: "outline",
@@ -828,9 +826,7 @@ export function ResultsView({ id }: { id: string }) {
           ))}
         </ul>
         <a
-          href="https://vendoroo.ai/contact"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/schedule"
           className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-vendoroo-main px-8 py-4 text-sm font-semibold uppercase tracking-wider text-white shadow-lg transition-colors hover:bg-vendoroo-main/90"
         >
           Book a meeting or come see us at Imperial Room 5A (4th floor)

@@ -300,7 +300,7 @@ class EmailService:
             import urllib.parse
             full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
             results_url = f"{frontend_url}/diagnostic/results/{diagnostic_id}"
-            book_call_url = "https://vendoroo.ai/contact"
+            book_call_url = f"{settings.frontend_url}/schedule"
 
             share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
             share_url_encoded = urllib.parse.quote(share_url)
@@ -623,7 +623,7 @@ class EmailService:
         self,
         lead_email: str,
         lead_name: str,
-        book_call_url: str = "https://vendoroo.ai/contact",
+        book_call_url: str = f"{settings.frontend_url}/schedule",
     ) -> None:
         """Touch 3 (14 days): Pivot to a call. No more diagnostic push."""
         try:

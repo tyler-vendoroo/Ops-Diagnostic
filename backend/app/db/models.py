@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, DateTime, JSON, Text, LargeBinary, ForeignKey, Integer
+from datetime import datetime, date, time
+from sqlalchemy import String, DateTime, Date, Time, JSON, Text, LargeBinary, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
@@ -58,6 +58,20 @@ class Diagnostic(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     lead: Mapped["Lead | None"] = relationship(back_populates="diagnostics")
+
+class BoothBooking(Base):
+    __tablename__ = "booth_bookings"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_uuid)
+    lead_id: Mapped[str | None] = mapped_column(ForeignKey("leads.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String)
+    email: Mapped[str] = mapped_column(String)
+    company: Mapped[str | None] = mapped_column(String, nullable=True)
+    booking_date: Mapped[date] = mapped_column(Date)
+    booking_time: Mapped[time] = mapped_column(Time)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="confirmed")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 
 class Event(Base):
     __tablename__ = "events"

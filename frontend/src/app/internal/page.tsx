@@ -300,14 +300,30 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
   );
 }
 
+interface BookingRow {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  date: string;
+  date_display: string;
+  time: string;
+  time_display: string;
+  notes: string | null;
+  status: string;
+}
+
 export default function InternalDashboard() {
   const [authed, setAuthed] = React.useState<boolean | null>(null);
   const [password, setPassword] = React.useState("");
   const [loginError, setLoginError] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState<"leads" | "bookings">("leads");
   const [search, setSearch] = React.useState("");
   const [leads, setLeads] = React.useState<LeadRow[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
+  const [bookings, setBookings] = React.useState<BookingRow[]>([]);
+  const [bookingsLoading, setBookingsLoading] = React.useState(false);
 
   React.useEffect(() => {
     fetch(`${API}/api/v1/internal/check`, {
@@ -349,6 +365,29 @@ export default function InternalDashboard() {
     const t = setTimeout(() => void fetchLeads(search), 300);
     return () => clearTimeout(t);
   }, [search, authed, fetchLeads]);
+
+  const fetchBookings = React.useCallback(async () => {
+    setBookingsLoading(true);
+    try {
+      const res = await fetch(`${API}/api/v1/bookings/admin`, {
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { bookings: BookingRow[] };
+        setBookings(data.bookings);
+      }
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!authed) return;
+    void fetchBookings();
+  }, [authed, fetchBookings]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -411,56 +450,123 @@ export default function InternalDashboard() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
-            Diagnostics Dashboard
+            Vendoroo Internal
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {total} lead{total !== 1 ? "s" : ""} total
-          </p>
+          <div className="mt-3 flex gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("leads")}
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === "leads"
+                  ? "bg-vendoroo-main text-white"
+                  : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              Leads
+              <span className="ml-1.5 text-xs opacity-70">{total}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("bookings")}
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === "bookings"
+                  ? "bg-vendoroo-main text-white"
+                  : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              NARPM Bookings
+              <span className="ml-1.5 text-xs opacity-70">{bookings.length}</span>
+            </button>
+          </div>
         </div>
-        <div className="relative w-full sm:w-80">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, or company..."
-            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-vendoroo-main focus:outline-none focus:ring-2 focus:ring-vendoroo-main/20"
-          />
-        </div>
+        {activeTab === "leads" && (
+          <div className="relative w-full sm:w-80">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or company..."
+              className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-vendoroo-main focus:outline-none focus:ring-2 focus:ring-vendoroo-main/20"
+            />
+          </div>
+        )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50/80">
-              <th className="w-10 px-4 py-3" />
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portfolio</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Score</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Goal</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Top Gap</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Diagnostics</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
-                  Loading...
-                </td>
+      {activeTab === "leads" && (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50/80">
+                <th className="w-10 px-4 py-3" />
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portfolio</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Score</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Goal</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Top Gap</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Diagnostics</th>
               </tr>
-            ) : leads.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
-                  {search ? `No leads matching "${search}"` : "No leads yet"}
-                </td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
+                    Loading...
+                  </td>
+                </tr>
+              ) : leads.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">
+                    {search ? `No leads matching "${search}"` : "No leads yet"}
+                  </td>
+                </tr>
+              ) : (
+                leads.map((lead) => <LeadRowExpanded key={lead.id} lead={lead} allLeads={leads} />)
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === "bookings" && (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50/80">
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Time</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Name</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Company</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Email</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Notes</th>
               </tr>
-            ) : (
-              leads.map((lead) => <LeadRowExpanded key={lead.id} lead={lead} allLeads={leads} />)
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {bookingsLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">Loading...</td>
+                </tr>
+              ) : bookings.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">No bookings yet</td>
+                </tr>
+              ) : (
+                bookings.map((b) => (
+                  <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-900">{b.time_display}</p>
+                      <p className="text-xs text-gray-400">{b.date_display}</p>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{b.name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{b.company || "—"}</td>
+                    <td className="px-4 py-3 text-sm text-gray-400">{b.email}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{b.notes || "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
