@@ -768,17 +768,21 @@ class DiagnosticService:
             # ── Step 8: Build benchmark rows ─────────────────────────────────
             from app.models.report_data import BenchmarkRow
 
-            _resp_method = wo_metrics.response_time_method
             _resp_hrs = wo_metrics.avg_first_response_hours
-            if _resp_hrs is not None and _resp_method == "fast_close_proxy":
-                _resp_display = f"~{_resp_hrs} hrs*"
-                _resp_css = "val-bad" if _resp_hrs > 4 else "val-good" if _resp_hrs <= 1 else "val-neutral"
-            elif _resp_hrs is not None:
+            if _resp_hrs is not None:
                 _resp_display = f"{_resp_hrs} hrs"
                 _resp_css = "val-bad" if _resp_hrs > 4 else "val-good" if _resp_hrs <= 1 else "val-neutral"
             else:
                 _resp_display = "Not tracked"
-                _resp_css = "val-neutral"
+                _resp_css = "val-bad"
+
+            _comp_days = wo_metrics.median_completion_days
+            if _comp_days is not None:
+                _comp_display = f"{_comp_days} days"
+                _comp_css = "val-bad" if _comp_days > 5 else "val-good"
+            else:
+                _comp_display = "Not tracked"
+                _comp_css = "val-bad"
 
             benchmark_rows = [
                 BenchmarkRow(
@@ -790,17 +794,8 @@ class DiagnosticService:
                 ),
                 BenchmarkRow(
                     metric="Avg. Completion Time",
-                    current_value=(
-                        f"{wo_metrics.median_completion_days} days"
-                        if wo_metrics.median_completion_days
-                        else "N/A"
-                    ),
-                    current_css=(
-                        "val-bad"
-                        if wo_metrics.median_completion_days
-                        and wo_metrics.median_completion_days > 5
-                        else "val-good"
-                    ),
+                    current_value=_comp_display,
+                    current_css=_comp_css,
                     vendoroo_avg="40% decrease",
                     top_performers="50% decrease",
                 ),
@@ -829,9 +824,13 @@ class DiagnosticService:
                     current_value=(
                         f"{wo_metrics.after_hours_pct}% of WOs after-hours"
                         if wo_metrics.after_hours_time_available
-                        else "Not measured"
+                        else "Not tracked"
                     ),
-                    current_css="val-neutral",
+                    current_css=(
+                        "val-neutral"
+                        if wo_metrics.after_hours_time_available
+                        else "val-bad"
+                    ),
                     vendoroo_avg="24/7 AI triage + troubleshooting",
                     top_performers="24/7 AI triage + emergency dispatch",
                 ),
@@ -997,9 +996,7 @@ class DiagnosticService:
                 projected_score_color="#039cac",
                 monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders or 0)),
                 avg_response_time=(
-                    f"~{wo_metrics.avg_first_response_hours} hrs*"
-                    if wo_metrics.avg_first_response_hours and wo_metrics.response_time_method == "fast_close_proxy"
-                    else f"{wo_metrics.avg_first_response_hours} hrs"
+                    f"{wo_metrics.avg_first_response_hours} hrs"
                     if wo_metrics.avg_first_response_hours
                     else "Not tracked"
                 ),
@@ -1097,6 +1094,7 @@ class DiagnosticService:
                     "covered_trades": wo_metrics.covered_trades,
                     "missing_trades": wo_metrics.missing_trades,
                     "after_hours_pct": wo_metrics.after_hours_pct,
+                    "after_hours_time_available": wo_metrics.after_hours_time_available,
                     "months_spanned": wo_metrics.months_spanned,
                     "date_range_start_short": wo_metrics.date_range_start_short,
                     "date_range_end_short": wo_metrics.date_range_end_short,

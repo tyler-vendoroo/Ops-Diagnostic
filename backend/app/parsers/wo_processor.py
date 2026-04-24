@@ -544,25 +544,13 @@ def calculate_first_response(std):
                     "Estimated from scheduled start timestamps (proxy for first action)"
                 )
 
-    # Method 2: Close date on fast-turnaround WOs as proxy (NOT true first response)
-    valid = std[std["close_date"].notna() & std["created_date"].notna()]
-    if len(valid) >= 5:
-        delta_hours = (valid["close_date"] - valid["created_date"]).dt.total_seconds() / 3600
-        fast = delta_hours[(delta_hours > 0) & (delta_hours < 48)]
-        if len(fast) >= 5:
-            return (
-                round(fast.median(), 1),
-                "fast_close_proxy",
-                "Estimated from median close time for fast-turnaround WOs (under 48 hrs). "
-                "This is NOT true first response time — it reflects how quickly simple jobs are closed, "
-                "not when a resident first received acknowledgment."
-            )
-
-    # Method 3: Not calculable
+    # No calculable method — not tracked
     return (
         None,
         "not_calculable",
-        "Work order export does not include response time, vendor assignment, or status change timestamps. First response time cannot be calculated from available data. Vendoroo's average first response is under 10 minutes."
+        "Your current system doesn't track when residents receive their first response. "
+        "You have no visibility into whether residents wait 10 minutes or 10 hours. "
+        "Vendoroo tracks every interaction — average first response is under 10 minutes."
     )
 
 

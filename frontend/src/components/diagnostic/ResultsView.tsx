@@ -274,9 +274,11 @@ function ShareButton({
 function QuickResults({
   data,
   score,
+  scheduleUrl,
 }: {
   data: DiagnosticStatusResponse;
   score: number;
+  scheduleUrl: string;
 }) {
   const insights: DiagnosticInsight[] = data.summary?.insights ?? [];
   const categoryScores = data.summary?.category_scores ?? [];
@@ -410,7 +412,7 @@ function QuickResults({
           <ArrowRight className="size-4" />
         </Link>
         <a
-          href="/schedule"
+          href={scheduleUrl}
           className={cn(
             buttonVariants({
               variant: "outline",
@@ -442,6 +444,20 @@ function StatCard({ value, label, isBad }: { value: string; label: string; isBad
 export function ResultsView({ id }: { id: string }) {
   const [data, setData] = React.useState<DiagnosticStatusResponse | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [leadId, setLeadId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlLeadId = params.get("lead");
+    if (urlLeadId) { setLeadId(urlLeadId); return; }
+    try {
+      const stored = localStorage.getItem("vendoroo_ops_diagnostic_lead");
+      if (stored) {
+        const lead = JSON.parse(stored) as { lead_id?: string };
+        if (lead.lead_id) setLeadId(lead.lead_id);
+      }
+    } catch {}
+  }, []);
 
   const load = React.useCallback(async () => {
     try {
@@ -544,8 +560,9 @@ export function ResultsView({ id }: { id: string }) {
   // ── Derived data ──
   const score = scoreFromDiagnostic(data);
   // Quick path gets its own focused rendering
+  const scheduleUrl = leadId ? `/schedule?lead=${leadId}` : "/schedule";
   if (data.diagnostic_type === "quick") {
-    return <QuickResults data={data} score={score} />;
+    return <QuickResults data={data} score={score} scheduleUrl={scheduleUrl} />;
   }
 
   const projectedScore = clampScore(data.summary?.projected_score ?? score);
@@ -638,14 +655,21 @@ export function ResultsView({ id }: { id: string }) {
         </section>
       )}
 
-      {/* ── 3. Three headline stat cards ── */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* ── 3. Headline stat cards ── */}
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
         <StatCard
           value={woMetrics.avg_first_response_hours != null
             ? `${woMetrics.avg_first_response_hours}hr`
             : "Not tracked"}
-          label="Avg. First Response"
+          label={woMetrics.avg_first_response_hours != null ? "Avg. First Response" : "Response Time"}
           isBad={woMetrics.avg_first_response_hours == null || woMetrics.avg_first_response_hours > 4}
+        />
+        <StatCard
+          value={woMetrics.median_completion_days != null
+            ? `${woMetrics.median_completion_days}d`
+            : "Not tracked"}
+          label={woMetrics.median_completion_days != null ? "Avg. Completion" : "Completion Time"}
+          isBad={woMetrics.median_completion_days == null || woMetrics.median_completion_days > 5}
         />
         <StatCard
           value={`${woMetrics.open_wo_rate_pct ?? 0}%`}
@@ -656,6 +680,13 @@ export function ResultsView({ id }: { id: string }) {
           value={`${woMetrics.trades_covered_count ?? 0}/${woMetrics.trades_required_count ?? 8}`}
           label="Core Trade Coverage"
           isBad={(woMetrics.trades_covered_count ?? 0) < (woMetrics.trades_required_count ?? 8)}
+        />
+        <StatCard
+          value={woMetrics.after_hours_time_available && woMetrics.after_hours_pct != null
+            ? `${woMetrics.after_hours_pct}%`
+            : "Not tracked"}
+          label="After-Hours Volume"
+          isBad={!woMetrics.after_hours_time_available}
         />
       </div>
 
@@ -826,7 +857,7 @@ export function ResultsView({ id }: { id: string }) {
           ))}
         </ul>
         <a
-          href="/schedule"
+          href={scheduleUrl}
           className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-vendoroo-main px-8 py-4 text-sm font-semibold uppercase tracking-wider text-white shadow-lg transition-colors hover:bg-vendoroo-main/90"
         >
           Book a meeting or come see us at Imperial Room 5A (4th floor)

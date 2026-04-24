@@ -122,20 +122,24 @@ def score_vendor_coverage(vendor_metrics: VendorMetrics, wo_metrics: WorkOrderMe
 
 def score_response_efficiency(wo_metrics: WorkOrderMetrics, model: str) -> int:
     """Score based on response and completion times vs benchmarks."""
+    # No response time visibility = penalty score, not zero
+    # Not tracking IS the problem — 30 reflects "can't verify you're doing well"
+    if wo_metrics.avg_first_response_hours is None:
+        return 30
+
     score = 10  # Baseline
 
     # First response time (0-50 pts) — primary signal
-    if wo_metrics.avg_first_response_hours is not None:
-        hrs = wo_metrics.avg_first_response_hours
-        if hrs <= 1:
-            score += 50
-        elif hrs <= 4:
-            score += 40
-        elif hrs <= 12:
-            score += 25
-        elif hrs <= 24:
-            score += 10
-        # > 24 hrs: 0
+    hrs = wo_metrics.avg_first_response_hours
+    if hrs <= 1:
+        score += 50
+    elif hrs <= 4:
+        score += 40
+    elif hrs <= 12:
+        score += 25
+    elif hrs <= 24:
+        score += 10
+    # > 24 hrs: 0
 
     # Completion time (0-40 pts) — secondary signal
     if wo_metrics.median_completion_days is not None:
@@ -176,7 +180,8 @@ def score_documentation_quality(doc: DocumentAnalysis) -> int:
 
 def score_operational_consistency(wo_metrics: WorkOrderMetrics) -> int:
     """Score based on workflow repeatability and consistency."""
-    score = 50  # Base score
+    # No completion time visibility = lower base — can't verify ops are consistent
+    score = 35 if wo_metrics.median_completion_days is None else 50
 
     # Completion time consistency — use open WO rate as proxy
     # (low open rate + reasonable completion time = consistent ops)
@@ -205,6 +210,15 @@ def score_operational_consistency(wo_metrics: WorkOrderMetrics) -> int:
 
 def score_after_hours_readiness(wo_metrics: WorkOrderMetrics, doc: DocumentAnalysis) -> int:
     """Score based on after-hours coverage capability."""
+    # No time-of-day data = penalty — can't verify after-hours coverage
+    if not wo_metrics.after_hours_time_available:
+        base = 40
+        if doc.has_emergency_protocols:
+            base += 15
+        if doc.has_defined_slas:
+            base += 10
+        return _clamp(base)
+
     score = 5  # Base
 
     # Coverage quality via after_hours_pct (set by survey adapter from method):
@@ -388,14 +402,8 @@ def generate_key_findings(
     optimize_staff = max(1, round(client_info.door_count / vendoroo_per))
 
     # ── 1. Response Time ──
-    _resp_method = getattr(wo_metrics, "response_time_method", None)
     if wo_metrics.avg_first_response_hours is not None:
         hrs = wo_metrics.avg_first_response_hours
-        _proxy_note = (
-            " (Note: this reflects time-to-close on fast jobs, not true first response — "
-            "actual acknowledgment time is likely longer.)"
-            if _resp_method == "fast_close_proxy" else ""
-        )
         if hrs > 12:
             findings.append(KeyFinding(
                 title="Response Time Gap",
@@ -404,7 +412,6 @@ def generate_key_findings(
                     f"until the next business day for any acknowledgment. Vendoroo's average is "
                     f"under 10 minutes — residents get an immediate response confirming their "
                     f"request was received, with troubleshooting steps and an ETA."
-                    + _proxy_note
                 ),
                 color="var(--red)",
             ))
@@ -416,7 +423,6 @@ def generate_key_findings(
                     f"managing intake manually. Vendoroo's average is under 10 minutes — "
                     f"AI handles the initial resident response, triage, and troubleshooting "
                     f"before your team even sees the request."
-                    + _proxy_note
                 ),
                 color="var(--amber)",
             ))
@@ -428,7 +434,6 @@ def generate_key_findings(
                     f"AI coordination compresses this to under 10 minutes by instantly "
                     f"acknowledging the resident, running troubleshooting, and beginning "
                     f"triage — all before a coordinator is involved."
-                    + _proxy_note
                 ),
                 color="var(--amber)",
             ))
@@ -439,18 +444,18 @@ def generate_key_findings(
                     f"Your average first response of {hrs} hours is already fast. "
                     f"AI coordination maintains this speed 24/7 — including nights, "
                     f"weekends, and holidays when manual teams typically can't respond."
-                    + _proxy_note
                 ),
                 color="var(--green)",
             ))
-    elif _resp_method == "not_calculable":
+    else:
         findings.append(KeyFinding(
             title="No Response Time Visibility",
             description=(
-                "Your work order export doesn't include the timestamps needed to calculate "
-                "first response time. Without this data, you have no way to know how long "
-                "residents wait for acknowledgment. Vendoroo tracks every interaction — "
-                "average first response across our client base is under 10 minutes."
+                "Your current system doesn't track when residents receive their first response "
+                "after submitting a maintenance request. Without this data, you have no way to "
+                "measure resident experience or hold your team accountable. Vendoroo tracks "
+                "every interaction — our clients average under 10 minutes from request to "
+                "first response."
             ),
             color="var(--red)",
         ))
@@ -489,6 +494,19 @@ def generate_key_findings(
                 ),
                 color="var(--green)",
             ))
+
+    # ── 2b. Completion Time Visibility ──
+    if wo_metrics.median_completion_days is None:
+        findings.append(KeyFinding(
+            title="No Completion Time Visibility",
+            description=(
+                "Your work order data doesn't include enough completion timestamps to measure "
+                "how long jobs take from request to resolution. Without this, you can't identify "
+                "bottlenecks, hold vendors accountable to timelines, or benchmark against "
+                "industry standards. Vendoroo tracks every status change automatically."
+            ),
+            color="var(--red)",
+        ))
 
     # ── 3. Vendor Coverage ──
     covered = wo_metrics.trades_covered_count or 0
@@ -530,7 +548,18 @@ def generate_key_findings(
         ))
 
     # ── 4. After Hours Coverage ──
-    if wo_metrics.after_hours_pct is not None and wo_metrics.after_hours_pct > 0:
+    if not wo_metrics.after_hours_time_available:
+        findings.append(KeyFinding(
+            title="No After-Hours Visibility",
+            description=(
+                "Your work order timestamps don't allow us to determine how much of your "
+                "volume comes in after hours. Without this visibility, you can't assess whether "
+                "your current after-hours coverage is adequate for your residents. Vendoroo "
+                "provides 24/7 AI triage with full reporting on after-hours volume and response."
+            ),
+            color="var(--red)",
+        ))
+    elif wo_metrics.after_hours_pct is not None and wo_metrics.after_hours_pct > 0:
         ah_pct = wo_metrics.after_hours_pct
         if not doc_analysis.has_emergency_protocols and ah_pct > 15:
             findings.append(KeyFinding(

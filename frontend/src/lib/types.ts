@@ -271,6 +271,7 @@ export interface DiagnosticStatusResponse {
       covered_trades?: string[];
       missing_trades?: string[];
       after_hours_pct?: number;
+      after_hours_time_available?: boolean;
       months_spanned?: number;
       date_range_start_short?: string;
       date_range_end_short?: string;
