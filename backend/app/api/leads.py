@@ -69,7 +69,6 @@ async def list_leads(
                     "company": lead.company,
                     "phone": lead.phone,
                     "pms_platform": lead.pms_platform,
-                    "door_count": lead.door_count,
                     "trial_interest": lead.trial_interest,
                     "status": lead.status,
                     "created_at": lead.created_at.isoformat() if lead.created_at else None,
@@ -77,6 +76,16 @@ async def list_leads(
                     "referred_by": lead.referred_by,
                     "reminder_count": lead.reminder_count or 0,
                     "last_reminder_sent_at": lead.last_reminder_sent_at.isoformat() if lead.last_reminder_sent_at else None,
+                    # Enrichment — populated after diagnostic completes
+                    "door_count": lead.door_count,
+                    "property_count": lead.property_count,
+                    "staff_count": lead.staff_count,
+                    "operational_model": lead.operational_model,
+                    "primary_goal": lead.primary_goal,
+                    "overall_score": lead.overall_score,
+                    "recommended_tier": lead.recommended_tier,
+                    "gap_count": lead.gap_count,
+                    "top_gap": lead.top_gap,
                     "diagnostics": [
                         {
                             "id": d.id,

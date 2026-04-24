@@ -33,7 +33,6 @@ interface LeadRow {
   company: string;
   phone: string | null;
   pms_platform: string | null;
-  door_count: number | null;
   trial_interest: boolean;
   status: string;
   created_at: string | null;
@@ -41,6 +40,16 @@ interface LeadRow {
   referred_by: string | null;
   reminder_count: number;
   last_reminder_sent_at: string | null;
+  // Enrichment — populated after diagnostic completes
+  door_count: number | null;
+  property_count: number | null;
+  staff_count: number | null;
+  operational_model: string | null;
+  primary_goal: string | null;
+  overall_score: number | null;
+  recommended_tier: string | null;
+  gap_count: number | null;
+  top_gap: string | null;
   diagnostics: DiagnosticSummary[];
 }
 
@@ -93,21 +102,60 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
         </td>
         <td className="px-4 py-3">
           <p className="text-sm font-medium text-gray-900">{lead.name}</p>
-          <p className="text-xs text-gray-500">{lead.email}</p>
+          <p className="text-xs text-gray-500">{lead.company}</p>
+          <p className="text-xs text-gray-400">{lead.email}</p>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-700">
-          {lead.company}
-          {lead.trial_interest && (
-            <span className="ml-2 inline-flex rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">
-              trial
-            </span>
+        <td className="px-4 py-3">
+          {lead.door_count ? (
+            <div>
+              <p className="text-sm font-medium text-gray-900">{lead.door_count.toLocaleString()} doors</p>
+              <p className="text-xs text-gray-500">
+                {lead.staff_count ?? "?"}{" "}
+                {lead.operational_model === "tech" ? "techs" : lead.operational_model === "blended" ? "staff" : "coordinators"}
+                {" · "}{lead.pms_platform || "—"}
+              </p>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">—</span>
           )}
         </td>
-        <td className="px-4 py-3 text-sm text-gray-500">{lead.pms_platform || "—"}</td>
-        <td className="px-4 py-3 text-sm text-gray-500">
-          {lead.door_count != null ? lead.door_count.toLocaleString() : "—"}
+        <td className="px-4 py-3">
+          {lead.overall_score != null ? (
+            <div className="flex items-center gap-2">
+              <span className={`text-lg font-semibold tabular-nums ${scoreColor(lead.overall_score)}`}>
+                {lead.overall_score}
+              </span>
+              {lead.recommended_tier && (
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${tierColor(lead.recommended_tier)}`}>
+                  {lead.recommended_tier}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">—</span>
+          )}
         </td>
-        <td className="px-4 py-3 text-sm text-gray-500">{formatDate(lead.created_at)}</td>
+        <td className="px-4 py-3">
+          {lead.primary_goal ? (
+            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 capitalize">
+              {lead.primary_goal}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400">—</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          {lead.top_gap ? (
+            <div>
+              <p className="text-xs font-medium text-rose-600">{lead.top_gap}</p>
+              {lead.gap_count != null && lead.gap_count > 1 && (
+                <p className="text-[10px] text-gray-400">+{lead.gap_count - 1} more</p>
+              )}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">—</span>
+          )}
+        </td>
         <td className="px-4 py-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {lead.diagnostics.length > 0 ? (
@@ -116,6 +164,11 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
               </span>
             ) : (
               <span className="text-xs text-gray-400">None</span>
+            )}
+            {lead.trial_interest && (
+              <span className="inline-flex rounded-full bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700">
+                trial
+              </span>
             )}
             {lead.reminder_count > 0 && (
               <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
@@ -342,10 +395,10 @@ export default function InternalDashboard() {
             <tr className="border-b border-gray-200 bg-gray-50/80">
               <th className="w-10 px-4 py-3" />
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contact</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Company</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">PMS</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Doors</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Submitted</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portfolio</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Score</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Goal</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Top Gap</th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Diagnostics</th>
             </tr>
           </thead>

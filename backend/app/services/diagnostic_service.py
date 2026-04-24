@@ -434,6 +434,28 @@ class DiagnosticService:
             )
             # Non-fatal — still return the result
 
+        # ── Step 6b: Enrich lead with intake + diagnostic summary ─────────────
+        if lead_id is not None:
+            try:
+                async with AsyncSessionLocal() as session:
+                    lead_record = await session.get(db_models.Lead, lead_id)
+                    if lead_record:
+                        lead_record.door_count = client_info.door_count
+                        lead_record.property_count = client_info.property_count
+                        lead_record.staff_count = client_info.staff_count
+                        lead_record.operational_model = client_info.operational_model
+                        lead_record.primary_goal = client_info.primary_goal
+                        lead_record.overall_score = overall_score
+                        lead_record.gap_count = len(gaps)
+                        if gaps:
+                            high_gaps = [g for g in gaps if g.severity == "High Priority"]
+                            lead_record.top_gap = (
+                                high_gaps[0].title if high_gaps else gaps[0].title
+                            )
+                        await session.commit()
+            except Exception as exc:
+                logger.warning("Lead enrichment failed for %s: %s", lead_id, exc)
+
         # ── Step 7: Send quick diagnostic results email ──────────────────────
         if lead is not None and lead.email and summary is not None:
             import hashlib
@@ -1087,6 +1109,29 @@ class DiagnosticService:
                 logger.error(
                     "DB update failed for full diagnostic %s: %s", diagnostic_id, exc
                 )
+
+            # ── Step 10b: Enrich lead with full diagnostic data ───────────────
+            if lead_id is not None:
+                try:
+                    async with AsyncSessionLocal() as session:
+                        lead_record = await session.get(db_models.Lead, lead_id)
+                        if lead_record:
+                            lead_record.door_count = ci.door_count
+                            lead_record.property_count = ci.property_count
+                            lead_record.staff_count = ci.staff_count
+                            lead_record.operational_model = ci.operational_model
+                            lead_record.primary_goal = ci.primary_goal
+                            lead_record.overall_score = overall_score
+                            lead_record.recommended_tier = tier
+                            lead_record.gap_count = len(gaps)
+                            if gaps:
+                                high_gaps = [g for g in gaps if g.severity == "High Priority"]
+                                lead_record.top_gap = (
+                                    high_gaps[0].title if high_gaps else gaps[0].title
+                                )
+                            await session.commit()
+                except Exception as exc:
+                    logger.warning("Lead enrichment failed for %s: %s", lead_id, exc)
 
             # ── Step 11: Send emails (DISABLED) ──────────────────────────────
             # if lead_id is not None:
