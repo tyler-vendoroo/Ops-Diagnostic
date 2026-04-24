@@ -840,7 +840,7 @@ class DiagnosticService:
             # ── Step 9: Generate PDF ──────────────────────────────────────────
             from datetime import date
             from app.models.report_data import ReportData, TierCard, GapTierRow
-            from app.report.generator import generate_pdf, render_html
+            from app.report.generator import generate_pdf_async, render_html
             from app.report.builder import _GAP_TIER_MAP
 
             staffing = generate_staffing_projection(ci, portfolio_metrics)
@@ -1039,7 +1039,8 @@ class DiagnosticService:
             pdf_bytes: bytes | None = None
             try:
                 html_report = render_html(report_data)
-                pdf_bytes = await loop.run_in_executor(None, generate_pdf, report_data)
+                # Call Playwright directly from this async context — no run_in_executor/asyncio.run()
+                pdf_bytes = await generate_pdf_async(html_report)
             except Exception as exc:
                 logger.warning(
                     "PDF generation failed for full diagnostic %s — continuing without PDF. Error: %s",

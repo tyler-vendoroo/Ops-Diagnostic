@@ -316,6 +316,99 @@ interface BookingRow {
   diagnostic_score: number | null;
 }
 
+function BookingTableRow({
+  booking,
+  diagId,
+  diagScore,
+  onViewLead,
+}: {
+  booking: BookingRow;
+  diagId: string | null;
+  diagScore: number | null;
+  onViewLead: () => void;
+}) {
+  const [sending, setSending] = React.useState(false);
+  const [sent, setSent] = React.useState(false);
+  const [sendError, setSendError] = React.useState<string | null>(null);
+
+  async function handleSend() {
+    setSending(true);
+    setSendError(null);
+    try {
+      const res = await fetch(`${API}/api/v1/bookings/${booking.id}/send-results`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { detail?: string };
+        throw new Error(err.detail ?? "Send failed");
+      }
+      setSent(true);
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <tr className="border-b border-gray-100 hover:bg-gray-50">
+      <td className="px-4 py-3">
+        <p className="text-sm font-semibold text-gray-900">{booking.time_display}</p>
+        <p className="text-xs text-gray-400">{booking.date_display}</p>
+      </td>
+      <td className="px-4 py-3">
+        <button
+          type="button"
+          onClick={onViewLead}
+          className="text-left text-sm font-medium text-vendoroo-main hover:underline"
+        >
+          {booking.name}
+        </button>
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-500">{booking.company || "—"}</td>
+      <td className="px-4 py-3 text-sm text-gray-400">{booking.email}</td>
+      <td className="px-4 py-3">
+        {diagId ? (
+          <a
+            href={`/diagnostic/results/${diagId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-vendoroo-main hover:underline"
+          >
+            View {diagScore != null ? `(${diagScore})` : ""}
+          </a>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-400">{booking.notes || "—"}</td>
+      <td className="px-4 py-3">
+        {diagId ? (
+          <div className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending || sent}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                sent
+                  ? "bg-green-100 text-green-700"
+                  : "bg-vendoroo-main text-white hover:bg-vendoroo-main/90 disabled:opacity-50"
+              }`}
+            >
+              {sending ? "Sending…" : sent ? "Sent ✓" : "Send results"}
+            </button>
+            {sendError && <p className="text-[10px] text-rose-500">{sendError}</p>}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-300">No diagnostic</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export default function InternalDashboard() {
   const [authed, setAuthed] = React.useState<boolean | null>(null);
   const [password, setPassword] = React.useState("");
@@ -542,16 +635,17 @@ export default function InternalDashboard() {
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Email</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Diagnostic</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Notes</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Send</th>
               </tr>
             </thead>
             <tbody>
               {bookingsLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">Loading...</td>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">Loading...</td>
                 </tr>
               ) : bookings.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">No bookings yet</td>
+                  <td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-400">No bookings yet</td>
                 </tr>
               ) : (
                 bookings.map((b) => {
@@ -559,38 +653,13 @@ export default function InternalDashboard() {
                   const diagId = b.diagnostic_id ?? matchedLead?.diagnostics[0]?.id ?? null;
                   const diagScore = b.diagnostic_score ?? matchedLead?.diagnostics[0]?.overall_score ?? null;
                   return (
-                    <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900">{b.time_display}</p>
-                        <p className="text-xs text-gray-400">{b.date_display}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => { setActiveTab("leads"); setSearch(b.email); }}
-                          className="text-sm font-medium text-vendoroo-main hover:underline text-left"
-                        >
-                          {b.name}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{b.company || "—"}</td>
-                      <td className="px-4 py-3 text-sm text-gray-400">{b.email}</td>
-                      <td className="px-4 py-3">
-                        {diagId ? (
-                          <a
-                            href={`/diagnostic/results/${diagId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-medium text-vendoroo-main hover:underline"
-                          >
-                            View {diagScore != null ? `(${diagScore})` : ""}
-                          </a>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-400">{b.notes || "—"}</td>
-                    </tr>
+                    <BookingTableRow
+                      key={b.id}
+                      booking={b}
+                      diagId={diagId}
+                      diagScore={diagScore}
+                      onViewLead={() => { setActiveTab("leads"); setSearch(b.email); }}
+                    />
                   );
                 })
               )}

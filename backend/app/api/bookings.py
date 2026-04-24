@@ -243,3 +243,95 @@ async def list_bookings():
             })
 
         return {"bookings": output}
+
+
+@router.post("/{id}/send-results")
+async def send_results_email(id: str):
+    """Send an email to the booked person with a link to their diagnostic results."""
+    async with AsyncSessionLocal() as session:
+        booking = (await session.execute(
+            select(db_models.BoothBooking).where(db_models.BoothBooking.id == id)
+        )).scalar_one_or_none()
+
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Find diagnostic — via booking's lead_id or by email match
+        lead_id = booking.lead_id
+        if not lead_id:
+            lead = (await session.execute(
+                select(db_models.Lead).where(db_models.Lead.email == booking.email)
+            )).scalar_one_or_none()
+            if lead:
+                lead_id = lead.id
+
+        diagnostic_id: str | None = None
+        diagnostic_type: str = "quick"
+        if lead_id:
+            diag = (await session.execute(
+                select(db_models.Diagnostic)
+                .where(
+                    db_models.Diagnostic.lead_id == lead_id,
+                    db_models.Diagnostic.status == "complete",
+                )
+                .order_by(db_models.Diagnostic.created_at.desc())
+                .limit(1)
+            )).scalar_one_or_none()
+            if diag:
+                diagnostic_id = diag.id
+                diagnostic_type = diag.diagnostic_type
+
+    if not diagnostic_id:
+        raise HTTPException(status_code=404, detail="No completed diagnostic found for this contact")
+
+    results_url = f"{settings.frontend_url}/diagnostic/results/{diagnostic_id}"
+    schedule_url = f"{settings.frontend_url}/schedule"
+    first_name = booking.name.split()[0] if booking.name else booking.name
+
+    try:
+        import asyncio
+        import resend
+
+        resend.api_key = settings.resend_api_key
+        html = f"""
+<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:32px;">
+  <div style="background:#1a1a2e;padding:24px 32px;border-radius:12px 12px 0 0;">
+    <p style="margin:0;color:#039cac;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo &middot; NARPM Broker/Owner 2026</p>
+    <h1 style="margin:8px 0 0;color:white;font-size:20px;">Your diagnostic results</h1>
+  </div>
+  <div style="background:white;padding:24px 32px;border:1px solid #f1f5f9;border-top:none;border-radius:0 0 12px 12px;">
+    <p style="margin:0 0 16px;color:#334155;font-size:15px;">Hi {first_name},</p>
+    <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
+      Great meeting you at the conference. Here&apos;s a link to your Vendoroo operations diagnostic — it shows
+      how your portfolio benchmarks against AI-managed operations and where the biggest opportunities are.
+    </p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{results_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
+        View My Diagnostic Results
+      </a>
+    </div>
+    <p style="margin:20px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
+      Want to walk through the results together? <a href="{schedule_url}" style="color:#039cac;text-decoration:none;font-weight:600;">Book a follow-up call</a> and we&apos;ll go through every finding and answer your questions.
+    </p>
+    <hr style="margin:24px 0;border:none;border-top:1px solid #f1f5f9;">
+    <p style="margin:0;color:#94a3b8;font-size:12px;">
+      Questions? Reply to this email — we&apos;re happy to help.
+    </p>
+  </div>
+</div>"""
+
+        await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: resend.Emails.send({
+                "from": settings.diagnostic_from_email,
+                "to": [booking.email],
+                "subject": f"Your Vendoroo diagnostic results, {first_name}",
+                "html": html,
+            }),
+        )
+        logger.info("Sent results email to %s for booking %s", booking.email, id)
+    except Exception as exc:
+        logger.error("Failed to send results email for booking %s: %s", id, exc)
+        raise HTTPException(status_code=500, detail=f"Email send failed: {exc}")
+
+    return {"ok": True, "email": booking.email}

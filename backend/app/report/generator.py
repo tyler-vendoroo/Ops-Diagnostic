@@ -137,8 +137,40 @@ def _generate_pdf_subprocess(html: str) -> bytes:
             return f.read()
 
 
+async def _playwright_html_to_pdf(html: str) -> bytes:
+    """Core async Playwright conversion. Call with await from an async context."""
+    from playwright.async_api import async_playwright
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+        ])
+        page = await browser.new_page()
+        # domcontentloaded avoids hanging on external resources (e.g. Google Fonts CDN)
+        await page.set_content(html, wait_until="domcontentloaded", timeout=60000)
+        pdf_bytes = await page.pdf(
+            format="Letter",
+            print_background=True,
+            margin={"top": "0", "bottom": "0", "left": "0", "right": "0"},
+        )
+        await browser.close()
+    return pdf_bytes
+
+
+async def generate_pdf_async(html: str) -> bytes:
+    """Generate PDF from pre-rendered HTML using Playwright (async, preferred).
+
+    Takes the HTML string so the caller can store it for the report endpoint
+    without rendering twice.
+    """
+    return await _playwright_html_to_pdf(html)
+
+
 def _generate_pdf_playwright(html: str) -> bytes:
-    """Generate PDF using Playwright."""
+    """Sync wrapper kept for subprocess fallback only. Do not call from async context."""
     import asyncio
     from playwright.async_api import async_playwright
 
@@ -151,7 +183,6 @@ def _generate_pdf_playwright(html: str) -> bytes:
                 "--disable-gpu",
             ])
             page = await browser.new_page()
-            # domcontentloaded avoids hanging on external resources (e.g. Google Fonts CDN)
             await page.set_content(html, wait_until="domcontentloaded", timeout=60000)
             pdf_bytes = await page.pdf(
                 format="Letter",
