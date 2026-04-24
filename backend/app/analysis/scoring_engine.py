@@ -388,8 +388,14 @@ def generate_key_findings(
     optimize_staff = max(1, round(client_info.door_count / vendoroo_per))
 
     # ── 1. Response Time ──
+    _resp_method = getattr(wo_metrics, "response_time_method", None)
     if wo_metrics.avg_first_response_hours is not None:
         hrs = wo_metrics.avg_first_response_hours
+        _proxy_note = (
+            " (Note: this reflects time-to-close on fast jobs, not true first response — "
+            "actual acknowledgment time is likely longer.)"
+            if _resp_method == "fast_close_proxy" else ""
+        )
         if hrs > 12:
             findings.append(KeyFinding(
                 title="Response Time Gap",
@@ -398,6 +404,7 @@ def generate_key_findings(
                     f"until the next business day for any acknowledgment. Vendoroo's average is "
                     f"under 10 minutes — residents get an immediate response confirming their "
                     f"request was received, with troubleshooting steps and an ETA."
+                    + _proxy_note
                 ),
                 color="var(--red)",
             ))
@@ -409,6 +416,7 @@ def generate_key_findings(
                     f"managing intake manually. Vendoroo's average is under 10 minutes — "
                     f"AI handles the initial resident response, triage, and troubleshooting "
                     f"before your team even sees the request."
+                    + _proxy_note
                 ),
                 color="var(--amber)",
             ))
@@ -420,6 +428,7 @@ def generate_key_findings(
                     f"AI coordination compresses this to under 10 minutes by instantly "
                     f"acknowledging the resident, running troubleshooting, and beginning "
                     f"triage — all before a coordinator is involved."
+                    + _proxy_note
                 ),
                 color="var(--amber)",
             ))
@@ -430,9 +439,21 @@ def generate_key_findings(
                     f"Your average first response of {hrs} hours is already fast. "
                     f"AI coordination maintains this speed 24/7 — including nights, "
                     f"weekends, and holidays when manual teams typically can't respond."
+                    + _proxy_note
                 ),
                 color="var(--green)",
             ))
+    elif _resp_method == "not_calculable":
+        findings.append(KeyFinding(
+            title="No Response Time Visibility",
+            description=(
+                "Your work order export doesn't include the timestamps needed to calculate "
+                "first response time. Without this data, you have no way to know how long "
+                "residents wait for acknowledgment. Vendoroo tracks every interaction — "
+                "average first response across our client base is under 10 minutes."
+            ),
+            color="var(--red)",
+        ))
 
     # ── 2. Open WO Rate ──
     if wo_metrics.open_wo_rate_pct is not None:

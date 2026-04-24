@@ -168,6 +168,7 @@ COLUMN_ALIASES = {
 
     # description
     "description":              "description",
+    "short description":        "description",
     "job description":          "description",
     "work description":         "description",
     "details":                  "description",

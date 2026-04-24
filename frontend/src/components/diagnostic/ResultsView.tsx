@@ -488,9 +488,9 @@ export function ResultsView({ id }: { id: string }) {
         <StatCard
           value={woMetrics.avg_first_response_hours != null
             ? `${woMetrics.avg_first_response_hours}hr`
-            : "N/A"}
+            : "Not tracked"}
           label="Avg. First Response"
-          isBad={woMetrics.avg_first_response_hours != null && woMetrics.avg_first_response_hours > 4}
+          isBad={woMetrics.avg_first_response_hours == null || woMetrics.avg_first_response_hours > 4}
         />
         <StatCard
           value={`${woMetrics.open_wo_rate_pct ?? 0}%`}

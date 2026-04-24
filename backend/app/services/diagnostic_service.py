@@ -707,23 +707,23 @@ class DiagnosticService:
             # ── Step 8: Build benchmark rows ─────────────────────────────────
             from app.models.report_data import BenchmarkRow
 
+            _resp_method = wo_metrics.response_time_method
+            _resp_hrs = wo_metrics.avg_first_response_hours
+            if _resp_hrs is not None and _resp_method == "fast_close_proxy":
+                _resp_display = f"~{_resp_hrs} hrs*"
+                _resp_css = "val-bad" if _resp_hrs > 4 else "val-good" if _resp_hrs <= 1 else "val-neutral"
+            elif _resp_hrs is not None:
+                _resp_display = f"{_resp_hrs} hrs"
+                _resp_css = "val-bad" if _resp_hrs > 4 else "val-good" if _resp_hrs <= 1 else "val-neutral"
+            else:
+                _resp_display = "Not tracked"
+                _resp_css = "val-neutral"
+
             benchmark_rows = [
                 BenchmarkRow(
                     metric="Avg. First Response",
-                    current_value=(
-                        f"{wo_metrics.avg_first_response_hours} hrs"
-                        if wo_metrics.avg_first_response_hours
-                        else "N/A"
-                    ),
-                    current_css=(
-                        "val-bad"
-                        if wo_metrics.avg_first_response_hours
-                        and wo_metrics.avg_first_response_hours > 4
-                        else "val-good"
-                        if wo_metrics.avg_first_response_hours
-                        and wo_metrics.avg_first_response_hours <= 1
-                        else "val-neutral"
-                    ),
+                    current_value=_resp_display,
+                    current_css=_resp_css,
                     vendoroo_avg="< 10 min",
                     top_performers="< 10 min",
                 ),
@@ -936,9 +936,11 @@ class DiagnosticService:
                 projected_score_color="#039cac",
                 monthly_work_orders=str(int(wo_metrics.monthly_avg_work_orders or 0)),
                 avg_response_time=(
-                    f"{wo_metrics.avg_first_response_hours} hrs"
+                    f"~{wo_metrics.avg_first_response_hours} hrs*"
+                    if wo_metrics.avg_first_response_hours and wo_metrics.response_time_method == "fast_close_proxy"
+                    else f"{wo_metrics.avg_first_response_hours} hrs"
                     if wo_metrics.avg_first_response_hours
-                    else "N/A"
+                    else "Not tracked"
                 ),
                 open_wo_rate=f"{wo_metrics.open_wo_rate_pct}%",
                 vendor_count=f"{wo_metrics.unique_vendors} vendors",
@@ -1024,6 +1026,7 @@ class DiagnosticService:
                     "maintenance_wos": wo_metrics.maintenance_wos,
                     "monthly_avg": wo_metrics.monthly_avg_work_orders,
                     "avg_first_response_hours": wo_metrics.avg_first_response_hours,
+                    "response_time_method": wo_metrics.response_time_method,
                     "median_completion_days": wo_metrics.median_completion_days,
                     "open_wo_rate_pct": wo_metrics.open_wo_rate_pct,
                     "open_wo_count": wo_metrics.open_wo_count,

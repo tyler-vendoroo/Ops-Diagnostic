@@ -343,6 +343,82 @@ def detect_internal_staff(std, config, client_info):
     return pd.Series(False, index=std.index)
 
 
+def _ai_classify_trades(std, unclassified_mask):
+    """Batch-classify unclassified WOs using Claude API.
+
+    Builds unique (vendor, description_snippet) pairs and sends them in a
+    single API call. Returns a Series indexed to the unclassified rows.
+    Only called when keyword matching leaves >30% of WOs unclassified.
+    """
+    import os
+    import json
+    import logging
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return pd.Series(dtype=object, index=std[unclassified_mask].index)
+
+    try:
+        import anthropic
+
+        unclassified = std[unclassified_mask]
+
+        def _pair(row):
+            vendor = str(row.get("vendor", "") or "").strip()[:50]
+            desc = str(row.get("description", "") or "").strip()[:80]
+            return (vendor, desc)
+
+        pairs = unclassified.apply(_pair, axis=1)
+        unique_pairs = list(dict.fromkeys(pairs.tolist()))  # preserve order, deduplicate
+
+        if not unique_pairs:
+            return pd.Series(dtype=object, index=unclassified.index)
+
+        trade_options = [
+            "HVAC", "Plumbing", "Electrical", "Appliance Repair", "Pest Control",
+            "Roofing", "Landscaping", "Locksmith", "Painting", "Flooring",
+            "General Handyman", "Cleaning Service", "Garage Doors", "Drywall",
+            "Restoration", "Junk Removal", "Smoke Detectors", "Inspections",
+            "Foundation", "Other",
+        ]
+
+        rows_text = "\n".join(
+            f'{i + 1}. vendor="{v}" description="{d}"'
+            for i, (v, d) in enumerate(unique_pairs)
+        )
+
+        prompt = (
+            "Classify each property management work order into exactly one trade category.\n\n"
+            f"Available categories: {', '.join(trade_options)}\n\n"
+            f"Work orders:\n{rows_text}\n\n"
+            "Return ONLY a JSON array of strings, one per work order, in the same order. "
+            'Example: ["HVAC", "Plumbing", "Other"]'
+        )
+
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1000,
+            timeout=30.0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        classifications = json.loads(response.content[0].text.strip())
+        pair_to_trade = {
+            pair: classifications[i]
+            for i, pair in enumerate(unique_pairs)
+            if i < len(classifications)
+        }
+
+        result = pairs.map(lambda p: pair_to_trade.get(p))
+        return result
+
+    except Exception as exc:
+        import logging as _logging
+        _logging.warning("AI trade classification failed: %s", exc)
+        return pd.Series(dtype=object, index=std[unclassified_mask].index)
+
+
 def classify_trades(std, config):
     """Classify each WO into a standard trade category using the fallback chain."""
     result = std["raw_category"].astype("object").copy()
@@ -395,8 +471,15 @@ def classify_trades(std, config):
             if not still_needs.any():
                 break
 
-    # Default: General Handyman
-    result = result.fillna("General Handyman")
+    # AI classification when keyword matching leaves >30% unclassified
+    still_unclassified = result.isna()
+    if len(result) > 0 and still_unclassified.sum() / len(result) > 0.30:
+        ai_result = _ai_classify_trades(std, still_unclassified)
+        if ai_result is not None and len(ai_result) > 0:
+            result.update(ai_result)
+
+    # Default: Other
+    result = result.fillna("Other")
     result = result.apply(lambda v: CATEGORY_NORMALIZE.get(v, v) if pd.notna(v) else v)
 
     return result
@@ -439,7 +522,7 @@ def calculate_first_response(std):
                     "Estimated from scheduled start timestamps (proxy for first action)"
                 )
 
-    # Method 2: Close date on fast-turnaround WOs as proxy
+    # Method 2: Close date on fast-turnaround WOs as proxy (NOT true first response)
     valid = std[std["close_date"].notna() & std["created_date"].notna()]
     if len(valid) >= 5:
         delta_hours = (valid["close_date"] - valid["created_date"]).dt.total_seconds() / 3600
@@ -447,8 +530,10 @@ def calculate_first_response(std):
         if len(fast) >= 5:
             return (
                 round(fast.median(), 1),
-                "fast_turnaround_completed",
-                "Estimated from fast-turnaround completed work orders (close minus create under 48 hours)"
+                "fast_close_proxy",
+                "Estimated from median close time for fast-turnaround WOs (under 48 hrs). "
+                "This is NOT true first response time — it reflects how quickly simple jobs are closed, "
+                "not when a resident first received acknowledgment."
             )
 
     # Method 3: Not calculable
@@ -528,7 +613,7 @@ def check_trade_coverage(maintenance_categories):
         if pd.isna(c):
             continue
         value = str(c).strip()
-        normalized = CATEGORY_NORMALIZE.get(value, value)
+        normalized = CATEGORY_NORMALIZE.get(value, CATEGORY_NORMALIZE.get(value.lower(), value.lower()))
         actual_cats.add(normalized.lower())
     covered = []
     missing = []

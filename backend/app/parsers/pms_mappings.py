@@ -214,6 +214,19 @@ CATEGORY_NORMALIZE = {
     "Carpet Clean": "flooring",
     "Pool/Spa": "pool/spa",
     "Pool": "pool/spa",
+    # AI-generated trade names
+    "Foundation": "foundation",
+    "Inspection": "inspections",
+    "Inspections": "inspections",
+    "Turnover": "cleaning/turnover",
+    "Makeready": "cleaning/turnover",
+    "Make Ready": "cleaning/turnover",
+    "Garage Doors": "garage doors",
+    "Drywall": "drywall",
+    "Restoration": "restoration",
+    "Junk Removal": "junk removal",
+    "Smoke Detectors": "smoke detectors",
+    "Other": "other",
 }
 
 # Trade coverage map — maps canonical trade names to PMS category variants

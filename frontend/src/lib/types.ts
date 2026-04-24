@@ -259,6 +259,7 @@ export interface DiagnosticStatusResponse {
       maintenance_wos?: number;
       monthly_avg?: number;
       avg_first_response_hours?: number;
+      response_time_method?: string;
       median_completion_days?: number;
       open_wo_rate_pct?: number;
       open_wo_count?: number;
