@@ -17,6 +17,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "https://ops-diagnostic.vercel.app",
         "https://vendoroo.ai",
+        "https://diagnostic.vendoroo.ai",
     ]
 
     class Config:
