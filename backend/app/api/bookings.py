@@ -174,20 +174,51 @@ async def list_bookings():
             .order_by(db_models.BoothBooking.booking_date, db_models.BoothBooking.booking_time)
         )
         bookings = result.scalars().all()
-        return {
-            "bookings": [
-                {
-                    "id": b.id,
-                    "name": b.name,
-                    "email": b.email,
-                    "company": b.company,
-                    "date": b.booking_date.isoformat(),
-                    "date_display": b.booking_date.strftime("%A, %B %d"),
-                    "time": b.booking_time.strftime("%H:%M"),
-                    "time_display": datetime.combine(b.booking_date, b.booking_time).strftime("%-I:%M %p"),
-                    "notes": b.notes,
-                    "status": b.status,
-                }
-                for b in bookings
-            ]
-        }
+
+        output = []
+        for b in bookings:
+            diagnostic_id = None
+            diagnostic_score = None
+
+            lead_id = b.lead_id
+            if not lead_id:
+                lead_result = await session.execute(
+                    select(db_models.Lead).where(db_models.Lead.email == b.email)
+                )
+                lead = lead_result.scalar_one_or_none()
+                if lead:
+                    lead_id = lead.id
+
+            if lead_id:
+                diag_result = await session.execute(
+                    select(db_models.Diagnostic)
+                    .where(
+                        db_models.Diagnostic.lead_id == lead_id,
+                        db_models.Diagnostic.status == "complete",
+                    )
+                    .order_by(db_models.Diagnostic.created_at.desc())
+                    .limit(1)
+                )
+                diag = diag_result.scalar_one_or_none()
+                if diag:
+                    diagnostic_id = diag.id
+                    if diag.scores and isinstance(diag.scores, dict):
+                        diagnostic_score = diag.scores.get("overall")
+
+            output.append({
+                "id": b.id,
+                "name": b.name,
+                "email": b.email,
+                "company": b.company,
+                "date": b.booking_date.isoformat(),
+                "date_display": b.booking_date.strftime("%A, %B %d"),
+                "time": b.booking_time.strftime("%H:%M"),
+                "time_display": datetime.combine(b.booking_date, b.booking_time).strftime("%-I:%M %p"),
+                "notes": b.notes,
+                "status": b.status,
+                "lead_id": lead_id,
+                "diagnostic_id": diagnostic_id,
+                "diagnostic_score": int(diagnostic_score) if diagnostic_score is not None else None,
+            })
+
+        return {"bookings": output}

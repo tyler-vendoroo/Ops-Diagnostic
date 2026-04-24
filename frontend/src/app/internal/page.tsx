@@ -311,6 +311,9 @@ interface BookingRow {
   time_display: string;
   notes: string | null;
   status: string;
+  lead_id: string | null;
+  diagnostic_id: string | null;
+  diagnostic_score: number | null;
 }
 
 export default function InternalDashboard() {
@@ -537,31 +540,59 @@ export default function InternalDashboard() {
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Name</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Company</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Email</th>
+                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Diagnostic</th>
                 <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Notes</th>
               </tr>
             </thead>
             <tbody>
               {bookingsLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">Loading...</td>
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">Loading...</td>
                 </tr>
               ) : bookings.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">No bookings yet</td>
+                  <td colSpan={6} className="px-4 py-12 text-center text-sm text-gray-400">No bookings yet</td>
                 </tr>
               ) : (
-                bookings.map((b) => (
-                  <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-gray-900">{b.time_display}</p>
-                      <p className="text-xs text-gray-400">{b.date_display}</p>
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{b.name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{b.company || "—"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-400">{b.email}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{b.notes || "—"}</td>
-                  </tr>
-                ))
+                bookings.map((b) => {
+                  const matchedLead = leads.find((l) => l.email === b.email);
+                  const diagId = b.diagnostic_id ?? matchedLead?.diagnostics[0]?.id ?? null;
+                  const diagScore = b.diagnostic_score ?? matchedLead?.diagnostics[0]?.overall_score ?? null;
+                  return (
+                    <tr key={b.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-semibold text-gray-900">{b.time_display}</p>
+                        <p className="text-xs text-gray-400">{b.date_display}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => { setActiveTab("leads"); setSearch(b.email); }}
+                          className="text-sm font-medium text-vendoroo-main hover:underline text-left"
+                        >
+                          {b.name}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">{b.company || "—"}</td>
+                      <td className="px-4 py-3 text-sm text-gray-400">{b.email}</td>
+                      <td className="px-4 py-3">
+                        {diagId ? (
+                          <a
+                            href={`/diagnostic/results/${diagId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-vendoroo-main hover:underline"
+                          >
+                            View {diagScore != null ? `(${diagScore})` : ""}
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-400">{b.notes || "—"}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
