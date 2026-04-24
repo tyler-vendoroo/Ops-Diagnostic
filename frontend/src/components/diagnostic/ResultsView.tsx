@@ -131,31 +131,35 @@ const INSIGHT_ICONS: Record<string, string> = {
 };
 
 function ShareButton({
-  score,
-  topFinding,
   referralCode,
 }: {
-  score: number;
-  topFinding: string;
   referralCode?: string | null;
 }) {
   const [open, setOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  void score;
+  const hashtags = "#PropertyManagement #PropTech #AIinRealEstate #MaintenanceOps #Vendoroo #NARPM #BrokerOwner2026";
+  const shareOptions = [
+    `Did you know the average property manager takes over 4 hours to respond to a maintenance request? Just ran a free ops diagnostic from @VendorooAI — eye-opening. Takes 2 minutes.\n\n${hashtags}`,
+    `If you manage rental properties, @VendorooAI has a free 2-minute diagnostic that benchmarks your maintenance operations against AI-managed portfolios. Worth checking out.\n\n${hashtags}`,
+    `Just benchmarked my maintenance operations against industry standards with @VendorooAI's free diagnostic. If you manage 50+ doors, this is worth 2 minutes of your time.\n\n${hashtags}`,
+  ];
+  const shareIndex = referralCode
+    ? referralCode.charCodeAt(0) % shareOptions.length
+    : Math.floor(Math.random() * shareOptions.length);
+  const shareText = shareOptions[shareIndex];
 
   const shareUrl = referralCode
     ? `https://diagnostic.vendoroo.ai?ref=${referralCode}`
     : "https://diagnostic.vendoroo.ai";
-  const shareText = `Just ran my property management operation through Vendoroo's AI diagnostic and learned: "${topFinding}." Took 2 minutes. Check yours:`;
-  const encodedText = encodeURIComponent(shareText);
+  const fullEncodedText = encodeURIComponent(`${shareText}\n\n${shareUrl}`);
   const encodedUrl = encodeURIComponent(shareUrl);
 
   const platforms = [
     {
       name: "LinkedIn",
-      url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+      url: `https://www.linkedin.com/feed/?shareActive=true&text=${fullEncodedText}`,
       icon: (
         <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
           <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -164,7 +168,7 @@ function ShareButton({
     },
     {
       name: "X",
-      url: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+      url: `https://twitter.com/intent/tweet?text=${fullEncodedText}`,
       icon: (
         <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -193,7 +197,7 @@ function ShareButton({
   }, [open]);
 
   async function handleCopyLink() {
-    const fullText = `${shareText} ${shareUrl}`;
+    const fullText = `${shareText}\n\n${shareUrl}`;
     try {
       await navigator.clipboard.writeText(fullText);
     } catch {
@@ -312,8 +316,6 @@ function QuickResults({
 
       {/* ── Share button ── */}
       <ShareButton
-        score={score}
-        topFinding={insights[0]?.title ?? `${score}/100 on operations readiness`}
         referralCode={data.summary?.referral_code}
       />
 

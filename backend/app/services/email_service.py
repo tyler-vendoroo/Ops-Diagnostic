@@ -303,14 +303,16 @@ class EmailService:
             book_call_url = "https://vendoroo.ai/contact"
 
             share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
-            share_text = (
-                "Just ran my property management operation through Vendoroo's AI diagnostic "
-                "and learned something interesting. Took 2 minutes. Check yours:"
-            )
-            share_text_encoded = urllib.parse.quote(share_text)
             share_url_encoded = urllib.parse.quote(share_url)
-            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={share_url_encoded}"
-            twitter_url = f"https://twitter.com/intent/tweet?text={share_text_encoded}&url={share_url_encoded}"
+            _hashtags = "#PropertyManagement #PropTech #AIinRealEstate #MaintenanceOps #Vendoroo #NARPM #BrokerOwner2026"
+            share_text = (
+                "Did you know the average property manager takes over 4 hours to respond to a maintenance request? "
+                f"Just ran a free ops diagnostic from @VendorooAI — eye-opening. Takes 2 minutes.\n\n{_hashtags}"
+            )
+            full_share = f"{share_text}\n\n{share_url}"
+            full_share_encoded = urllib.parse.quote(full_share)
+            linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={full_share_encoded}"
+            twitter_url = f"https://twitter.com/intent/tweet?text={full_share_encoded}"
             facebook_url = f"https://www.facebook.com/sharer/sharer.php?u={share_url_encoded}"
 
             html_body = f"""<!DOCTYPE html>
@@ -464,8 +466,15 @@ class EmailService:
 
             share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
             share_url_encoded = urllib.parse.quote(share_url)
-            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={share_url_encoded}"
-            twitter_url = f"https://twitter.com/intent/tweet?url={share_url_encoded}"
+            _hashtags = "#PropertyManagement #PropTech #AIinRealEstate #MaintenanceOps #Vendoroo #NARPM #BrokerOwner2026"
+            _share_text = (
+                "Did you know the average property manager takes over 4 hours to respond to a maintenance request? "
+                f"Just ran a free ops diagnostic from @VendorooAI — eye-opening. Takes 2 minutes.\n\n{_hashtags}"
+            )
+            _full_share = f"{_share_text}\n\n{share_url}"
+            _full_share_encoded = urllib.parse.quote(_full_share)
+            linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={_full_share_encoded}"
+            twitter_url = f"https://twitter.com/intent/tweet?text={_full_share_encoded}"
             facebook_url = f"https://www.facebook.com/sharer/sharer.php?u={share_url_encoded}"
 
             html_body = f"""<!DOCTYPE html>
@@ -544,8 +553,15 @@ class EmailService:
 
             share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
             share_url_encoded = urllib.parse.quote(share_url)
-            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={share_url_encoded}"
-            twitter_url = f"https://twitter.com/intent/tweet?url={share_url_encoded}"
+            _hashtags = "#PropertyManagement #PropTech #AIinRealEstate #MaintenanceOps #Vendoroo #NARPM #BrokerOwner2026"
+            _share_text = (
+                "Did you know the average property manager takes over 4 hours to respond to a maintenance request? "
+                f"Just ran a free ops diagnostic from @VendorooAI — eye-opening. Takes 2 minutes.\n\n{_hashtags}"
+            )
+            _full_share = f"{_share_text}\n\n{share_url}"
+            _full_share_encoded = urllib.parse.quote(_full_share)
+            linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={_full_share_encoded}"
+            twitter_url = f"https://twitter.com/intent/tweet?text={_full_share_encoded}"
             facebook_url = f"https://www.facebook.com/sharer/sharer.php?u={share_url_encoded}"
 
             html_body = f"""<!DOCTYPE html>
