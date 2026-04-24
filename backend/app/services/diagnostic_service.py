@@ -386,9 +386,9 @@ class DiagnosticService:
                 "trades_required": _core_required,
                 "pain_points": list(survey.pain_points or []),
                 "pms_platform": client_info.pms_platform or "",
-                "current_cost_per_door": _cost_per_door_monthly,
-                "annual_cost_per_staff": _annual_cost,
-                "cost_source": _cost_source,
+                "current_cost_per_door": _cost_per_door_monthly if client_info.annual_cost_per_staff else None,
+                "annual_cost_per_staff": client_info.annual_cost_per_staff,
+                "cost_source": "based on your input" if client_info.annual_cost_per_staff else None,
             }
         except Exception as exc:
             logger.warning(
