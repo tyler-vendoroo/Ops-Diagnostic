@@ -27,10 +27,40 @@ export default function SchedulePage() {
   const [email, setEmail] = React.useState("");
   const [company, setCompany] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [leadId, setLeadId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [fetching, setFetching] = React.useState(true);
   const [booked, setBooked] = React.useState<{ date: string; time: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlLeadId = params.get("lead");
+    if (urlLeadId) {
+      fetch(`${API}/api/v1/leads/${urlLeadId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { name?: string; email?: string; company?: string } | null) => {
+          if (data) {
+            setName(data.name ?? "");
+            setEmail(data.email ?? "");
+            setCompany(data.company ?? "");
+            setLeadId(urlLeadId);
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+    try {
+      const stored = localStorage.getItem("vendoroo_ops_diagnostic_lead");
+      if (stored) {
+        const lead = JSON.parse(stored) as { name?: string; email?: string; company?: string; lead_id?: string };
+        setName(lead.name ?? "");
+        setEmail(lead.email ?? "");
+        setCompany(lead.company ?? "");
+        if (lead.lead_id) setLeadId(lead.lead_id);
+      }
+    } catch {}
+  }, []);
 
   React.useEffect(() => {
     fetch(`${API}/api/v1/bookings/slots`)
@@ -61,6 +91,7 @@ export default function SchedulePage() {
           booking_date: selectedDay,
           booking_time: selectedTime,
           notes: notes.trim() || null,
+          lead_id: leadId || null,
         }),
       });
       const data = await res.json() as { date: string; time: string; detail?: string };
@@ -87,7 +118,7 @@ export default function SchedulePage() {
             {booked.date} at {booked.time} CT
           </p>
           <p className="mt-1 text-sm text-vendoroo-muted">
-            Vendoroo Booth &middot; Hyatt Regency New Orleans
+            Vendoroo &middot; Imperial Room 5A (4th Floor) &middot; Hyatt Regency New Orleans
           </p>
           <p className="mt-6 text-xs text-vendoroo-muted">
             Check your email for confirmation. See you there!
@@ -110,7 +141,7 @@ export default function SchedulePage() {
             Meet the Vendoroo team
           </h1>
           <p className="mt-2 text-sm text-vendoroo-muted">
-            Book a 15-minute slot at our booth. We&apos;ll walk you through your diagnostic
+            Book a 15-minute slot at Imperial Room 5A (4th Floor). We&apos;ll walk you through your diagnostic
             results or show you a live demo.
           </p>
         </div>

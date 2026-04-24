@@ -94,9 +94,11 @@ async def run_reminder_check() -> int:
                         prefill_token=prefill_token,
                     )
                 elif next_touch == 3:
+                    from app.config import settings as _settings
                     await email_service.send_reminder_touch_3(
                         lead_email=lead.email,
                         lead_name=lead.name,
+                        book_call_url=f"{_settings.frontend_url}/schedule?lead={lead.id}",
                     )
 
                 lead.reminder_count = next_touch

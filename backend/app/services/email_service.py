@@ -254,6 +254,7 @@ class EmailService:
         staff_count: int,
         staff_label: str,
         prefill_token: str,
+        lead_id: str | None = None,
     ) -> None:
         """Send quick diagnostic results email with insights and two CTAs."""
         try:
@@ -300,7 +301,10 @@ class EmailService:
             import urllib.parse
             full_url = f"{frontend_url}/diagnostic/full?prefill={prefill_token}"
             results_url = f"{frontend_url}/diagnostic/results/{diagnostic_id}"
-            book_call_url = f"{settings.frontend_url}/schedule"
+            book_call_url = (
+                f"{frontend_url}/schedule?lead={lead_id}" if lead_id
+                else f"{frontend_url}/schedule"
+            )
 
             share_url = f"https://diagnostic.vendoroo.ai?ref={prefill_token}"
             share_url_encoded = urllib.parse.quote(share_url)

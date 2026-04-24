@@ -503,6 +503,7 @@ class DiagnosticService:
                     staff_count=client_info.staff_count,
                     staff_label=summary.get("staff_label", "staff"),
                     prefill_token=prefill_token,
+                    lead_id=lead_id,
                 )
             except Exception as exc:
                 logger.warning(
