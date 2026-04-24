@@ -310,7 +310,7 @@ function QuickResults({
           You qualify for 90 days free
         </p>
         <p className="mt-1 text-xs text-vendoroo-muted">
-          Complete your full diagnostic or book a call to get started.
+          Complete your full diagnostic or book a meeting to get started.
         </p>
       </div>
 
@@ -421,7 +421,7 @@ function QuickResults({
             })
           )}
         >
-          Book a call
+          Book a meeting or come see us at Imperial Room 5A (4th floor)
         </a>
       </div>
     </div>
@@ -809,7 +809,7 @@ export function ResultsView({ id }: { id: string }) {
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-vendoroo-muted">
           We&apos;ve prepared a comprehensive analysis with specific remediation plans for each gap.
-          Book a call and your advisor will walk you through the findings.
+          Book a meeting or come see us at Imperial Room 5A (4th floor) and your advisor will walk you through the findings.
         </p>
         <ul className="mt-4 space-y-2">
           {[
@@ -833,7 +833,7 @@ export function ResultsView({ id }: { id: string }) {
           rel="noopener noreferrer"
           className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-vendoroo-main px-8 py-4 text-sm font-semibold uppercase tracking-wider text-white shadow-lg transition-colors hover:bg-vendoroo-main/90"
         >
-          Book a call to access your full report
+          Book a meeting or come see us at Imperial Room 5A (4th floor)
         </a>
       </div>
     </div>

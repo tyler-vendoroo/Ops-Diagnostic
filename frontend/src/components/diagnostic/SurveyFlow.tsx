@@ -335,7 +335,7 @@ export function SurveyFlow() {
       if (doors < 25) {
         setFormError(
           "This diagnostic is designed for portfolios of 25+ doors. " +
-          "For smaller portfolios, book a call with our team to discuss your operation."
+          "For smaller portfolios, book a meeting with our team or come see us at Imperial Room 5A (4th floor) to discuss your operation."
         );
         return;
       }

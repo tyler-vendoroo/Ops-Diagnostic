@@ -288,7 +288,7 @@ function FullDiagnosticContent() {
     if (doors < 25) {
       setError(
         "This diagnostic is designed for portfolios of 25+ doors. " +
-        "For smaller portfolios, please book a call with our team."
+        "For smaller portfolios, please book a meeting with our team or come see us at Imperial Room 5A (4th floor)."
       );
       setSubmitting(false);
       return;

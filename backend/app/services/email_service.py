@@ -378,7 +378,7 @@ class EmailService:
                 <tr>
                   <td style="text-align:center;padding-bottom:12px;">
                     <a href="{book_call_url}" style="display:inline-block;color:#039cac;font-size:13px;font-weight:600;text-decoration:none;">
-                      Book a call with our team
+                      Book a meeting or come see us at Imperial Room 5A (4th floor)
                     </a>
                   </td>
                 </tr>
@@ -645,7 +645,7 @@ class EmailService:
           </p>
           <p style="text-align:center;margin:0;">
             <a href="{book_call_url}" style="display:inline-block;background-color:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
-              Book a 15-minute call
+              Book a meeting or come see us at Imperial Room 5A (4th floor)
             </a>
           </p>
         </td></tr>
