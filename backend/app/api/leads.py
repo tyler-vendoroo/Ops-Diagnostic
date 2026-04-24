@@ -86,6 +86,10 @@ async def list_leads(
                     "recommended_tier": lead.recommended_tier,
                     "gap_count": lead.gap_count,
                     "top_gap": lead.top_gap,
+                    "pain_points": lead.pain_points,
+                    "after_hours_method": lead.after_hours_method,
+                    "avg_response_time": lead.avg_response_time,
+                    "projected_score": lead.projected_score,
                     "diagnostics": [
                         {
                             "id": d.id,

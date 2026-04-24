@@ -50,6 +50,10 @@ interface LeadRow {
   recommended_tier: string | null;
   gap_count: number | null;
   top_gap: string | null;
+  pain_points: string | null;
+  after_hours_method: string | null;
+  avg_response_time: string | null;
+  projected_score: number | null;
   diagnostics: DiagnosticSummary[];
 }
 
@@ -121,10 +125,13 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
         </td>
         <td className="px-4 py-3">
           {lead.overall_score != null ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className={`text-lg font-semibold tabular-nums ${scoreColor(lead.overall_score)}`}>
                 {lead.overall_score}
               </span>
+              {lead.projected_score && (
+                <span className="text-xs text-vendoroo-muted">→ {lead.projected_score}</span>
+              )}
               {lead.recommended_tier && (
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${tierColor(lead.recommended_tier)}`}>
                   {lead.recommended_tier}
@@ -183,6 +190,39 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
           </div>
         </td>
       </tr>
+
+      {open && (lead.pain_points || lead.after_hours_method || lead.avg_response_time || lead.projected_score) && (
+        <tr>
+          <td colSpan={7} className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">
+            <div className="ml-8 grid grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-4">
+              {lead.pain_points && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Pain Points</p>
+                  <p className="text-xs text-gray-700">{lead.pain_points}</p>
+                </div>
+              )}
+              {lead.after_hours_method && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">After-Hours</p>
+                  <p className="text-xs text-gray-700">{lead.after_hours_method}</p>
+                </div>
+              )}
+              {lead.avg_response_time && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Response Time</p>
+                  <p className="text-xs text-gray-700">{lead.avg_response_time}</p>
+                </div>
+              )}
+              {lead.projected_score != null && lead.overall_score != null && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Projected Score</p>
+                  <p className="text-xs font-medium text-vendoroo-main">{lead.overall_score} → {lead.projected_score}</p>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
 
       {open && lead.diagnostics.length > 0 && (
         <tr>

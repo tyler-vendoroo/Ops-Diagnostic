@@ -452,6 +452,34 @@ class DiagnosticService:
                             lead_record.top_gap = (
                                 high_gaps[0].title if high_gaps else gaps[0].title
                             )
+                        lead_record.projected_score = calculate_projected_score(
+                            overall_score, gap_titles
+                        )
+                        if survey.pain_points:
+                            lead_record.pain_points = ", ".join(survey.pain_points)
+                        if survey.after_hours_method:
+                            _AH_DISPLAY = {
+                                "24_7_coverage": "24/7 coverage",
+                                "answering_service": "Answering service",
+                                "on_call_rotation": "On-call rotation",
+                                "voicemail_only": "Voicemail only",
+                                "none": "None",
+                            }
+                            lead_record.after_hours_method = _AH_DISPLAY.get(
+                                survey.after_hours_method, survey.after_hours_method
+                            )
+                        if survey.estimated_response_time:
+                            _RT_DISPLAY = {
+                                "under_1hr": "< 1 hr",
+                                "1_4hrs": "1–4 hrs",
+                                "4_12hrs": "4–12 hrs",
+                                "same_day": "Same day",
+                                "next_day": "Next day",
+                                "unsure": "Unsure",
+                            }
+                            lead_record.avg_response_time = _RT_DISPLAY.get(
+                                survey.estimated_response_time, survey.estimated_response_time
+                            )
                         await session.commit()
             except Exception as exc:
                 logger.warning("Lead enrichment failed for %s: %s", lead_id, exc)
@@ -1129,6 +1157,15 @@ class DiagnosticService:
                                 lead_record.top_gap = (
                                     high_gaps[0].title if high_gaps else gaps[0].title
                                 )
+                            lead_record.projected_score = projected_score_full
+                            if wo_metrics.avg_first_response_hours is not None:
+                                lead_record.avg_response_time = (
+                                    f"~{wo_metrics.avg_first_response_hours} hrs"
+                                    if wo_metrics.response_time_method == "fast_close_proxy"
+                                    else f"{wo_metrics.avg_first_response_hours} hrs"
+                                )
+                            elif wo_metrics.response_time_method == "not_calculable":
+                                lead_record.avg_response_time = "Not tracked"
                             await session.commit()
                 except Exception as exc:
                     logger.warning("Lead enrichment failed for %s: %s", lead_id, exc)
