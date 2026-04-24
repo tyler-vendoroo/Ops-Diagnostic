@@ -143,7 +143,7 @@ async def create_booking(req: BookingRequest):
       <p style="margin:0 0 4px;font-size:13px;color:#94a3b8;">Where</p>
       <p style="margin:0;font-size:16px;font-weight:600;color:#0F172A;">Vendoroo &middot; Imperial Room 5A (4th Floor) &middot; Hyatt Regency New Orleans</p>
     </div>
-    <p style="margin:0;color:#94a3b8;font-size:12px;">Questions? Reply to this email or find us at the booth anytime.</p>
+    <p style="margin:0;color:#94a3b8;font-size:12px;">Can&apos;t make your slot? No worries — come find us in Imperial Room 5A anytime during the conference.</p>
   </div>
 </div>"""
         await asyncio.get_event_loop().run_in_executor(
