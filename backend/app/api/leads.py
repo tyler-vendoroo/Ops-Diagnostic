@@ -1,5 +1,7 @@
 """Leads API endpoints."""
 
+import hashlib
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
@@ -93,6 +95,38 @@ async def update_door_count(id: str, body: DoorCountUpdate):
     service = LeadService()
     await service.update_door_count(id, body.door_count)
     return {"ok": True}
+
+
+@router.get("/prefill/{token}")
+async def get_prefill_data(token: str):
+    """Retrieve client info for pre-filling the full diagnostic form from an email link."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(db_models.Lead)
+            .options(selectinload(db_models.Lead.diagnostics))
+            .order_by(db_models.Lead.created_at.desc())
+            .limit(200)
+        )
+        leads = result.scalars().all()
+
+        for lead in leads:
+            for diag in (lead.diagnostics or []):
+                check = hashlib.sha256(
+                    f"{lead.id}:{diag.id}".encode()
+                ).hexdigest()[:16]
+                if check == token:
+                    summary = diag.summary or {}
+                    return {
+                        "company_name": summary.get("company_name") or lead.company,
+                        "door_count": summary.get("door_count"),
+                        "property_count": summary.get("property_count"),
+                        "pms_platform": lead.pms_platform,
+                        "operational_model": summary.get("operational_model"),
+                        "staff_count": summary.get("staff_count"),
+                        "primary_goal": summary.get("primary_goal"),
+                    }
+
+        raise HTTPException(status_code=404, detail="Prefill token not found")
 
 
 @router.get("/{id}")

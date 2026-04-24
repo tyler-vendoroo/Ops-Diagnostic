@@ -210,8 +210,34 @@ function FullDiagnosticContent() {
   const [statusMsg, setStatusMsg] = React.useState(STATUS_MESSAGES[0]);
   const [error, setError] = React.useState<string | null>(null);
 
-  // ── Pre-fill from localStorage ─────────────────────────────────────────────
+  // ── Pre-fill from localStorage or email prefill link ──────────────────────
   React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const prefillToken = params.get("prefill");
+
+    if (prefillToken) {
+      // Email link: fetch client info from API using the prefill token
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      fetch(`${apiUrl}/api/v1/leads/prefill/${prefillToken}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data) return;
+          if (data.company_name) setCompanyName(data.company_name);
+          if (data.door_count != null) setDoorCount(String(data.door_count));
+          if (data.property_count != null) setPropertyCount(String(data.property_count));
+          if (data.pms_platform) setPmsPlatform(data.pms_platform);
+          if (data.operational_model && ["coordinator", "va", "tech", "blended"].includes(data.operational_model)) {
+            setOperationalModel(data.operational_model as "coordinator" | "va" | "tech" | "blended");
+          }
+          if (data.staff_count != null) setStaffCount(String(data.staff_count));
+          if (data.primary_goal === "scale" || data.primary_goal === "optimize" || data.primary_goal === "elevate") {
+            setPrimaryGoal(data.primary_goal);
+          }
+        })
+        .catch(() => {}); // silent fail — they fill in manually
+      return;
+    }
+
     const lead = readLocalStorage<StoredLead>(LEAD_KEY);
     const saved = readLocalStorage<StoredClientInfo>(CLIENT_INFO_KEY);
 

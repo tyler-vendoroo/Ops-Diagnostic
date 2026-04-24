@@ -432,24 +432,30 @@ class DiagnosticService:
             )
             # Non-fatal — still return the result
 
-        # ── Step 7: Send emails (DISABLED) ──────────────────────────────────
-        # if lead is not None:
-        #     await self._email_service.send_diagnostic_results(
-        #         lead_email=lead.email,
-        #         lead_name=lead.name,
-        #         diagnostic_id=diagnostic_id,
-        #         overall_score=float(overall_score),
-        #         tier=tier,
-        #         key_findings=key_findings_serialized,
-        #         pdf_bytes=pdf_bytes,
-        #     )
-        #     await self._email_service.send_sales_notification(
-        #         lead_name=lead.name,
-        #         lead_email=lead.email,
-        #         lead_company=lead.company,
-        #         overall_score=float(overall_score),
-        #         tier=tier,
-        #     )
+        # ── Step 7: Send quick diagnostic results email ──────────────────────
+        if lead is not None and lead.email and summary is not None:
+            import hashlib
+            prefill_token = hashlib.sha256(
+                f"{lead_id or ''}:{diagnostic_id}".encode()
+            ).hexdigest()[:16]
+            try:
+                await self._email_service.send_quick_diagnostic_results(
+                    lead_email=lead.email,
+                    lead_name=lead.name,
+                    diagnostic_id=diagnostic_id,
+                    overall_score=float(overall_score),
+                    insights=summary.get("insights", []),
+                    category_scores=summary.get("category_scores", []),
+                    company_name=client_info.company_name,
+                    door_count=client_info.door_count,
+                    staff_count=client_info.staff_count,
+                    staff_label=summary.get("staff_label", "staff"),
+                    prefill_token=prefill_token,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Quick diagnostic email failed for %s: %s", diagnostic_id, exc
+                )
 
         return DiagnosticResult(
             diagnostic_id=diagnostic_id,
