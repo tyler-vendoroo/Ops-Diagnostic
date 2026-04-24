@@ -541,7 +541,7 @@ export function SurveyFlow() {
                 </SelectTrigger>
                 <SelectContent>
                   {PMS_OPTIONS.map((p) => (
-                    <SelectItem key={p} value={p}>
+                    <SelectItem key={p} value={p} label={p}>
                       {p}
                     </SelectItem>
                   ))}
@@ -807,7 +807,7 @@ export function SurveyFlow() {
                 </SelectTrigger>
                 <SelectContent>
                   {RESPONSE_TIME_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -825,7 +825,7 @@ export function SurveyFlow() {
                 </SelectTrigger>
                 <SelectContent>
                   {COMPLETION_TIME_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                       {opt.label}
                     </SelectItem>
                   ))}
