@@ -623,9 +623,11 @@ class EmailService:
         self,
         lead_email: str,
         lead_name: str,
-        book_call_url: str = f"{settings.frontend_url}/schedule",
+        book_call_url: str | None = None,
     ) -> None:
         """Touch 3 (14 days): Pivot to a call. No more diagnostic push."""
+        if book_call_url is None:
+            book_call_url = f"{settings.frontend_url}/schedule"
         try:
             html_body = f"""<!DOCTYPE html>
 <html lang="en">

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     sales_notification_email: str = "sales@vendoroo.ai"
     revenue_hero_api_key: str = ""
     revenue_hero_webhook_url: str = ""
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "https://diagnostic.vendoroo.ai"
     api_url: str = "http://localhost:8000"
     event_source: str = "web"
     allowed_origins: List[str] = [
