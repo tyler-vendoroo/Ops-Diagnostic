@@ -279,6 +279,7 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
                           <Download className="size-3" />
                           PDF
                         </a>
+                        <DiagnosticSendButton diagnosticId={d.id} />
                       </>
                     )}
                   </div>
@@ -314,6 +315,46 @@ interface BookingRow {
   lead_id: string | null;
   diagnostic_id: string | null;
   diagnostic_score: number | null;
+}
+
+function DiagnosticSendButton({ diagnosticId }: { diagnosticId: string }) {
+  const [state, setState] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function handleSend(e: React.MouseEvent) {
+    e.stopPropagation();
+    setState("sending");
+    try {
+      const res = await fetch(`${API}/api/v1/diagnostic/${diagnosticId}/send-results`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const err = await res.json() as { detail?: string };
+        throw new Error(err.detail ?? "Failed");
+      }
+      setState("sent");
+    } catch {
+      setState("error");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleSend}
+      disabled={state === "sending" || state === "sent"}
+      className={`inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+        state === "sent"
+          ? "border-green-200 bg-green-50 text-green-700"
+          : state === "error"
+            ? "border-rose-200 bg-rose-50 text-rose-600"
+            : "border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+      }`}
+    >
+      {state === "sending" ? "Sending…" : state === "sent" ? "Sent ✓" : state === "error" ? "Retry" : "Send results"}
+    </button>
+  );
 }
 
 function BookingTableRow({

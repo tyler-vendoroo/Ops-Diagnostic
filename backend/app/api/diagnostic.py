@@ -230,7 +230,9 @@ async def get_diagnostic_report(id: str):
 
 @router.get("/{id}/pdf")
 async def get_diagnostic_pdf(id: str):
-    """Return the stored PDF bytes for a diagnostic."""
+    """Return PDF bytes for a diagnostic, regenerating from stored HTML if needed."""
+    from app.report.generator import generate_pdf_async
+
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(db_models.Diagnostic).where(db_models.Diagnostic.id == id)
@@ -240,16 +242,102 @@ async def get_diagnostic_pdf(id: str):
     if record is None:
         raise HTTPException(status_code=404, detail=f"Diagnostic '{id}' not found.")
 
-    if not record.pdf_data:
-        raise HTTPException(
-            status_code=404,
-            detail="PDF not available for this diagnostic. It may have failed to generate.",
-        )
+    pdf_bytes = record.pdf_data
+
+    if not pdf_bytes:
+        if not record.html_report:
+            raise HTTPException(
+                status_code=404,
+                detail="PDF not available — no stored HTML to regenerate from.",
+            )
+        # Regenerate from stored HTML and cache it for future requests
+        try:
+            pdf_bytes = await generate_pdf_async(record.html_report)
+            async with AsyncSessionLocal() as session:
+                rec = await session.get(db_models.Diagnostic, id)
+                if rec:
+                    rec.pdf_data = pdf_bytes
+                    await session.commit()
+        except Exception as exc:
+            logger.error("PDF regeneration failed for %s: %s", id, exc)
+            raise HTTPException(status_code=500, detail=f"PDF generation failed: {exc}")
 
     return Response(
-        content=record.pdf_data,
+        content=pdf_bytes,
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'inline; filename="diagnostic-{id}.pdf"',
         },
     )
+
+
+@router.post("/{id}/send-results")
+async def send_diagnostic_results_email(id: str):
+    """Send the diagnostic results link to the associated lead's email."""
+    from app.config import settings
+
+    async with AsyncSessionLocal() as session:
+        diag = (await session.execute(
+            select(db_models.Diagnostic).where(db_models.Diagnostic.id == id)
+        )).scalar_one_or_none()
+
+        if diag is None:
+            raise HTTPException(status_code=404, detail="Diagnostic not found.")
+        if not diag.lead_id:
+            raise HTTPException(status_code=400, detail="No lead associated with this diagnostic.")
+
+        lead = await session.get(db_models.Lead, diag.lead_id)
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found.")
+
+    first_name = lead.name.split()[0] if lead.name else lead.name
+    results_url = f"{settings.frontend_url}/diagnostic/results/{id}"
+    schedule_url = f"{settings.frontend_url}/schedule"
+
+    try:
+        import asyncio
+        import resend
+
+        resend.api_key = settings.resend_api_key
+        html = f"""
+<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:32px;">
+  <div style="background:#1a1a2e;padding:24px 32px;border-radius:12px 12px 0 0;">
+    <p style="margin:0;color:#039cac;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo Operations Diagnostic</p>
+    <h1 style="margin:8px 0 0;color:white;font-size:20px;">Your diagnostic results</h1>
+  </div>
+  <div style="background:white;padding:24px 32px;border:1px solid #f1f5f9;border-top:none;border-radius:0 0 12px 12px;">
+    <p style="margin:0 0 16px;color:#334155;font-size:15px;">Hi {first_name},</p>
+    <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
+      Here&apos;s a link to your Vendoroo operations diagnostic — it shows how your portfolio
+      benchmarks against AI-managed operations and where the biggest opportunities are.
+    </p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{results_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
+        View My Diagnostic Results
+      </a>
+    </div>
+    <p style="margin:20px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
+      Want to walk through the findings together?
+      <a href="{schedule_url}" style="color:#039cac;text-decoration:none;font-weight:600;">Book a meeting with us</a>
+      and we&apos;ll go through every data point and answer your questions.
+    </p>
+    <hr style="margin:24px 0;border:none;border-top:1px solid #f1f5f9;">
+    <p style="margin:0;color:#94a3b8;font-size:12px;">Questions? Reply to this email — we&apos;re happy to help.</p>
+  </div>
+</div>"""
+
+        await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: resend.Emails.send({
+                "from": settings.diagnostic_from_email,
+                "to": [lead.email],
+                "subject": f"Your Vendoroo diagnostic results, {first_name}",
+                "html": html,
+            }),
+        )
+        logger.info("Sent diagnostic results email to %s for diagnostic %s", lead.email, id)
+    except Exception as exc:
+        logger.error("Failed to send results email for diagnostic %s: %s", id, exc)
+        raise HTTPException(status_code=500, detail=f"Email send failed: {exc}")
+
+    return {"ok": True, "email": lead.email}
