@@ -146,22 +146,6 @@ async def get_prefill_data(token: str):
         raise HTTPException(status_code=404, detail="Prefill token not found")
 
 
-@router.get("/{id}/interest")
-async def mark_lead_interested(id: str):
-    """Prospect clicked 'I want to move forward' in their report email.
-    Updates lead status to 'interested' then redirects to the schedule page.
-    """
-    from fastapi.responses import RedirectResponse
-    from app.config import settings
-
-    async with AsyncSessionLocal() as session:
-        lead = await session.get(db_models.Lead, id)
-        if lead:
-            lead.status = "interested"
-            await session.commit()
-
-    return RedirectResponse(url=f"{settings.frontend_url}/schedule?lead={id}", status_code=302)
-
 
 @router.get("/{id}")
 async def get_lead(id: str):
