@@ -291,7 +291,10 @@ async def send_diagnostic_results_email(id: str):
             raise HTTPException(status_code=404, detail="Lead not found.")
 
     first_name = lead.name.split()[0] if lead.name else lead.name
-    results_url = f"{settings.frontend_url}/diagnostic/results/{id}"
+    if diag.diagnostic_type == "full" and diag.html_report:
+        results_url = f"{settings.api_url}/api/v1/diagnostic/{id}/report"
+    else:
+        results_url = f"{settings.frontend_url}/diagnostic/results/{id}"
     schedule_url = f"{settings.frontend_url}/schedule"
 
     try:
@@ -313,7 +316,7 @@ async def send_diagnostic_results_email(id: str):
     </p>
     <div style="text-align:center;margin:24px 0;">
       <a href="{results_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
-        View My Diagnostic Results
+        View Full Report
       </a>
     </div>
     <p style="margin:20px 0 0;color:#64748b;font-size:13px;line-height:1.6;">

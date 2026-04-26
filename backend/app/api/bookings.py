@@ -284,7 +284,11 @@ async def send_results_email(id: str):
     if not diagnostic_id:
         raise HTTPException(status_code=404, detail="No completed diagnostic found for this contact")
 
-    results_url = f"{settings.frontend_url}/diagnostic/results/{diagnostic_id}"
+    # Full diagnostics → full HTML report; quick → summary page
+    if diagnostic_type == "full":
+        results_url = f"{settings.api_url}/api/v1/diagnostic/{diagnostic_id}/report"
+    else:
+        results_url = f"{settings.frontend_url}/diagnostic/results/{diagnostic_id}"
     first_name = booking.name.split()[0] if booking.name else booking.name
 
     from app.services.notification_service import generate_interest_token
@@ -310,7 +314,7 @@ async def send_results_email(id: str):
     </p>
     <p style="margin:0 0 8px;text-align:center;">
       <a href="{results_url}" style="color:#039cac;font-size:13px;font-weight:600;text-decoration:underline;">
-        View My Diagnostic Results
+        View full report
       </a>
     </p>
     <div style="text-align:center;margin:16px 0 24px;">

@@ -343,7 +343,7 @@ function DiagnosticSendButton({ diagnosticId }: { diagnosticId: string }) {
             : "border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
       }`}
     >
-      {state === "sending" ? "Sending…" : state === "sent" ? "Sent ✓" : state === "error" ? "Retry" : "Send results"}
+      {state === "sending" ? "Sending…" : state === "sent" ? "Sent ✓" : state === "error" ? "Retry" : "Share full report"}
     </button>
   );
 }
@@ -429,7 +429,7 @@ function BookingTableRow({
                   : "bg-vendoroo-main text-white hover:bg-vendoroo-main/90 disabled:opacity-50"
               }`}
             >
-              {sending ? "Sending…" : sent ? "Sent ✓" : "Send results"}
+              {sending ? "Sending…" : sent ? "Sent ✓" : "Share full report"}
             </button>
             {sendError && <p className="text-[10px] text-rose-500">{sendError}</p>}
           </div>
