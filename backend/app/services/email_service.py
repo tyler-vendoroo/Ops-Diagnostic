@@ -21,127 +21,235 @@ class EmailService:
         self,
         lead_email: str,
         lead_name: str,
+        lead_id: str,
         diagnostic_id: str,
         overall_score: float,
-        tier: str,
-        key_findings: list,
-        pdf_bytes: bytes | None,
+        company_name: str,
+        benchmark_rows: list,
+        gaps: list,
     ) -> None:
-        """Send results email to the user. Attach PDF if available."""
-        try:
-            tier_display = tier.capitalize()
-            score_int = int(overall_score)
+        """Send full diagnostic results teaser to the prospect.
 
-            # Top 3 findings as bulleted list
-            top_findings = key_findings[:3]
-            findings_html = ""
-            for finding in top_findings:
-                title = finding.get("title", "") if isinstance(finding, dict) else str(finding)
-                detail = finding.get("detail", "") if isinstance(finding, dict) else ""
-                findings_html += f"<li style='margin-bottom:8px;'><strong>{title}</strong>"
-                if detail:
-                    findings_html += f" — {detail}"
-                findings_html += "</li>"
+        Mirrors the results page: score, benchmarks, gaps, locked CTA.
+        No report link, no PDF — just enough to drive a meeting booking.
+        """
+        try:
+            score_int = int(overall_score)
+            first_name = lead_name.split()[0] if lead_name else lead_name
+            schedule_url = f"{settings.frontend_url}/schedule?lead={lead_id}"
+
+            # ── Score ring cells ─────────────────────────────────────────────
+            score_color = "#EF4444" if score_int < 50 else ("#FDBB00" if score_int < 70 else "#22C55E")
+
+            # ── Benchmark table rows ─────────────────────────────────────────
+            css_color = {"val-bad": "#EF4444", "val-good": "#22C55E", "val-neutral": "#64748b"}
+            bench_rows_html = ""
+            for row in benchmark_rows:
+                if isinstance(row, dict):
+                    metric = row.get("metric", "")
+                    current = row.get("current_value", "—")
+                    vendoroo = row.get("vendoroo_avg", "—")
+                    color = css_color.get(row.get("current_css", "val-neutral"), "#64748b")
+                    bench_rows_html += f"""
+                    <tr>
+                      <td style="padding:9px 12px;font-size:13px;color:#334155;border-bottom:1px solid #f1f5f9;">{metric}</td>
+                      <td style="padding:9px 12px;font-size:13px;font-weight:700;color:{color};border-bottom:1px solid #f1f5f9;text-align:right;">{current}</td>
+                      <td style="padding:9px 12px;font-size:13px;color:#22C55E;border-bottom:1px solid #f1f5f9;text-align:right;">{vendoroo}</td>
+                    </tr>"""
+
+            # ── Gap rows ─────────────────────────────────────────────────────
+            sev_color = {"High Priority": "#EF4444", "Medium Priority": "#F59E0B", "Low Priority": "#22C55E"}
+            gaps_html = ""
+            for gap in gaps[:6]:
+                if isinstance(gap, dict):
+                    title = gap.get("title", "")
+                    sev = gap.get("severity", "")
+                    col = sev_color.get(sev, "#64748b")
+                    gaps_html += f"""
+                    <tr>
+                      <td style="padding:8px 12px;font-size:13px;color:#0F172A;border-bottom:1px solid #f1f5f9;">{title}</td>
+                      <td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f1f5f9;">
+                        <span style="background:{col}22;color:{col};font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;">{sev}</span>
+                      </td>
+                    </tr>"""
+
+            bench_section = (
+                '<tr><td style="padding:0 40px 24px;">'
+                '<p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#0F172A;text-transform:uppercase;letter-spacing:0.05em;">Current vs. Vendoroo Average</p>'
+                '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f1f5f9;border-radius:8px;overflow:hidden;">'
+                '<thead><tr style="background:#f8fafc;">'
+                '<th style="padding:8px 12px;font-size:11px;font-weight:600;color:#64748b;text-align:left;text-transform:uppercase;letter-spacing:0.05em;">Metric</th>'
+                '<th style="padding:8px 12px;font-size:11px;font-weight:600;color:#64748b;text-align:right;text-transform:uppercase;letter-spacing:0.05em;">Current</th>'
+                '<th style="padding:8px 12px;font-size:11px;font-weight:600;color:#64748b;text-align:right;text-transform:uppercase;letter-spacing:0.05em;">Vendoroo Avg</th>'
+                '</tr></thead><tbody>' + bench_rows_html + '</tbody></table></td></tr>'
+            ) if bench_rows_html else ""
+
+            gaps_section = (
+                '<tr><td style="padding:0 40px 24px;">'
+                '<p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#0F172A;text-transform:uppercase;letter-spacing:0.05em;">Operational Gaps Identified</p>'
+                '<table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #f1f5f9;border-radius:8px;overflow:hidden;">'
+                '<tbody>' + gaps_html + '</tbody></table></td></tr>'
+            ) if gaps_html else ""
 
             html_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:40px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td style="background-color:#0F172A;padding:32px 40px;">
-              <p style="margin:0;color:#039cac;font-size:12px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo</p>
-              <h1 style="margin:8px 0 0;color:#ffffff;font-size:22px;font-weight:700;">Operations Diagnostic Results</h1>
-            </td>
-          </tr>
-          <!-- Score section -->
-          <tr>
-            <td style="padding:40px 40px 0;">
-              <p style="margin:0 0 8px;color:#64748b;font-size:14px;">Hi {lead_name},</p>
-              <p style="margin:0 0 32px;color:#334155;font-size:15px;line-height:1.6;">
-                Your Vendoroo Operations Diagnostic is complete. Here's a summary of your results.
-              </p>
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td width="50%" style="text-align:center;padding:24px;background-color:#f8fafc;border-radius:8px;">
-                    <p style="margin:0;color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Overall Score</p>
-                    <p style="margin:8px 0 0;color:#0F172A;font-size:56px;font-weight:800;line-height:1;">{score_int}</p>
-                    <p style="margin:4px 0 0;color:#64748b;font-size:13px;">out of 100</p>
-                  </td>
-                  <td width="8"></td>
-                  <td width="50%" style="text-align:center;padding:24px;background-color:#039cac;border-radius:8px;">
-                    <p style="margin:0;color:#b2ebf2;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Recommended Tier</p>
-                    <p style="margin:8px 0 0;color:#ffffff;font-size:32px;font-weight:800;line-height:1;">{tier_display}</p>
-                    <p style="margin:4px 0 0;color:#b2ebf2;font-size:13px;">Vendoroo plan</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <!-- Key Findings -->
-          {"" if not findings_html else f'''
-          <tr>
-            <td style="padding:32px 40px 0;">
-              <h2 style="margin:0 0 16px;color:#0F172A;font-size:16px;font-weight:700;border-bottom:2px solid #039cac;padding-bottom:8px;">Key Findings</h2>
-              <ul style="margin:0;padding-left:20px;color:#334155;font-size:14px;line-height:1.7;">
-                {findings_html}
-              </ul>
-            </td>
-          </tr>'''}
-          <!-- CTA -->
-          <tr>
-            <td style="padding:32px 40px 40px;">
-              <p style="margin:0 0 24px;color:#334155;font-size:14px;line-height:1.6;">
-                A member of our team will be in touch to walk you through these results and answer any questions.
-                {' Your full diagnostic report is attached as a PDF.' if pdf_bytes else ''}
-              </p>
-              <p style="margin:0;color:#94a3b8;font-size:12px;">
-                This report was generated for diagnostic ID <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:11px;">{diagnostic_id}</code>.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color:#0F172A;padding:20px 40px;text-align:center;">
-              <p style="margin:0;color:#475569;font-size:12px;">
-                &copy; Vendoroo &bull; <a href="https://vendoroo.com" style="color:#039cac;text-decoration:none;">vendoroo.com</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr><td style="background-color:#0F172A;padding:28px 40px;">
+          <p style="margin:0;color:#039cac;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo Operations Analysis</p>
+          <h1 style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:700;">{company_name}</h1>
+        </td></tr>
+
+        <!-- Score section -->
+        <tr><td style="padding:32px 40px 24px;">
+          <p style="margin:0 0 20px;color:#64748b;font-size:14px;">Hi {first_name},</p>
+          <p style="margin:0 0 24px;color:#334155;font-size:14px;line-height:1.6;">Your full operations diagnostic is complete. Here&apos;s how your portfolio benchmarks against AI-managed operations.</p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="48%" style="text-align:center;padding:20px 16px;background-color:#f8fafc;border-radius:8px;">
+                <p style="margin:0 0 4px;color:#64748b;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Your Score</p>
+                <p style="margin:0;color:{score_color};font-size:52px;font-weight:800;line-height:1;">{score_int}</p>
+                <p style="margin:4px 0 0;color:#64748b;font-size:12px;">out of 100</p>
+              </td>
+              <td width="4%" style="text-align:center;color:#94a3b8;font-size:20px;">&rarr;</td>
+              <td width="48%" style="text-align:center;padding:20px 16px;background-color:#0F172A;border-radius:8px;">
+                <p style="margin:0 0 4px;color:#94a3b8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">With Vendoroo</p>
+                <p style="margin:0;color:#039cac;font-size:52px;font-weight:800;line-height:1;">93</p>
+                <p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">projected</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        {bench_section}
+        {gaps_section}
+
+        <!-- Locked remediation note -->
+        <tr><td style="padding:0 40px 24px;">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start;">
+            <span style="font-size:16px;">&#128274;</span>
+            <p style="margin:0;font-size:13px;color:#64748b;line-height:1.5;">
+              <strong style="color:#0F172A;">Remediation plans available when you meet with your advisor.</strong><br>
+              Your advisor will walk through every gap, explain what it means for your operation, and show you exactly how it gets resolved with Vendoroo.
+            </p>
+          </div>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td style="padding:0 40px 32px;text-align:center;">
+          <a href="{schedule_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.02em;">Book a meeting with your advisor</a>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background-color:#0F172A;padding:18px 40px;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
+        </td></tr>
+
+      </table>
+    </td></tr>
   </table>
 </body>
 </html>"""
 
-            params: dict = {
-                "from": settings.diagnostic_from_email,
-                "to": [lead_email],
-                "subject": "Your Vendoroo Operations Diagnostic Results",
-                "html": html_body,
-            }
-
-            if pdf_bytes is not None:
-                params["attachments"] = [
-                    {
-                        "filename": "diagnostic_report.pdf",
-                        "content": list(pdf_bytes),
-                    }
-                ]
-
             await asyncio.get_event_loop().run_in_executor(
-                None, lambda: resend.Emails.send(params)
+                None,
+                lambda: resend.Emails.send({
+                    "from": settings.diagnostic_from_email,
+                    "to": [lead_email],
+                    "subject": f"Your Vendoroo Operations Analysis — Score: {score_int}/100",
+                    "html": html_body,
+                }),
             )
-            logger.info("Sent diagnostic results email to %s (diagnostic %s)", lead_email, diagnostic_id)
+            logger.info("Sent full diagnostic results email to %s (diagnostic %s)", lead_email, diagnostic_id)
 
         except Exception as exc:
             logger.error(
                 "Failed to send diagnostic results email to %s: %s",
+                lead_email,
+                exc,
+            )
+
+    async def send_report_share_email(
+        self,
+        lead_email: str,
+        lead_name: str,
+        lead_id: str,
+        diagnostic_id: str,
+        company_name: str,
+    ) -> None:
+        """Sales-triggered email sharing the full report link with the prospect."""
+        try:
+            first_name = lead_name.split()[0] if lead_name else lead_name
+            report_url = f"{settings.api_url}/api/v1/diagnostic/{diagnostic_id}/report"
+            interest_url = f"{settings.api_url}/api/v1/leads/{lead_id}/interest"
+            schedule_url = f"{settings.frontend_url}/schedule?lead={lead_id}"
+
+            html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+        <tr><td style="background-color:#0F172A;padding:28px 40px;">
+          <p style="margin:0;color:#039cac;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo Operations Analysis</p>
+          <h1 style="margin:6px 0 0;color:#ffffff;font-size:20px;font-weight:700;">Your full report is ready</h1>
+        </td></tr>
+
+        <tr><td style="padding:32px 40px 24px;">
+          <p style="margin:0 0 16px;color:#334155;font-size:14px;">Hi {first_name},</p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:14px;line-height:1.6;">
+            Your advisor has prepared your full <strong style="color:#0F172A;">{company_name}</strong> operations report.
+            It covers your complete data analysis, benchmark comparisons, identified gaps, and your projected operational improvement with Vendoroo.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding-bottom:12px;">
+              <a href="{report_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:50px;text-decoration:none;">View your full report</a>
+            </td></tr>
+            <tr><td>
+              <a href="{interest_url}" style="display:inline-block;background:#0F172A;color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:50px;text-decoration:none;">I want to move forward</a>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="padding:0 40px 28px;">
+          <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.5;">
+            Questions about the report?
+            <a href="{schedule_url}" style="color:#039cac;text-decoration:none;font-weight:600;">Book a call with your advisor</a>
+            and we&apos;ll walk through every finding together.
+          </p>
+        </td></tr>
+
+        <tr><td style="background-color:#0F172A;padding:18px 40px;text-align:center;">
+          <p style="margin:0;color:#475569;font-size:12px;">&copy; Vendoroo &bull; <a href="https://vendoroo.ai" style="color:#039cac;text-decoration:none;">vendoroo.ai</a></p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: resend.Emails.send({
+                    "from": settings.diagnostic_from_email,
+                    "to": [lead_email],
+                    "subject": f"Your full operations report is ready — {company_name}",
+                    "html": html_body,
+                }),
+            )
+            logger.info("Sent report share email to %s (diagnostic %s)", lead_email, diagnostic_id)
+
+        except Exception as exc:
+            logger.error(
+                "Failed to send report share email to %s: %s",
                 lead_email,
                 exc,
             )

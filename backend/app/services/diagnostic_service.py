@@ -1233,32 +1233,26 @@ class DiagnosticService:
                 except Exception as exc:
                     logger.warning("Lead enrichment failed for %s: %s", lead_id, exc)
 
-            # ── Step 11: Send emails (DISABLED) ──────────────────────────────
-            # if lead_id is not None:
-            #     try:
-            #         async with AsyncSessionLocal() as session:
-            #             lead_record = await session.get(db_models.Lead, lead_id)
-            #         if lead_record is not None:
-            #             await self._email_service.send_diagnostic_results(
-            #                 lead_email=lead_record.email,
-            #                 lead_name=lead_record.name,
-            #                 diagnostic_id=diagnostic_id,
-            #                 overall_score=float(overall_score),
-            #                 tier=tier,
-            #                 key_findings=key_findings_serialized,
-            #                 pdf_bytes=pdf_bytes,
-            #             )
-            #             await self._email_service.send_sales_notification(
-            #                 lead_name=lead_record.name,
-            #                 lead_email=lead_record.email,
-            #                 lead_company=lead_record.company,
-            #                 overall_score=float(overall_score),
-            #                 tier=tier,
-            #             )
-            #     except Exception as exc:
-            #         logger.warning(
-            #             "Email send failed for full diagnostic %s: %s", diagnostic_id, exc
-            #         )
+            # ── Step 11: Send results email to prospect ───────────────────────
+            if lead_id is not None:
+                try:
+                    async with AsyncSessionLocal() as session:
+                        lead_record = await session.get(db_models.Lead, lead_id)
+                    if lead_record is not None:
+                        await self._email_service.send_diagnostic_results(
+                            lead_email=lead_record.email,
+                            lead_name=lead_record.name,
+                            lead_id=lead_id,
+                            diagnostic_id=diagnostic_id,
+                            overall_score=float(overall_score),
+                            company_name=ci.company_name,
+                            benchmark_rows=full_summary.get("benchmark_rows", []),
+                            gaps=gaps_serialized,
+                        )
+                except Exception as exc:
+                    logger.warning(
+                        "Results email failed for full diagnostic %s: %s", diagnostic_id, exc
+                    )
 
         except Exception as exc:
             logger.error(

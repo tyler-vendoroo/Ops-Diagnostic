@@ -5,8 +5,9 @@ import uuid
 import asyncio
 import logging
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
-from fastapi.responses import HTMLResponse, Response
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from app.api.internal_auth import verify_internal_token
 from pydantic import BaseModel
 from sqlalchemy import select
 from typing import Optional
@@ -345,3 +346,42 @@ async def send_diagnostic_results_email(id: str):
         raise HTTPException(status_code=500, detail=f"Email send failed: {exc}")
 
     return {"ok": True, "email": lead.email}
+
+
+@router.post("/{id}/share")
+async def share_diagnostic_report(id: str, _authed: bool = Depends(verify_internal_token)):
+    """Sales-triggered: email the full report link to the prospect. Internal auth required."""
+    from app.config import settings
+    from app.services.email_service import EmailService
+
+    async with AsyncSessionLocal() as session:
+        diag = (await session.execute(
+            select(db_models.Diagnostic).where(db_models.Diagnostic.id == id)
+        )).scalar_one_or_none()
+
+        if diag is None:
+            raise HTTPException(status_code=404, detail="Diagnostic not found.")
+        if not diag.lead_id:
+            raise HTTPException(status_code=400, detail="No lead associated with this diagnostic.")
+        if diag.diagnostic_type != "full" or diag.status != "complete":
+            raise HTTPException(status_code=400, detail="Only completed full diagnostics can be shared.")
+
+        lead = await session.get(db_models.Lead, diag.lead_id)
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found.")
+
+    try:
+        svc = EmailService()
+        await svc.send_report_share_email(
+            lead_email=lead.email,
+            lead_name=lead.name,
+            lead_id=lead.id,
+            diagnostic_id=id,
+            company_name=lead.company or "your company",
+        )
+        logger.info("Shared report for diagnostic %s with %s", id, lead.email)
+    except Exception as exc:
+        logger.error("Report share failed for %s: %s", id, exc)
+        raise HTTPException(status_code=500, detail=f"Email send failed: {exc}")
+
+    return {"sent": True, "email": lead.email}
