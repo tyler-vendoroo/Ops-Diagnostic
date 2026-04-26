@@ -137,7 +137,7 @@ async def get_prefill_data(token: str):
                         "company_name": summary.get("company_name") or lead.company,
                         "door_count": summary.get("door_count"),
                         "property_count": summary.get("property_count"),
-                        "pms_platform": lead.pms_platform,
+                        "pms_platform": summary.get("pms_platform") or lead.pms_platform,
                         "operational_model": summary.get("operational_model"),
                         "staff_count": summary.get("staff_count"),
                         "primary_goal": summary.get("primary_goal"),

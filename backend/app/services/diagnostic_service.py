@@ -380,6 +380,7 @@ class DiagnosticService:
                 "category_scores": quick_categories,
                 "company_name": client_info.company_name,
                 "door_count": client_info.door_count,
+                "property_count": client_info.property_count,
                 "staff_count": client_info.staff_count,
                 "staff_label": _staff_label_p,
                 "primary_goal": client_info.primary_goal or "scale",
