@@ -983,6 +983,21 @@ class DiagnosticService:
 
             projected_score_full = calculate_projected_score(overall_score, gap_titles)
 
+            # ── Prep new fields for report pages 7/8 ─────────────────────────
+            _pain_points_raw = client_info_dict.get("pain_points") or []
+            if isinstance(_pain_points_raw, str):
+                _pain_points_raw = [p.strip() for p in _pain_points_raw.split(",") if p.strip()]
+
+            _wo_period = ""
+            if wo_metrics.months_spanned:
+                _mo = round(wo_metrics.months_spanned, 1)
+                _wo_period = f"{int(_mo) if _mo == int(_mo) else _mo} months"
+
+            _top_gap = ""
+            if gaps:
+                _high = [g for g in gaps if g.severity == "High Priority"]
+                _top_gap = (_high[0].title if _high else gaps[0].title)
+
             report_data = ReportData(
                 company_name=ci.company_name,
                 door_count=ci.door_count,
@@ -1033,6 +1048,10 @@ class DiagnosticService:
                     f"Vendoroo Operations Analysis \u2022 {ci.company_name} \u2022 {report_date}"
                 ),
                 wo_metrics=wo_metrics,
+                pain_points=_pain_points_raw,
+                wo_analysis_period=_wo_period,
+                gap_count=len(gaps),
+                top_gap=_top_gap,
             )
 
             html_report: str | None = None

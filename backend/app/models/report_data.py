@@ -140,6 +140,8 @@ class ReportData(BaseModel):
     # ── What We Address Together (Page 5) ──
     gaps: list[GapFinding]
     aaa_intro: str = ""  # AI Adoption Advisor intro paragraph for page 5
+    gap_count: int = 0
+    top_gap: str = ""
 
     # ── Projected Impact (Page 6) ──
     impact_intro: str
@@ -150,6 +152,8 @@ class ReportData(BaseModel):
     current_state_label: str = ""  # e.g. "3 Coordinators"
     current_state_detail: str = ""  # e.g. "342 doors (114 doors/coordinator) | Benchmark: ..."
     path_cards: list[PathCard] = Field(default_factory=list)
+    pain_points: list[str] = Field(default_factory=list)
+    wo_analysis_period: str = ""
 
     # ── Your Path with Vendoroo (Page 7) ──
     tier_cards: list[TierCard] = Field(default_factory=list)

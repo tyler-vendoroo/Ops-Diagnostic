@@ -808,11 +808,41 @@
     <h3 style="font-size: 12pt; font-weight: 600; margin-bottom: 4px;">What's Your Goal?</h3>
     <p style="font-size: 8.5pt; color: var(--mid-gray); margin-bottom: 12px;">Your AI teammate supports three different strategic paths. The right one depends on what you're trying to accomplish.</p>
 
-    <!-- Current State Bar -->
-    <div style="background: var(--gray-bg); border-radius: 6px; padding: 10px 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-      <div style="font-size: 8pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Current State</div>
-      <div style="font-size: 11pt; font-weight: 700;">{{ r.current_state_label }}</div>
-      <div style="font-size: 8.5pt; color: var(--mid-gray);">{{ r.current_state_detail }}</div>
+    <!-- Stated Goal -->
+    <div style="background: var(--gray-bg); border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="font-size: 8pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px;">Your stated goal</div>
+      <div style="font-size: 14pt; font-weight: 700; color: var(--yellow);">{{ r.primary_goal_display or r.primary_goal }}</div>
+      <div style="font-size: 9pt; color: var(--mid-gray); margin-top: 4px;">{{ r.goal_description }}</div>
+    </div>
+
+    {% if r.pain_points %}
+    <div style="background: var(--gray-bg); border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="font-size: 8pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px;">Your biggest pain points</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        {% for pain in r.pain_points %}
+        <span style="background: white; border: 1px solid var(--light-gray); border-radius: 4px; padding: 4px 10px; font-size: 8pt; font-weight: 500;">{{ pain }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Portfolio Stats -->
+    <div style="background: var(--gray-bg); border-radius: 6px; padding: 14px 16px; margin-bottom: 16px;">
+      <div style="font-size: 8pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 8px;">Your operation today</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+        <div>
+          <div style="font-size: 14pt; font-weight: 700;">{{ r.door_count }}</div>
+          <div style="font-size: 7pt; color: var(--mid-gray);">Doors</div>
+        </div>
+        <div>
+          <div style="font-size: 14pt; font-weight: 700;">{{ r.staff_count }}</div>
+          <div style="font-size: 7pt; color: var(--mid-gray);">{{ r.operational_model_display or 'Staff' }}</div>
+        </div>
+        <div>
+          <div style="font-size: 14pt; font-weight: 700;">{{ r.property_count }}</div>
+          <div style="font-size: 7pt; color: var(--mid-gray);">Properties</div>
+        </div>
+      </div>
     </div>
 
     <!-- Three Path Cards -->
@@ -822,105 +852,23 @@
         {% if card.is_selected %}
         <div style="position: absolute; top: -9px; left: 14px; background: var(--yellow); color: var(--dark); font-size: 7pt; font-weight: 700; padding: 1px 8px; border-radius: 8px; text-transform: uppercase;">Your Goal</div>
         {% endif %}
-        <div style="font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--mid-gray); margin-bottom: 4px;{{ ' margin-top: 4px;' if card.is_selected else '' }}">Path {{ card.path_number }}</div>
-        <div style="font-size: 13pt; font-weight: 700; color: var(--dark); margin-bottom: 6px;">{{ card.name }}</div>
+        <div style="font-size: 13pt; font-weight: 700; color: var(--dark); margin-bottom: 6px;{{ ' margin-top: 4px;' if card.is_selected else '' }}">{{ card.name }}</div>
         <p style="font-size: 8pt; color: var(--mid-gray); line-height: 1.4; margin-bottom: 10px; flex: 1;">{{ card.description }}</p>
         <div style="border-top: 1px solid var(--light-gray); padding-top: 10px;">
           <div style="font-size: 16pt; font-weight: 700; color: var(--dark);">{{ card.stat_value }}</div>
-          <div style="font-size: 8pt; color: var(--mid-gray); margin-bottom: 8px;">{{ card.stat_label }}</div>
-          <div style="font-size: 7.5pt; color: var(--mid-gray);">Best supported by</div>
-          <div style="font-size: 9pt; font-weight: 700; color: var(--yellow);">{{ card.best_tier }}</div>
+          <div style="font-size: 8pt; color: var(--mid-gray);">{{ card.stat_label }}</div>
         </div>
       </div>
       {% endfor %}
     </div>
-
-    <p style="font-size: 7.5pt; color: var(--mid-gray); margin-top: 12px;">{{ r.paths_footnote }}</p>
   </div>
   <div class="page-footer"><span>{{ r.footer_text }}</span><span>7</span></div>
 </div>
 
 
-{# ════════════════════════════════════════════════ #}
-{# PAGE 8: YOUR PATH WITH VENDOROO                  #}
-{# ════════════════════════════════════════════════ #}
-<div class="page">
-  <div class="page-content">
-    <div class="section-header">
-      <h2>Your Path with Vendoroo</h2>
-      <p>Based on your gaps, here is what each tier addresses and our recommendation for your portfolio</p>
-    </div>
-
-    <!-- Tier Cards -->
-    <div class="tier-grid">
-      {% for tier in r.tier_cards %}
-      <div class="tier-card{{ ' recommended' if tier.is_recommended else '' }}">
-        {% if tier.is_recommended %}<div class="tier-rec-badge">Recommended</div>{% endif %}
-        <div class="tier-card-name">{{ tier.name }}</div>
-        <div class="tier-card-sub">{{ tier.subtitle }}</div>
-        <div class="tier-card-price">{{ tier.price }} <span>{{ tier.price_unit }}</span></div>
-        <div class="tier-card-roos">{{ tier.roos }}</div>
-        <ul class="tier-card-features">
-          {% for feat in tier.features %}
-          <li>{{ feat }}</li>
-          {% endfor %}
-          {% for feat in tier.new_features %}
-          <li class="new">{{ feat }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Gap-to-Tier Mapping -->
-    {% if r.gap_tier_rows %}
-    <p style="font-size: 9pt; font-weight: 600; margin-bottom: 6px;">How your gaps map to each tier</p>
-
-    <table class="gap-tier-table">
-      <thead>
-        <tr><th>Your Gap</th><th>Engage</th><th>Direct</th><th>Command</th></tr>
-      </thead>
-      <tbody>
-        {% for row in r.gap_tier_rows %}
-        <tr>
-          <td style="font-weight: 500;">{{ row.gap_name }}</td>
-          <td>{% if row.engage == 'check' %}<span class="check">&#10003;</span>{% else %}<span class="dash">No</span>{% endif %}</td>
-          <td>{% if row.direct == 'check' %}<span class="check">&#10003;</span>{% else %}<span class="dash">No</span>{% endif %}</td>
-          <td>{% if row.command == 'check' %}<span class="check">&#10003;</span>{% if row.command_note %} {{ row.command_note }}{% endif %}{% else %}<span class="dash">No</span>{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
-
-    <!-- Recommended Outcome Card -->
-    {% if r.outcome_title %}
-    <div class="outcome-card">
-      <h4>{{ r.outcome_title }}</h4>
-      <p>{{ r.outcome_description }}</p>
-      {% if r.outcome_stats %}
-      <div class="outcome-stats">
-        {% for stat in r.outcome_stats %}
-        <div>
-          <div class="outcome-stat-val">{{ stat.value }}</div>
-          <div class="outcome-stat-label">{{ stat.label }}</div>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {% if r.tier_footnote %}
-    <p style="font-size: 7pt; color: var(--mid-gray); margin-top: 8px;">{{ r.tier_footnote }}</p>
-    {% endif %}
-  </div>
-  <div class="page-footer"><span>{{ r.footer_text }}</span><span>8</span></div>
-</div>
-
 
 {# ════════════════════════════════════════════════ #}
-{# PAGE 9: YOUR AI ADOPTION PROGRAM                 #}
+{# PAGE 8: YOUR AI ADOPTION PROGRAM                 #}
 {# ════════════════════════════════════════════════ #}
 <div class="page">
   <div class="page-content">
@@ -935,45 +883,100 @@
         <span style="font-size: 20pt; color: var(--dark);">&#9733;</span>
       </div>
       <div style="flex: 1;">
-        <div style="font-size: 11pt; font-weight: 700; color: var(--yellow); margin-bottom: 4px;">AI Adoption Advisory: Included with Your Subscription</div>
-        <p style="font-size: 9pt; color: #aaa; line-height: 1.5; margin-bottom: 8px;">{{ r.aaa_value_description if r.aaa_value_description else "Every Vendoroo client receives a dedicated AI Adoption Advisor who builds, configures, and optimizes your AI maintenance operation. This is not a help desk. Your Advisor is a property management expert who personally ensures your AI teammate operates to your standards." }}</p>
-        <div style="display: flex; gap: 16px;">
-          <div><span style="font-size: 14pt; font-weight: 700; color: var(--white);">{{ r.aaa_value_amount }}</span><span style="font-size: 8pt; color: var(--mid-gray);"> value</span></div>
-          <div style="font-size: 8pt; color: var(--green); font-weight: 600; padding-top: 5px;">COMPLIMENTARY WITH SUBSCRIPTION</div>
-        </div>
+        <div style="font-size: 11pt; font-weight: 700; color: var(--yellow); margin-bottom: 4px;">Your Dedicated AI Adoption Advisor</div>
+        <p style="font-size: 9pt; color: #aaa; line-height: 1.5; margin-bottom: 0;">Every Vendoroo client is paired with an AI Adoption Advisor — a property management expert who personally builds, configures, and optimizes your AI maintenance operation. Your Advisor doesn't just identify gaps: they resolve them before go-live.</p>
       </div>
     </div>
 
     <!-- Already Done -->
     <div class="done-box" style="margin-bottom: 16px; padding: 12px 16px;">
-      <h4 style="font-size: 10pt;">&#10003; &nbsp;Already Completed Through This Analysis</h4>
-      {% for item in r.completed_items %}
-      <li style="font-size: 8.5pt;">{{ item }}</li>
-      {% endfor %}
+      <h4 style="font-size: 10pt; margin-bottom: 6px;">&#10003; &nbsp;Already Completed Through This Analysis</h4>
+      <div style="font-size: 8.5pt; color: var(--dark); line-height: 1.6;">
+        <li>Operational assessment of your {{ r.door_count }}-door portfolio</li>
+        <li>Work order pattern analysis{% if r.wo_analysis_period %} across {{ r.wo_analysis_period }} of data{% endif %}</li>
+        <li>Policy and documentation review (PMA, lease, emergency protocols)</li>
+        <li>Gap identification with specific remediation recommendations</li>
+        <li>Vendor network evaluation and trade coverage mapping</li>
+      </div>
     </div>
 
     <!-- Three Phases -->
-    <p style="font-size: 10pt; font-weight: 700; margin-bottom: 12px;">Your Adoption Journey: Three Phases</p>
+    <p style="font-size: 10pt; font-weight: 700; margin-bottom: 12px;">Your Onboarding Journey</p>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-      {% for phase in r.phase_cards %}
-      <div style="border: {{ '2px solid var(--yellow)' if phase.is_current else '1px solid var(--light-gray)' }}; border-radius: 8px; padding: 14px 14px; position: relative;">
-        <div style="position: absolute; top: -9px; left: 14px; background: {{ 'var(--yellow)' if phase.is_current else 'var(--gray-bg)' }}; color: {{ 'var(--dark)' if phase.is_current else 'var(--mid-gray)' }}; font-size: 7pt; font-weight: 700; padding: 1px 8px; border-radius: 8px; text-transform: uppercase;">Phase {{ phase.phase_number }}</div>
-        <div style="font-size: 10pt; font-weight: 700; margin-bottom: 2px; margin-top: 4px;">{{ phase.name }}</div>
-        <div style="font-size: 8pt; color: {{ 'var(--yellow)' if phase.is_current else 'var(--mid-gray)' }}; font-weight: 600; margin-bottom: 8px;">{{ phase.timeframe }}</div>
+
+      <!-- Phase 1: Configure -->
+      <div style="border: 2px solid var(--yellow); border-radius: 8px; padding: 14px 14px; position: relative;">
+        <div style="position: absolute; top: -9px; left: 14px; background: var(--yellow); color: var(--dark); font-size: 7pt; font-weight: 700; padding: 1px 8px; border-radius: 8px; text-transform: uppercase;">Phase 1</div>
+        <div style="font-size: 10pt; font-weight: 700; margin-bottom: 2px; margin-top: 4px;">Configure</div>
+        <div style="font-size: 8pt; color: var(--yellow); font-weight: 600; margin-bottom: 8px;">Week 1–2</div>
         <div style="font-size: 8pt; color: var(--mid-gray); line-height: 1.45;">
-          {{ phase.description }}
+          Your Advisor builds your Maintenance Book — encoding your policies, vendors, NTE thresholds, emergency protocols, and communication preferences into your AI teammate.
         </div>
         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--light-gray);">
-          <div style="font-size: 7pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; margin-bottom: 3px;">Milestone</div>
-          <div style="font-size: 8pt; font-weight: 600;">{{ phase.milestone }}</div>
+          <div style="font-size: 7pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; margin-bottom: 3px;">What gets done</div>
+          <div style="font-size: 7.5pt; color: var(--dark); line-height: 1.5;">
+            &#8226; Vendor network mapped and configured<br>
+            &#8226; NTE thresholds set by trade and urgency<br>
+            &#8226; Emergency protocols encoded<br>
+            &#8226; Communication templates built<br>
+            &#8226; PMS integration connected
+          </div>
         </div>
       </div>
-      {% endfor %}
+
+      <!-- Phase 2: Launch -->
+      <div style="border: 1px solid var(--light-gray); border-radius: 8px; padding: 14px 14px; position: relative;">
+        <div style="position: absolute; top: -9px; left: 14px; background: var(--gray-bg); color: var(--mid-gray); font-size: 7pt; font-weight: 700; padding: 1px 8px; border-radius: 8px; text-transform: uppercase;">Phase 2</div>
+        <div style="font-size: 10pt; font-weight: 700; margin-bottom: 2px; margin-top: 4px;">Launch</div>
+        <div style="font-size: 8pt; color: var(--mid-gray); font-weight: 600; margin-bottom: 8px;">Week 3–4</div>
+        <div style="font-size: 8pt; color: var(--mid-gray); line-height: 1.45;">
+          Your AI teammate goes live. Your Advisor monitors every interaction during the first two weeks, fine-tuning responses and escalation rules in real time.
+        </div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--light-gray);">
+          <div style="font-size: 7pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; margin-bottom: 3px;">What gets done</div>
+          <div style="font-size: 7.5pt; color: var(--dark); line-height: 1.5;">
+            &#8226; AI teammate handles first live requests<br>
+            &#8226; Advisor reviews every interaction<br>
+            &#8226; Escalation rules refined<br>
+            &#8226; Team trained on oversight workflow<br>
+            &#8226; First performance report delivered
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3: Optimize -->
+      <div style="border: 1px solid var(--light-gray); border-radius: 8px; padding: 14px 14px; position: relative;">
+        <div style="position: absolute; top: -9px; left: 14px; background: var(--gray-bg); color: var(--mid-gray); font-size: 7pt; font-weight: 700; padding: 1px 8px; border-radius: 8px; text-transform: uppercase;">Phase 3</div>
+        <div style="font-size: 10pt; font-weight: 700; margin-bottom: 2px; margin-top: 4px;">Optimize</div>
+        <div style="font-size: 8pt; color: var(--mid-gray); font-weight: 600; margin-bottom: 8px;">Day 30–90</div>
+        <div style="font-size: 8pt; color: var(--mid-gray); line-height: 1.45;">
+          Your Advisor continuously optimizes your AI teammate based on real performance data. Monthly reviews ensure your operation keeps improving.
+        </div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--light-gray);">
+          <div style="font-size: 7pt; color: var(--mid-gray); text-transform: uppercase; font-weight: 600; margin-bottom: 3px;">What gets done</div>
+          <div style="font-size: 7.5pt; color: var(--dark); line-height: 1.5;">
+            &#8226; Vendor performance analysis<br>
+            &#8226; Response time optimization<br>
+            &#8226; SLA compliance tracking<br>
+            &#8226; Monthly performance review<br>
+            &#8226; Maintenance Book updates
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personalized note -->
+    <div style="background: var(--gray-bg); border-radius: 6px; padding: 12px 16px;">
+      <p style="font-size: 8.5pt; color: var(--mid-gray); line-height: 1.6; margin: 0;">
+        <strong style="color: var(--dark);">For {{ r.company_name }}:</strong>
+        {% if r.top_gap %}Based on your {{ r.gap_count }} identified gaps, your Advisor will prioritize <strong style="color: var(--dark);">{{ r.top_gap }}</strong> during Phase 1. {% endif %}
+        Your {{ r.door_count }}-door portfolio with {{ r.staff_count }} {{ r.operational_model_display or 'staff' }} is a strong fit for AI coordination — most clients in your range see measurable results within the first 30 days.
+      </p>
     </div>
 
   </div>
-  <div class="page-footer"><span>{{ r.footer_text }}</span><span>9</span></div>
+  <div class="page-footer"><span>{{ r.footer_text }}</span><span>8</span></div>
 </div>
 
 
