@@ -269,16 +269,6 @@ function LeadRowExpanded({ lead, allLeads }: { lead: LeadRow; allLeads: LeadRow[
                           <FileText className="size-3" />
                           Report
                         </a>
-                        <a
-                          href={`${API}/api/v1/diagnostic/${d.id}/pdf`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Download className="size-3" />
-                          PDF
-                        </a>
                         <DiagnosticSendButton diagnosticId={d.id} />
                       </>
                     )}
