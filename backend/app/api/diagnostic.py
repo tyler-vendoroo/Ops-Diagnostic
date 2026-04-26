@@ -295,7 +295,10 @@ async def send_diagnostic_results_email(id: str):
         results_url = f"{settings.api_url}/api/v1/diagnostic/{id}/report"
     else:
         results_url = f"{settings.frontend_url}/diagnostic/results/{id}"
-    schedule_url = f"{settings.frontend_url}/schedule"
+
+    from app.services.notification_service import generate_interest_token
+    _token = generate_interest_token(diag.lead_id)
+    interest_url = f"{settings.frontend_url}/interest/{diag.lead_id}?token={_token}"
 
     try:
         import asyncio
@@ -314,18 +317,16 @@ async def send_diagnostic_results_email(id: str):
       Here&apos;s a link to your Vendoroo operations diagnostic — it shows how your portfolio
       benchmarks against AI-managed operations and where the biggest opportunities are.
     </p>
-    <div style="text-align:center;margin:24px 0;">
-      <a href="{results_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;">
-        View Full Report
+    <p style="margin:0 0 12px;text-align:center;">
+      <a href="{results_url}" style="color:#039cac;font-size:13px;font-weight:600;text-decoration:underline;">View full report</a>
+    </p>
+    <div style="text-align:center;margin:0 0 24px;">
+      <a href="{interest_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.02em;">
+        I want to move forward
       </a>
     </div>
-    <p style="margin:20px 0 0;color:#64748b;font-size:13px;line-height:1.6;">
-      Want to walk through the findings together?
-      <a href="{schedule_url}" style="color:#039cac;text-decoration:none;font-weight:600;">Book a meeting with us</a>
-      and we&apos;ll go through every data point and answer your questions.
-    </p>
-    <hr style="margin:24px 0;border:none;border-top:1px solid #f1f5f9;">
-    <p style="margin:0;color:#94a3b8;font-size:12px;">Questions? Reply to this email — we&apos;re happy to help.</p>
+    <hr style="margin:20px 0;border:none;border-top:1px solid #f1f5f9;">
+    <p style="margin:0;color:#94a3b8;font-size:12px;">Attending NARPM? Come find us in Imperial Room 5A (4th Floor) at the Hyatt Regency New Orleans.</p>
   </div>
 </div>"""
 
