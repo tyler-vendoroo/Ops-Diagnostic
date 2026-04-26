@@ -291,11 +291,7 @@ async def send_diagnostic_results_email(id: str):
             raise HTTPException(status_code=404, detail="Lead not found.")
 
     first_name = lead.name.split()[0] if lead.name else lead.name
-    # Full diagnostics link to the full branded HTML report; quick to the summary page
-    if diag.diagnostic_type == "full" and diag.html_report:
-        results_url = f"{settings.api_url}/api/v1/diagnostic/{id}/report"
-    else:
-        results_url = f"{settings.frontend_url}/diagnostic/results/{id}"
+    results_url = f"{settings.frontend_url}/diagnostic/results/{id}"
     schedule_url = f"{settings.frontend_url}/schedule"
 
     try:

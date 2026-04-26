@@ -34,9 +34,12 @@ class EmailService:
         No report link, no PDF — just enough to drive a meeting booking.
         """
         try:
+            from app.services.notification_service import generate_interest_token
             score_int = int(overall_score)
             first_name = lead_name.split()[0] if lead_name else lead_name
             schedule_url = f"{settings.frontend_url}/schedule?lead={lead_id}"
+            _token = generate_interest_token(lead_id)
+            interest_url = f"{settings.frontend_url}/interest/{lead_id}?token={_token}"
 
             # ── Score ring cells ─────────────────────────────────────────────
             score_color = "#EF4444" if score_int < 50 else ("#FDBB00" if score_int < 70 else "#22C55E")
@@ -140,9 +143,12 @@ class EmailService:
           </div>
         </td></tr>
 
-        <!-- CTA -->
-        <tr><td style="padding:0 40px 32px;text-align:center;">
+        <!-- CTAs -->
+        <tr><td style="padding:0 40px 12px;text-align:center;">
           <a href="{schedule_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.02em;">Book a meeting with your advisor</a>
+        </td></tr>
+        <tr><td style="padding:0 40px 32px;text-align:center;">
+          <a href="{interest_url}" style="display:inline-block;color:#64748b;font-size:13px;font-weight:500;text-decoration:underline;">I want to move forward</a>
         </td></tr>
 
         <!-- Footer -->

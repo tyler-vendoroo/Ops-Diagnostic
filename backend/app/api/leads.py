@@ -147,6 +147,55 @@ async def get_prefill_data(token: str):
 
 
 
+@router.post("/{id}/interest")
+async def mark_lead_interested(id: str, token: str = Query(...)):
+    """Prospect signals intent. Token-secured, no login required."""
+    from app.services.notification_service import verify_interest_token, send_interest_notifications
+    from app.config import settings
+
+    if not verify_interest_token(id, token):
+        raise HTTPException(status_code=403, detail="Invalid token")
+
+    lead_data: dict = {}
+    async with AsyncSessionLocal() as session:
+        lead = await session.get(db_models.Lead, id)
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+
+        lead.status = "interested"
+
+        # Look up their most recent completed diagnostic
+        diag_result = await session.execute(
+            select(db_models.Diagnostic)
+            .where(
+                db_models.Diagnostic.lead_id == id,
+                db_models.Diagnostic.status == "complete",
+            )
+            .order_by(db_models.Diagnostic.created_at.desc())
+            .limit(1)
+        )
+        diag = diag_result.scalar_one_or_none()
+
+        lead_data = {
+            "name": lead.name,
+            "email": lead.email,
+            "company": lead.company or "Unknown",
+            "door_count": lead.door_count,
+            "score": lead.overall_score,
+            "staff_count": lead.staff_count,
+            "operational_model": lead.operational_model or "",
+            "goal": lead.primary_goal or "",
+            "top_gap": lead.top_gap or "",
+            "gap_count": lead.gap_count,
+            "dashboard_url": f"{settings.frontend_url}/internal",
+            "results_url": f"{settings.frontend_url}/diagnostic/results/{diag.id}" if diag else "",
+        }
+        await session.commit()
+
+    await send_interest_notifications(lead_data)
+    return {"success": True, "name": lead_data.get("name", "")}
+
+
 @router.get("/{id}")
 async def get_lead(id: str):
     service = LeadService()
