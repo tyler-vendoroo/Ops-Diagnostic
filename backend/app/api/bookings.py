@@ -315,7 +315,7 @@ async def send_results_email(id: str):
     </p>
     <hr style="margin:24px 0;border:none;border-top:1px solid #f1f5f9;">
     <p style="margin:0;color:#94a3b8;font-size:12px;">
-      Questions? Reply to this email — we&apos;re happy to help.
+      Attending NARPM? Come find us in Imperial Room 5A (4th Floor) at the Hyatt Regency New Orleans.
     </p>
   </div>
 </div>"""

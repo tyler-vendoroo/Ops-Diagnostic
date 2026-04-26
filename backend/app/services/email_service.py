@@ -132,23 +132,25 @@ class EmailService:
         {bench_section}
         {gaps_section}
 
-        <!-- Locked remediation note -->
+        <!-- Note -->
         <tr><td style="padding:0 40px 24px;">
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start;">
-            <span style="font-size:16px;">&#128274;</span>
-            <p style="margin:0;font-size:13px;color:#64748b;line-height:1.5;">
-              <strong style="color:#0F172A;">Remediation plans available when you meet with your advisor.</strong><br>
-              Your advisor will walk through every gap, explain what it means for your operation, and show you exactly how it gets resolved with Vendoroo.
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;">
+            <p style="margin:0;font-size:13px;color:#334155;line-height:1.5;">
+              <strong style="color:#0F172A;">Your full diagnostic report is ready.</strong>
+              Book a meeting with our team to receive your complete analysis with detailed findings, benchmarks, and recommendations for your portfolio.
             </p>
           </div>
         </td></tr>
 
         <!-- CTAs -->
         <tr><td style="padding:0 40px 12px;text-align:center;">
-          <a href="{schedule_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.02em;">Book a meeting with your advisor</a>
+          <a href="{schedule_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.02em;">Book a meeting with our team</a>
+        </td></tr>
+        <tr><td style="padding:0 40px 8px;text-align:center;">
+          <a href="{interest_url}" style="display:inline-block;color:#64748b;font-size:13px;font-weight:500;text-decoration:underline;">I want to move forward</a>
         </td></tr>
         <tr><td style="padding:0 40px 32px;text-align:center;">
-          <a href="{interest_url}" style="display:inline-block;color:#64748b;font-size:13px;font-weight:500;text-decoration:underline;">I want to move forward</a>
+          <p style="margin:0;font-size:12px;color:#94a3b8;">Attending NARPM? Come find us in Imperial Room 5A (4th Floor) at the Hyatt Regency New Orleans.</p>
         </td></tr>
 
         <!-- Footer -->
