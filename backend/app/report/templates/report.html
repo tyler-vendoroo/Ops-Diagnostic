@@ -836,7 +836,7 @@
         </div>
         <div>
           <div style="font-size: 14pt; font-weight: 700;">{{ r.staff_count }}</div>
-          <div style="font-size: 7pt; color: var(--mid-gray);">{{ r.operational_model_display or 'Staff' }}</div>
+          <div style="font-size: 7pt; color: var(--mid-gray);">{{ r.staff_label | capitalize }}</div>
         </div>
         <div>
           <div style="font-size: 14pt; font-weight: 700;">{{ r.property_count }}</div>

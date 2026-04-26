@@ -998,6 +998,48 @@ class DiagnosticService:
                 _high = [g for g in gaps if g.severity == "High Priority"]
                 _top_gap = (_high[0].title if _high else gaps[0].title)
 
+            # ── Staff label for report display ────────────────────────────────
+            _STAFF_LABEL_MAP = {
+                "coordinator": "coordinators", "va": "coordinators",
+                "tech": "technicians", "blended": "staff members", "pod": "pods",
+            }
+            _staff_label = _STAFF_LABEL_MAP.get(ci.operational_model, "coordinators")
+
+            # ── Build path cards for report page 7 ───────────────────────────
+            from app.models.report_data import PathCard as _PathCard
+            _goal = ci.primary_goal or "scale"
+            _goal_data = get_goal_card_data(ci.operational_model, ci.staff_count, ci.door_count, _goal)
+
+            _resp_hrs = wo_metrics.avg_first_response_hours
+            _opt_stat = f"{_resp_hrs}hr → <10min" if _resp_hrs else "Not tracked → <10min"
+
+            _path_cards = [
+                _PathCard(
+                    path_number=1, name="Scale",
+                    description=_goal_data["scale_data"]["description"],
+                    stat_value=_goal_data["scale_data"]["stat_value"],
+                    stat_label=_goal_data["scale_data"]["stat_label"],
+                    best_tier=_goal_data["scale_data"]["best_tier"],
+                    is_selected=(_goal == "scale"),
+                ),
+                _PathCard(
+                    path_number=2, name="Optimize",
+                    description=_goal_data["optimize_data"]["description"],
+                    stat_value=_opt_stat,
+                    stat_label="First response improvement",
+                    best_tier=_goal_data["optimize_data"]["best_tier"],
+                    is_selected=(_goal == "optimize"),
+                ),
+                _PathCard(
+                    path_number=3, name="Elevate",
+                    description=_goal_data["elevate_data"]["description"],
+                    stat_value="72% → 94%",
+                    stat_label="Resident satisfaction potential",
+                    best_tier=_goal_data["elevate_data"]["best_tier"],
+                    is_selected=(_goal == "elevate"),
+                ),
+            ]
+
             report_data = ReportData(
                 company_name=ci.company_name,
                 door_count=ci.door_count,
@@ -1052,6 +1094,8 @@ class DiagnosticService:
                 wo_analysis_period=_wo_period,
                 gap_count=len(gaps),
                 top_gap=_top_gap,
+                path_cards=_path_cards,
+                staff_label=_staff_label,
             )
 
             html_report: str | None = None
