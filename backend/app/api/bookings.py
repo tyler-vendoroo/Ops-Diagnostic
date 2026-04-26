@@ -303,29 +303,25 @@ async def send_results_email(id: str):
         html = f"""
 <div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:32px;">
   <div style="background:#1a1a2e;padding:24px 32px;border-radius:12px 12px 0 0;">
-    <p style="margin:0;color:#039cac;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo &middot; NARPM Broker/Owner 2026</p>
+    <p style="margin:0;color:#039cac;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">Vendoroo Operations Diagnostic</p>
     <h1 style="margin:8px 0 0;color:white;font-size:20px;">Your diagnostic results</h1>
   </div>
   <div style="background:white;padding:24px 32px;border:1px solid #f1f5f9;border-top:none;border-radius:0 0 12px 12px;">
     <p style="margin:0 0 16px;color:#334155;font-size:15px;">Hi {first_name},</p>
     <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.6;">
-      Great meeting you at the conference. Here&apos;s a link to your Vendoroo operations diagnostic — it shows
-      how your portfolio benchmarks against AI-managed operations and where the biggest opportunities are.
+      Here&apos;s a link to your Vendoroo operations diagnostic — it shows how your portfolio
+      benchmarks against AI-managed operations and where the biggest opportunities are.
     </p>
-    <p style="margin:0 0 8px;text-align:center;">
-      <a href="{results_url}" style="color:#039cac;font-size:13px;font-weight:600;text-decoration:underline;">
-        View full report
-      </a>
+    <p style="margin:0 0 12px;text-align:center;">
+      <a href="{results_url}" style="color:#039cac;font-size:13px;font-weight:600;text-decoration:underline;">View full report</a>
     </p>
-    <div style="text-align:center;margin:16px 0 24px;">
+    <div style="text-align:center;margin:0 0 24px;">
       <a href="{interest_url}" style="display:inline-block;background:#039cac;color:#ffffff;font-size:14px;font-weight:700;padding:14px 40px;border-radius:50px;text-decoration:none;letter-spacing:0.02em;">
         I want to move forward
       </a>
     </div>
     <hr style="margin:20px 0;border:none;border-top:1px solid #f1f5f9;">
-    <p style="margin:0;color:#94a3b8;font-size:12px;">
-      Attending NARPM? Come find us in Imperial Room 5A (4th Floor) at the Hyatt Regency New Orleans.
-    </p>
+    <p style="margin:0;color:#94a3b8;font-size:12px;">Attending NARPM? Come find us in Imperial Room 5A (4th Floor) at the Hyatt Regency New Orleans.</p>
   </div>
 </div>"""
 

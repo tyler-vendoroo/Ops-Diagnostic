@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "";
@@ -47,17 +46,11 @@ export default function InterestPage() {
           {name ? `Thanks, ${name}!` : "You’re all set!"}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-vendoroo-muted">
-          Your advisor will reach out within 24 hours to discuss next steps.
+          Someone from our team will reach out within 24 hours, Monday–Friday.
         </p>
-        <p className="mt-6 text-sm text-vendoroo-smoke">
-          In the meantime, feel free to book a specific time:
+        <p className="mt-6 text-sm text-vendoroo-muted">
+          Or come find us at Imperial Room 5A (4th Floor), Hyatt Regency New Orleans.
         </p>
-        <Link
-          href={`/schedule?lead=${leadId}`}
-          className="mt-4 inline-block rounded-full bg-vendoroo-main px-8 py-3 text-sm font-semibold uppercase tracking-wider text-white transition-colors hover:bg-vendoroo-main/90"
-        >
-          Book a meeting
-        </Link>
       </div>
     </div>
   );
